@@ -1,0 +1,10 @@
+# CLion project files
+/.idea/
+
+# VSCode project files
+/.vscode/
+
+# Eclipse project files
+.cproject
+.project
+/.settings/
