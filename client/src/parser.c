@@ -1,18 +1,17 @@
 #include "parser.h"
 
-// <OPCODE> <MSGTYPE>  ............<ARGS>............
-#define CL_MIN_AMOUNT_ARGS  3
-// MENSAJE NEW_POKEMON <POKEMON> <#POSX> <#POSY> <#CANT>
+// <MSGTYPE>  ............<ARGS>............
+#define CL_MIN_AMOUNT_ARGS  1
+// NEW_POKEMON <POKEMON> <#POSX> <#POSY> <#CANT>
 #define CL_NEW_POKEMON_ARGS 6
 
 #define CL_CANT_ARGS_ERROR -1
 
-#define CL_OPCODE_ARG	0	// <OPCODE>
-#define CL_MSGTYPE_ARG  1	// <MSGTYPE>
+#define CL_MSGTYPE_ARG  0	// <MSGTYPE>
 
 typedef enum
 {
-	CL_NEW_POKEMON_NAME_ARG = 2, // <POKEMON>
+	CL_NEW_POKEMON_NAME_ARG = 1, // <POKEMON>
 	CL_NEW_POKEMON_POSX_ARG,	 // <#POSX>
 	CL_NEW_POKEMON_POSY_ARG,	 // <#POSY>
 	CL_NEW_POKEMON_CANT_ARG		 // <#CANT>
@@ -36,33 +35,24 @@ int client_parse_arguments(cl_parser_result* result, int argc, char* argv[])
 	}
 
 	// Lee el código de operación
-	result->header.opcode = (int8_t)cs_string_to_enum(argv[CL_OPCODE_ARG],
-											 	cs_enum_opcode_to_str);
+	result->header.opcode = OPCODE_MENSAJE;
 
-	CS_LOG_TRACE("Se leyó el código de operación: %s",
-			  cs_enum_opcode_to_str(result->header.opcode));
+	// Lee el tipo de mensaje
+	result->header.msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
+											   			cs_enum_msgtype_to_str);
 
-	switch (result->header.opcode)
+	CS_LOG_TRACE("Se leyó el tipo de mensaje: %s",
+					 cs_enum_opcode_to_str(result->header.msgtype));
+
+	// Parsea según el tipo de mensaje
+	switch(result->header.msgtype)
 	{
-	case OPCODE_MENSAJE:
-		// Lee el tipo de mensaje
-		result->header.msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
-												   			cs_enum_msgtype_to_str);
-
-		CS_LOG_TRACE("Se leyó el tipo de mensaje: %s",
-						 cs_enum_opcode_to_str(result->header.msgtype));
-
-		// Parsea según el tipo de mensaje
-		switch(result->header.msgtype)
-		{
-		case NEW_POKEMON:
-			return cl_parse_msg_new_args(result, argc, argv);
-		default:
-			return CL_MSGTYPE_ARG; //Tipo de error: msgtype inválido.
-		}
+	case NEW_POKEMON:
+		return cl_parse_msg_new_args(result, argc, argv);
 	default:
-		return CL_OPCODE_ARG; //Tipo de error: opcode inválido.
+		return CL_MSGTYPE_ARG; //TODO: Ver valor de retorno!!!
 	}
+
 }
 
 static int cl_parse_msg_new_args(cl_parser_result* result, int argc, char* argv[])

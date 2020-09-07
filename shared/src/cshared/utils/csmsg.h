@@ -7,7 +7,6 @@
 #include "csstring.h"
 #include <commons/string.h>
 
-//TODO: [HEADER]: msgtypes
 typedef enum
 {
 	MSGTYPE_UNKNOWN = 0,
@@ -22,14 +21,12 @@ typedef enum
 	CONFIRMAR_PEDIDO,
 	PLATO_LISTO,
 	CONSULTAR_PEDIDO,
-
 	OBTENER_PEDIDO,
 	FINALIZAR_PEDIDO,
 	TERMINAR_PEDIDO,
 	OBTENER_RECETA
 }e_msgtype;
 
-//Todo: [MSG]: Structs
 typedef struct
 {
 	uint32_t x;
@@ -37,8 +34,6 @@ typedef struct
 }t_pos;
 
 //****************CONSULTAR RESTAURANTES
-
-//Sin struct para msg
 
 typedef struct
 {
@@ -53,14 +48,12 @@ typedef struct
 	//TODO: Cliente??
 }t_msg_seleccionar_rest;
 
-//Sin struct para res
-
-//****************OBTENER RESTAURANTE
+//****************OBTENER RESTAURANTE y CONSULTAR PLATOS
 
 typedef struct
 {
 	char* nombre_rest;
-}t_msg_obtener_rest;
+}t_msg_obtener_rest, t_msg_consultar_platos;
 
 typedef struct
 {
@@ -71,23 +64,13 @@ typedef struct
 	uint32_t hornos;	//2
 }t_res_obtener_rest;
 
-//****************CONSULTAR PLATOS
-
+//TODO: Esperar respuesta
 typedef struct
 {
-	char* nombre_rest;
-}t_msg_consultar_platos;
-
-/* TODO: Esperar a ver qué responden del issue
-typedef struct
-{
-	char* nombre_rest;
+	char* platos;
 }t_res_consultar_platos;
-*/
 
 //****************CREAR PEDIDO
-
-//Sin struct para msg
 
 typedef struct
 {
@@ -102,8 +85,6 @@ typedef struct
 	char* 	 nombre_rest;
 }t_msg_guardar_pedido;
 
-//Sin struct para res
-
 //*****************AÑADIR PLATO
 
 typedef struct
@@ -111,27 +92,6 @@ typedef struct
 	uint32_t pedido_id;
 	char* 	 plato;
 }t_msg_aniadir_plato;
-
-//Sin struct para res
-
-//*****************GUARDAR PLATO
-
-typedef struct
-{
-	uint32_t pedido_id;
-	char*	 restaurante;
-}t_msg_guardar_plato;
-
-//Sin struct para res
-
-//*****************CONFIRMAR PEDIDO
-
-typedef struct
-{
-	uint32_t pedido_id;
-}t_msg_confirmar_pedido;
-
-//Sin struct para res
 
 //*****************PLATO LISTO
 
@@ -142,14 +102,13 @@ typedef struct
 	char*	 plato;
 }t_msg_plato_listo;
 
-//Sin struct para res
-
-//*******************CONSULTAR_PEDIDO
+//*******************CONSULTAR_PEDIDO y CONFIRMAR PEDIDO
 
 typedef struct
 {
 	uint32_t pedido_id;
-}t_msg_consultar_pedido;
+}t_msg_consultar_pedido,
+ t_msg_confirmar_pedido;
 
 typedef enum
 {
@@ -172,7 +131,47 @@ typedef struct
 	t_list*			platos;
 }t_res_consultar_pedido;
 
-#define MSG_NEW(ptr) ((t_msg_new*)(ptr))
+//*******************OBTENER_PEDIDO
+
+typedef struct
+{
+	uint32_t pedido_id;
+	char*	 restaurante;
+}t_msg_obtener_pedido;
+
+typedef struct
+{
+	t_list*	 platos;
+}t_res_obtener_pedido;
+
+//*******************
+
+//*****************GUARDAR PLATO, FINALIZAR_PEDIDO y TERMINAR PEDIDO
+
+typedef struct
+{
+	uint32_t pedido_id;
+	char*	 restaurante;
+}t_msg_guardar_plato,
+ t_msg_finalizar_pedido,
+ t_msg_finalizar_pedido;
+
+//*******************
+
+typedef t_msg_finalizar_pedido t_msg_terminar_pedido
+
+//*******************OBTENER RECETA
+
+typedef struct
+{
+	char* plato;
+}t_msg_obtener_receta;
+
+typedef struct
+{
+	char* receta;
+}t_res_obtener_receta;
+
 
 /**
 * @NAME cs_enum_msgtype_to_str
@@ -185,12 +184,6 @@ const char* cs_enum_msgtype_to_str(int value);
 * @DESC Destruye un mensaje y su contenido.
 */
 void 		cs_msg_destroy(void* msg, e_msgtype msg_type);
-
-/**
-* @NAME cs_create_msg_new
-* @DESC Crea un mensaje NEW_POKEMON recibiendo su contenido por parámetro.
-*/
-t_msg_new* 	cs_create_msg_new(const char* pokemon, uint32_t posx, uint32_t posy, uint32_t cantidad);
 
 /**
 * @NAME cs_msg_to_str

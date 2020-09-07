@@ -4,7 +4,21 @@
 static const char* CS_MSGTYPE_STR[] =
 {
 	"UNKNOWN",
-	"NEW_POKEMON",
+	"CONSULTAR_RESTAURANTES",
+	"SELECCIONAR_RESTAURANTE",
+	"OBTENER_RESTAURANTE",
+	"CONSULTAR_PLATOS",
+	"CREAR_PEDIDO",
+	"GUARDAR_PEDIDO",
+	"AÑADIR_PLATO",
+	"GUARDAR_PLATO",
+	"CONFIRMAR_PEDIDO",
+	"PLATO_LISTO",
+	"CONSULTAR_PEDIDO",
+	"OBTENER_PEDIDO",
+	"FINALIZAR_PEDIDO",
+	"TERMINAR_PEDIDO",
+	"OBTENER_RECETA",
 	NULL
 };
 
@@ -18,9 +32,35 @@ void cs_msg_destroy(void* msg, e_msgtype msg_type)
 {
     switch (msg_type)
     {
-    case NEW_POKEMON:
-        free(MSG_NEW(msg)->name);
-        free(msg);
+    case CONSULTAR_RESTAURANTES:
+        break;
+    case SELECCIONAR_RESTAURANTE:
+        break;
+    case OBTENER_RESTAURANTE:
+        break;
+    case CONSULTAR_PLATOS:
+        break;
+    case CREAR_PEDIDO:
+        break;
+    case GUARDAR_PEDIDO:
+        break;
+    case ANIADIR_PLATO:
+        break;
+    case GUARDAR_PLATO:
+        break;
+    case CONFIRMAR_PEDIDO:
+        break;
+    case PLATO_LISTO:
+        break;
+    case CONSULTAR_PEDIDO:
+        break;
+    case OBTENER_PEDIDO:
+        break;
+    case FINALIZAR_PEDIDO:
+        break;
+    case TERMINAR_PEDIDO:
+        break;
+    case OBTENER_RECETA:
         break;
     default:
         break;
@@ -28,21 +68,9 @@ void cs_msg_destroy(void* msg, e_msgtype msg_type)
 }
 
 //TODO: [MSG]: Crear mensaje
-t_msg_new* cs_create_msg_new(const char* pokemon, uint32_t posx, uint32_t posy, uint32_t cantidad)
-{
-	t_msg_new* msg;
-	CHECK_STATUS(MALLOC(msg, sizeof(t_msg_new)));
 
-    msg->name  = string_duplicate((char*)pokemon);
-    msg->pos.x = posx;
-    msg->pos.y = posy;
-    msg->cant  = cantidad;
-
-    return msg;
-}
 
 //TODO: [MSG]: Mensaje a string
-static char* cs_msg_new_to_str(t_msg_new* msg);
 
 char* cs_msg_to_str(void* msg, e_msgtype msgtype)
 {
@@ -55,21 +83,4 @@ char* cs_msg_to_str(void* msg, e_msgtype msgtype)
 	}
 }
 
-static char* cs_msg_new_to_str(t_msg_new* msg)
-{
-	char* msg_str = string_new();
 
-	string_append_with_format(
-		&msg_str,
-		"[POKEMON: %s] "
-		"[X_POS: %d] "
-		"[Y_POS: %d] "
-		"[CANT: %d] ",
-		msg->name,
-		msg->pos.x,
-		msg->pos.y,
-		msg->cant
-	);
-
-	return msg_str;
-}
