@@ -2,7 +2,7 @@
 #define CONN_SEND_H_
 
 #include "utils/cserror.h"
-#include "utils/csmsg.h"
+#include "csmsg.h"
 #include "csconn.h"
 #include "csconncreate.h"
 
@@ -15,22 +15,6 @@
 */
 e_status cs_connect_and_send_msg(const char* ip_key, const char* port_key,
 									t_header header, void* msg, uint32_t* ack_ptr);
-
-/**
-* @NAME cs_send
-* @DESC Envía a la conexión un mensaje serializado, recibiendo sus componentes
-* por argumento. Retorna STATUS_SUCCESS en caso de que se haya enviado con éxito.
-*
-*/
-e_status cs_send(t_sfd conn, t_header header, t_buffer* payload);
-
-/**
-* @NAME cs_recv_ack
-* @DESC Recibe el ack de un mensaje enviado. Retorna STATUS_SUCCESS en caso
-* de que se haya recibido con éxito.
-*/
-e_status cs_recv_ack(t_sfd conn, uint32_t* id);
-
 
 /**
 * @NAME cs_msg_to_buffer

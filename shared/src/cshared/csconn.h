@@ -11,14 +11,12 @@
 
 typedef volatile int t_sfd;
 
-//TODO: [HEADER]: Declarar
 typedef struct
 {
 	int8_t 	 opcode;
 	int8_t 	 msgtype;
 }t_header;
 
-//TODO: [HEADER]: opcodes
 typedef enum
 {
 	OPCODE_UNKNOWN = 0,

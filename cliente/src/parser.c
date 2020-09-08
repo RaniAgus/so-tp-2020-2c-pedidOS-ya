@@ -35,7 +35,7 @@ int client_parse_arguments(cl_parser_result* result, int argc, char* argv[])
 	}
 
 	// Lee el código de operación
-	result->header.opcode = OPCODE_MENSAJE;
+	result->header.opcode = OPCODE_SOLICITUD;
 
 	// Lee el tipo de mensaje
 	result->header.msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
@@ -122,7 +122,7 @@ static void client_append_opcode_to_error(char** str_err_ptr, e_opcode opcode)
 		case OPCODE_UNKNOWN:
 			string_append_with_format(str_err_ptr,"<OPCODE> ");
 			break;
-		case OPCODE_MENSAJE:
+		case OPCODE_SOLICITUD:
 			string_append_with_format(str_err_ptr, "MENSAJE ");
 			break;
 	}

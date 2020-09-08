@@ -1,10 +1,11 @@
 #include "csconn.h"
 
-//TODO: [HEADER]: Opcode a string
 static const char* CS_OPCODE_STR[] =
 {
 	"UNKNOWN",
 	"MENSAJE",
+	"RESPUESTA_OK",
+	"RESPUESTA_FAIL",
 	NULL
 };
 

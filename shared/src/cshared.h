@@ -8,7 +8,7 @@
 #include "cshared/utils/csstring.h"
 #include "cshared/utils/cstemporal.h"
 #include "cshared/utils/cssignal.h"
-#include "cshared/utils/csmsg.h"
+#include "cshared/csmsg.h"
 #include "cshared/csconn.h"
 #include "cshared/csconncreate.h"
 #include "cshared/cssend.h"
