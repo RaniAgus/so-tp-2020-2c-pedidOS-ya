@@ -76,6 +76,11 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		arg++;
 	}
 
+	for(; arg < argc; arg++)
+	{
+		fprintf(stderr, "WARNING - Argumento sin parsear: %s\n", argv[arg]);
+	}
+
 	result->msg = cs_msg_create(result->header.msgtype, plato, cantidad, restaurante, pedido_id);
 
 	return CL_SUCCESS;

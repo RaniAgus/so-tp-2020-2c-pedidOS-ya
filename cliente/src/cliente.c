@@ -61,7 +61,9 @@ int main(int argc, char* argv[])
 		parser_status = client_parse_arguments(&result, arg_cant, arg_values);
 		if(parser_status == CL_SUCCESS)
 		{
-			CS_LOG_TRACE("Los argumentos se parsearon correctamente.");
+			CS_LOG_TRACE("Se parseó el mensaje: %s",
+					cs_msg_to_str(result.msg, result.header.opcode, result.header.msgtype));
+
 			status = client_send_msg(result);
 		}
 		else
