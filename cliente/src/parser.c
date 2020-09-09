@@ -67,7 +67,6 @@ static int cl_parse_msg_new_args(cl_parser_result* result, int argc, char* argv[
 	CHECK_NUMBER(cant, CL_NEW_POKEMON_CANT_ARG);
 
 	// Crea el mensaje (para el ejemplo, el msg_id está sin configurar)
-	result->header.msg_id = 0;
 	result->msg = (void*)cs_create_msg_new(
 			argv[CL_NEW_POKEMON_NAME_ARG],
 			(uint32_t)posx,

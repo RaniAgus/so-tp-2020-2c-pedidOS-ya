@@ -6,7 +6,9 @@
 #include "cserror.h"
 #include "csstring.h"
 #include <commons/string.h>
+#include "utils/cscore.h"
 #include "csconn.h"
+#include "csstructs.h"
 
 typedef enum
 {
@@ -30,33 +32,24 @@ typedef enum
 
 #define CANT_MSGTYPES 15+1
 
-//************************STRUCTS EXTRAS************************
+/**
+* @NAME cs_enum_msgtype_to_str
+* @DESC Devuelve el string correspondiente al enum value de e_msgtype
+*/
+const char*	cs_enum_msgtype_to_str(int value);
 
-typedef enum
-{
-	PEDIDO_PENDIENTE = 1,
-	PEDIDO_CONFIRMADO,
-	PEDIDO_TERMINADO
-}e_estado_pedido;
+/**
+* @NAME cs_msg_to_str
+* @DESC Recibe un mensaje (o respuesta) y devuelve un string con su contenido
+* (normalmente para luego mostrarlo por pantalla en un log).
+*/
+char* 	cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type);
 
-typedef struct
-{
-	uint32_t x;
-	uint32_t y;
-}t_pos;
-
-typedef struct
-{
-	char* 	 plato;
-	uint32_t cant_lista;
-	uint32_t cant_total;
-}t_plato_y_estado;
-
-typedef struct
-{
-	char* 	 paso;
-	uint32_t tiempo;
-}t_paso_receta;
+/**
+* @NAME cs_msg_destroy
+* @DESC Destruye un mensaje (o respuesta) y su contenido.
+*/
+void 	cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type);
 
 //*************************MENSAJES************************
 
@@ -82,9 +75,16 @@ typedef enum
 
 #define MSG_ELEMENTS_CANT 4
 
-//************************RESPUESTAS***************************
+/**
+* @NAME cs_msg/rta_create
+* @DESC Crean una estructura mensaje (usar las macros).
+*/
+t_mensaje* 	cs_msg_create(e_msgtype msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
 
-//CONSULTAR RESTAURANTES
+//*************************CONSULTAR RESTAURANTES*************************
+
+#define cs_msg_consultar_rest_create()\
+	cs_msg_create(CONSULTAR_RESTAURANTES, "", 0, "", 0)
 
 typedef struct
 {
@@ -93,22 +93,38 @@ typedef struct
 
 #define RTA_CONS_REST(ptr) ((t_rta_cons_rest*)(ptr))
 
-//SELECCIONAR RESTAURANTE (OK/FAIL)
+t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
 
-//OBTENER RESTAURANTE
+//*************************SELECCIONAR RESTAURANTE*************************
+
+#define cs_msg_seleccionar_rest_create(rest)\
+	cs_msg_create(SELECCIONAR_RESTAURANTE, "", 0, rest, 0)
+
+//*************************OBTENER RESTAURANTE*************************
+
+#define cs_msg_obtener_rest_create(rest)\
+	cs_msg_create(OBTENER_RESTAURANTE, "", 0, rest, 0)
 
 typedef struct
 {
-	uint32_t cocineros;		 //5
+	uint32_t cant_cocineros; //5
 	char** 	 afinidades;	 //[Milanesa,...]
 //	char** 	 recetas;		 //[Milanesa,Ensalada,Empanada,...]
 	t_pos 	 pos_restaurante;//{posx, posy}
-	uint32_t hornos;		 //2
+	uint32_t cant_hornos;	 //2
 }t_rta_obt_rest;
 
 #define RTA_OBT_REST(ptr) ((t_rta_obt_rest*)(ptr))
 
-//CONSULTAR PLATOS
+t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
+								   	   	   char* 	afinidades,
+										   t_pos 	pos_restaurante,
+										   uint32_t cant_hornos);
+
+//*************************CONSULTAR PLATOS*************************
+
+#define cs_msg_consultar_pl_create(rest)\
+	cs_msg_create(CONSULTAR_PLATOS, "", 0, rest, 0)
 
 typedef struct
 {
@@ -117,7 +133,12 @@ typedef struct
 
 #define RTA_CONS_PL(ptr) ((t_rta_cons_pl*)(ptr))
 
-//CREAR PEDIDO
+t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos);
+
+//*************************CREAR PEDIDO*************************
+
+#define cs_msg_crear_ped_create()\
+	cs_msg_create(CREAR_PEDIDO, "", 0, "", 0)
 
 typedef struct
 {
@@ -126,147 +147,90 @@ typedef struct
 
 #define RTA_CREAR_PED(ptr) ((t_rta_crear_ped*)(ptr))
 
-//GUARDAR PEDIDO (OK/FAIL)
+t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 
-//AÑADIR PLATO (OK/FAIL)
+//*************************GUARDAR PEDIDO*************************
 
-//GUARDAR PLATO (OK/FAIL)
+#define cs_msg_guardar_ped_create(rest, pedido_id)\
+	cs_msg_create(GUARDAR_PEDIDO, "", 0, rest, pedido_id)
 
-//CONFIRMAR PEDIDO (OK/FAIL)
+//*************************AÑADIR PLATO*************************
 
-//PLATO LISTO (OK/FAIL)
+#define cs_msg_aniadir_pl_create(plato, pedido_id)\
+	cs_msg_create(ANIADIR_PLATO, plato, 0, "", pedido_id)
 
-//CONSULTAR PEDIDO
+//*************************GUARDAR PLATO*************************
+
+#define cs_msg_guardar_pl_create(plato, cant, rest, pedido_id)\
+	cs_msg_create(GUARDAR_PLATO, plato, cant, rest, pedido_id)
+
+//*************************CONFIRMAR PEDIDO*************************
+
+#define cs_msg_confirmar_ped_create(pedido_id)\
+	cs_msg_create(CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
+
+//*************************PLATO LISTO*************************
+
+#define cs_msg_plato_listo_create(plato, rest, pedido_id)\
+	cs_msg_create(PLATO_LISTO, plato, 0, rest, pedido_id)
+
+//*************************CONSULTAR PEDIDO*************************
+
+#define cs_msg_consultar_ped_create(pedido_id)\
+	cs_msg_create(CONSULTAR_PEDIDO, "", 0, "", pedido_id)
 
 typedef struct
 {
 	char* 	 		restaurante;
-	e_estado_pedido estado_pedido;
+	e_estado_ped 	estado_pedido;
 	t_list*			platos_y_estados;
 }t_rta_cons_ped;
 
-#define RTA_CONS_PED(ptr)	((t_rta_cons_ped*)(ptr))
+#define RTA_CONSULTAR_PED(ptr)	((t_rta_cons_ped*)(ptr))
 
-//OBTENER_PEDIDO
+t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest,
+											e_estado_ped estado_ped,
+											char* platos,
+											char* listos,
+											char* totales);
+
+//*************************OBTENER PEDIDO*************************
+
+#define cs_msg_obtener_ped_create(rest, pedido_id)\
+	cs_msg_create(OBTENER_PEDIDO, "", 0, rest, pedido_id)
 
 typedef struct
 {
 	t_list*	 platos_y_estados;
 }t_rta_obt_ped;
 
-#define RTA_OBT_PED(ptr)	((t_rta_obt_ped*)(ptr))
+#define RTA_OBTENER_PED(ptr)	((t_rta_obt_ped*)(ptr))
 
-//FINALIZAR PEDIDO (OK/FAIL)
+t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales);
 
-//TERMINAR PEDIDO (OK/FAIL)
+//*************************FINALIZAR PEDIDO*************************
 
-//OBTENER RECETA
+#define cs_msg_fin_ped_create(rest, pedido_id)\
+	cs_msg_create(FINALIZAR_PEDIDO, "", 0, rest, pedido_id)
+
+//*************************TERMINAR PEDIDO*************************
+
+#define cs_msg_term_ped_create(rest, pedido_id)\
+	cs_msg_create(TERMINAR_PEDIDO, "", 0, rest, pedido_id)
+
+//*************************OBTENER RECETA*************************
+
+#define cs_msg_rta_obtener_receta_create(plato)\
+	cs_msg_create(OBTENER_RECETA, plato, 0, "", 0)
 
 typedef struct
 {
 	t_list* pasos_receta;
 }t_rta_obt_rec;
 
-#define RTA_OBT_REC(ptr) ((t_rta_obt_rec*)(ptr))
+#define RTA_OBTENER_RECETA(ptr) ((t_rta_obt_rec*)(ptr))
 
-/**
-* @NAME cs_enum_msgtype_to_str
-* @DESC Devuelve el string correspondiente al enum value de t_enum_msgtype
-*/
-const char*	cs_enum_msgtype_to_str(int value);
+t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos);
 
-/**
-* @NAME cs_msg_destroy
-* @DESC Destruye un mensaje y su contenido.
-*/
-void 	cs_msg_destroy(t_mensaje* msg);
-
-/**
-* @NAME cs_rta_destroy
-* @DESC Destruye una respuesta y su contenido.
-*/
-void 	cs_rta_destroy(void* msg, e_msgtype msg_type);
-
-/**
-* @NAME cs_receta_destroy
-* @DESC Destruye una lista de pasos de una receta.
-*/
-void 	cs_receta_destroy(t_list* receta);
-
-/**
-* @NAME cs_platos_destroy
-* @DESC Destruye una lista de platos con sus estados.
-*/
-void 	cs_platos_destroy(t_list* platos);
-
-/**
-* @NAME cs_msg_destroy
-* @DESC Crea una estructura mensaje (usar las macros para cada
-* tipo de mensaje).
-*/
-t_mensaje* 	cs_msg_create(e_msgtype msgtype,
-						  char*     plato,
-						  uint32_t  cant,
-						  char*     rest,
-						  uint32_t  pedido_id);
-
-#define cs_msg_consultar_rest_create()\
-	cs_msg_create(CONSULTAR_RESTAURANTES, "", 0, "", 0)
-
-#define cs_msg_seleccionar_rest_create(rest)\
-	cs_msg_create(SELECCIONAR_RESTAURANTE, "", 0, rest, 0)
-
-#define cs_msg_obtener_rest_create(rest)\
-	cs_msg_create(OBTENER_RESTAURANTE, "", 0, rest, 0)
-
-#define cs_msg_consultar_pl_create(rest)\
-	cs_msg_create(CONSULTAR_PLATOS, "", 0, rest, 0)
-
-#define cs_msg_crear_ped_create()\
-	cs_msg_create(CREAR_PEDIDO, "", 0, "", 0)
-
-#define cs_msg_guardar_ped_create(rest, pedido_id)\
-	cs_msg_create(GUARDAR_PEDIDO, "", 0, rest, pedido_id)
-
-#define cs_msg_aniadir_pl_create(plato, pedido_id)\
-	cs_msg_create(ANIADIR_PLATO, plato, 0, "", pedido_id)
-
-#define cs_msg_guardar_pl_create(plato, cant, rest, pedido_id)\
-	cs_msg_create(GUARDAR_PLATO, plato, cant, rest, pedido_id)
-
-#define cs_msg_confirmar_ped_create(pedido_id)\
-	cs_msg_create(CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
-
-#define cs_msg_plato_listo_create(plato, rest, pedido_id)\
-	cs_msg_create(PLATO_LISTO, plato, 0, rest, pedido_id)
-
-#define cs_msg_consultar_ped_create(pedido_id)\
-	cs_msg_create(CONSULTAR_PEDIDO, "", 0, "", pedido_id)
-
-#define cs_msg_obt_ped_create(rest, pedido_id)\
-	cs_msg_create(OBTENER_PEDIDO, "", 0, rest, pedido_id)
-
-#define cs_msg_fin_ped_create(rest, pedido_id)\
-	cs_msg_create(FINALIZAR_PEDIDO, "", 0, rest, pedido_id)
-
-#define cs_msg_term_ped_create(rest, pedido_id)\
-	cs_msg_create(TERMINAR_PEDIDO, "", 0, rest, pedido_id)
-
-#define cs_msg_obtener_receta_create(plato)\
-	cs_msg_create(OBTENER_RECETA, plato, 0, "", 0)
-
-/**
-* @NAME cs_msg_to_str
-* @DESC Recibe un mensaje y devuelve un string con su contenido
-* (normalmente para luego mostrarlo por pantalla en un log).
-*/
-char*		cs_msg_to_str(t_mensaje* msg);
-
-/**
-* @NAME cs_rta_to_str
-* @DESC Recibe una respuesta y devuelve un string con su contenido
-* (normalmente para luego mostrarlo por pantalla en un log).
-*/
-char*		cs_rta_to_str(void* msg, e_msgtype msg_type);
 
 #endif /* UTILS_MSG_H_ */

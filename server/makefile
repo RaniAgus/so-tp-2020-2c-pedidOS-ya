@@ -24,7 +24,7 @@ $(LIB_PATH)/lib$(LIB_NAME).so:
 	-cd $(LIB_PATH) && $(MAKE)
 
 $(ODIR)/%.o: $(SRCDIR)/%.c $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	mkdir -p $(ODIR) && $(CC) $(CFLAGS) -c -o $@ $<
 
 $(NAME): $(OBJ) $(LIB_PATH)/lib$(LIB_NAME).so
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
