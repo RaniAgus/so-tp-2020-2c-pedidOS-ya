@@ -23,7 +23,7 @@ void cs_parse_argument(char* arg_with_dashes)
 
 int main(int argc, char* argv[])
 {
-	e_status status;
+	e_status status = STATUS_SUCCESS;
 
 #ifndef RELEASE
 	for(int i = 1; i<argc; i++)
@@ -36,8 +36,9 @@ int main(int argc, char* argv[])
 	CHECK_STATUS(cs_logger_init("CLIENT_LOGGER", "CLIENT"));
 
 	CS_LOG_TRACE("Iniciado correctamente.");
-	while(1)
+	while(status == STATUS_SUCCESS)
 	{
+		cl_parser_status parser_status;
 		cl_parser_result result;
 
 		char **arg_values, *received;
@@ -57,16 +58,15 @@ int main(int argc, char* argv[])
 
 		CS_LOG_TRACE("La cantidad de argumentos es: %d", arg_cant);
 
-		status = client_parse_arguments(&result, arg_cant, arg_values);
-		if(status == STATUS_SUCCESS)
+		parser_status = client_parse_arguments(&result, arg_cant, arg_values);
+		if(parser_status == CL_SUCCESS)
 		{
 			CS_LOG_TRACE("Los argumentos se parsearon correctamente.");
 			status = client_send_msg(result);
 		}
 		else
 		{
-			client_print_parser_error(status, result);
-			status = STATUS_SUCCESS;
+			client_print_parser_error(parser_status, result);
 		}
 
 		free(received);
@@ -97,7 +97,7 @@ e_status client_send_msg(cl_parser_result result)
 	}
 
 	//Libera recursos
-	cs_msg_destroy(result.msg, result.header.msgtype);
+	cs_msg_destroy(result.msg, result.header.opcode, result.header.msgtype);
 
 	return status;
 }

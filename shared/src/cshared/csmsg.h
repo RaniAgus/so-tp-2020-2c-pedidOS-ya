@@ -3,10 +3,10 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "cserror.h"
-#include "csstring.h"
 #include <commons/string.h>
 #include "utils/cscore.h"
+#include "utils/cserror.h"
+#include "utils/csstring.h"
 #include "csconn.h"
 #include "csstructs.h"
 
@@ -30,7 +30,7 @@ typedef enum
 	OBTENER_RECETA
 }e_msgtype;
 
-#define CANT_MSGTYPES 15+1
+#define MSGTYPES_CANT 15+1
 
 /**
 * @NAME cs_enum_msgtype_to_str
@@ -71,9 +71,9 @@ typedef enum
 	MSG_CANTIDAD,
 	MSG_RESTAURANTE,
 	MSG_PEDIDO_ID
-}e_msg_elem;
+}e_msg_arg;
 
-#define MSG_ELEMENTS_CANT 4
+#define MSG_ARGS_CANT 4
 
 /**
 * @NAME cs_msg/rta_create
@@ -232,5 +232,11 @@ typedef struct
 
 t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos);
 
+/**
+* @NAME cs_msg_has_argument
+* @DESC Devuelve un boolean indicando si el tipo de mensaje
+* tiene ese argumento.
+*/
+bool cs_msg_has_argument(e_msgtype msgtype, e_msg_arg arg);
 
 #endif /* UTILS_MSG_H_ */

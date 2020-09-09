@@ -9,9 +9,15 @@ typedef struct
 	void*	 msg;
 }cl_parser_result;
 
-#define CL_SUCCESS			0
+typedef enum
+{
+	CL_SUCCESS = 0,
+	CL_CANT_ARGS_ERROR,
+	CL_MSGTYPE_ARG_ERROR,
+	CL_ARGS_ERROR
+}cl_parser_status;
 
-int client_parse_arguments(cl_parser_result* result, int argc, char* argv[]);
-void client_print_parser_error(int status, cl_parser_result result);
+cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[]);
+void 			 client_print_parser_error(cl_parser_status status, cl_parser_result result);
 
 #endif //CLIENT_PARSER_H

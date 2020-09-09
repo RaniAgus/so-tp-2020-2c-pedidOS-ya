@@ -1,7 +1,5 @@
 #include "csmsg.h"
 
-static bool _mensaje_has_element(e_msgtype msgtype, e_msg_elem element);
-
 static void _msg_append(char** msg_str, t_mensaje* msg);
 
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
@@ -12,7 +10,7 @@ static void _rta_cons_ped_append(char** msg_str, t_rta_cons_ped* msg);
 static void _rta_obt_ped_append(char** msg_str, t_rta_obt_ped* msg);
 static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg);
 
-static const char* CS_MSGTYPE_STR[] =
+static const char* _MSGTYPE_STR[] =
 {
 	"UNKNOWN",
 	"CONSULTAR_RESTAURANTES",
@@ -35,7 +33,7 @@ static const char* CS_MSGTYPE_STR[] =
 
 const char* cs_enum_msgtype_to_str(int value)
 {
-	return CS_MSGTYPE_STR[value];
+	return _MSGTYPE_STR[value];
 }
 
 static void _rta_destroy(void* msg, e_msgtype msg_type);
@@ -207,7 +205,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 static void _msg_append(char** msg_str, t_mensaje* msg)
 {
 
-	if(_mensaje_has_element(msg->msgtype, MSG_PLATO))
+	if(cs_msg_has_argument(msg->msgtype, MSG_PLATO))
 	{
 		string_append_with_format(
 				msg_str,
@@ -215,7 +213,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->plato
 		);
 	}
-	if(_mensaje_has_element(msg->msgtype, MSG_CANTIDAD))
+	if(cs_msg_has_argument(msg->msgtype, MSG_CANTIDAD))
 	{
 		string_append_with_format(
 				msg_str,
@@ -223,7 +221,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->cantidad
 		);
 	}
-	if(_mensaje_has_element(msg->msgtype, MSG_RESTAURANTE))
+	if(cs_msg_has_argument(msg->msgtype, MSG_RESTAURANTE))
 	{
 		string_append_with_format(
 				msg_str,
@@ -231,7 +229,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->restaurante
 		);
 	}
-	if(_mensaje_has_element(msg->msgtype, MSG_PEDIDO_ID))
+	if(cs_msg_has_argument(msg->msgtype, MSG_PEDIDO_ID))
 	{
 		string_append_with_format(
 				msg_str,
@@ -381,7 +379,7 @@ static void _rta_destroy(void* msg, e_msgtype msg_type)
 
 /***********ELEMENTOS DE CADA TIPO DE SOLICITUD*********/
 
-static const int MENSAJE_HAS_ELEMENT[CANT_MSGTYPES][MSG_ELEMENTS_CANT] =
+static const int _MSG_ARGS[MSGTYPES_CANT][MSG_ARGS_CANT] =
 {
            /*{plato, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
@@ -403,7 +401,7 @@ static const int MENSAJE_HAS_ELEMENT[CANT_MSGTYPES][MSG_ELEMENTS_CANT] =
 
 };
 
-static bool _mensaje_has_element(e_msgtype msgtype, e_msg_elem element)
+bool cs_msg_has_argument(e_msgtype msgtype, e_msg_arg arg)
 {
-	return MENSAJE_HAS_ELEMENT[(int)msgtype][(int)element];
+	return _MSG_ARGS[(int)msgtype][(int)arg];
 }

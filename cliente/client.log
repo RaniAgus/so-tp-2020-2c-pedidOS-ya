@@ -1,0 +1,60 @@
+[ERROR] 01:06:29:45 CLIENT/(15331:15331): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[ERROR] 01:07:37:300 CLIENT/(15350:15350): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[TRACE] 01:08:14:525 CLIENT/(15370:15370): Iniciado correctamente.
+[TRACE] 01:08:36:638 CLIENT/(15370:15370): Se recibió la línea: GUARDAR_PEDIDO PLATO 2 RESTO 2
+[TRACE] 01:08:36:638 CLIENT/(15370:15370): La cantidad de argumentos es: 5
+[TRACE] 01:08:36:638 CLIENT/(15370:15370): Se leyó el tipo de mensaje: �dI`I
+[TRACE] 01:08:36:639 CLIENT/(15370:15370): <RESTAURANTE> = PLATO
+[TRACE] 01:08:36:639 CLIENT/(15370:15370): <#ID_PEDIDO> = 2
+[TRACE] 01:08:36:639 CLIENT/(15370:15370): Los argumentos se parsearon correctamente.
+[ERROR] 01:08:36:639 CLIENT/(15370:15370): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[TRACE] 01:09:59:513 CLIENT/(15529:15529): Iniciado correctamente.
+[TRACE] 01:10:11:220 CLIENT/(15529:15529): Se recibió la línea: OBTENER_PEDIDO PLATO 2 RESTO 2
+[TRACE] 01:10:11:220 CLIENT/(15529:15529): La cantidad de argumentos es: 5
+[TRACE] 01:10:11:221 CLIENT/(15529:15529): Se leyó el tipo de mensaje: OBTENER_PEDIDO
+[TRACE] 01:10:11:221 CLIENT/(15529:15529): <RESTAURANTE> = PLATO
+[TRACE] 01:10:11:221 CLIENT/(15529:15529): <#ID_PEDIDO> = 2
+[TRACE] 01:10:11:221 CLIENT/(15529:15529): Los argumentos se parsearon correctamente.
+[ERROR] 01:10:11:221 CLIENT/(15529:15529): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[TRACE] 01:14:05:503 CLIENT/(15648:15648): Iniciado correctamente.
+[TRACE] 01:14:22:601 CLIENT/(15648:15648): Se recibió la línea: GUARDAR_PLATO PLATO 2 RESTO 2
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): La cantidad de argumentos es: 5
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): Se leyó el tipo de mensaje: GUARDAR_PLATO
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): <PLATO> = PLATO
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): <#CANT> = 2
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): <RESTAURANTE> = RESTO
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): <#ID_PEDIDO> = 2
+[TRACE] 01:14:22:602 CLIENT/(15648:15648): Los argumentos se parsearon correctamente.
+[ERROR] 01:14:22:603 CLIENT/(15648:15648): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[TRACE] 01:14:58:568 CLIENT/(15672:15672): Iniciado correctamente.
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): Se recibió la línea: PLATO_LISTO PLATO RESTO 2
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): La cantidad de argumentos es: 4
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): Se leyó el tipo de mensaje: PLATO_LISTO
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): <PLATO> = PLATO
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): <RESTAURANTE> = RESTO
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): <#ID_PEDIDO> = 2
+[TRACE] 01:15:10:612 CLIENT/(15672:15672): Los argumentos se parsearon correctamente.
+[ERROR] 01:15:10:613 CLIENT/(15672:15672): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
+[TRACE] 01:20:23:734 CLIENT/(15797:15797): Iniciado correctamente.
+[TRACE] 01:21:01:801 CLIENT/(15859:15859): Iniciado correctamente.
+[TRACE] 01:21:04:262 CLIENT/(15859:15859): Se recibió la línea:   
+[TRACE] 01:21:04:263 CLIENT/(15859:15859): La cantidad de argumentos es: 0
+[TRACE] 01:21:31:722 CLIENT/(15881:15881): Iniciado correctamente.
+[TRACE] 01:21:34:166 CLIENT/(15881:15881): Se recibió la línea:   
+
+[TRACE] 01:21:34:166 CLIENT/(15881:15881): La cantidad de argumentos es: 0
+[TRACE] 01:22:05:48 CLIENT/(15904:15904): Iniciado correctamente.
+[TRACE] 01:22:06:984 CLIENT/(15904:15904): Se recibió la línea:   
+[TRACE] 01:22:06:985 CLIENT/(15904:15904): La cantidad de argumentos es: 0
+[TRACE] 01:22:19:845 CLIENT/(15904:15904): Se recibió la línea: poipoiopi
+[TRACE] 01:22:19:846 CLIENT/(15904:15904): La cantidad de argumentos es: 1
+[TRACE] 01:22:19:846 CLIENT/(15904:15904): Se leyó el tipo de mensaje: UNKNOWN
+[TRACE] 01:22:19:846 CLIENT/(15904:15904): Los argumentos se parsearon correctamente.
+[ERROR] 01:22:19:846 CLIENT/(15904:15904): CONNECT_ERROR#16 (src/cliente.c:client_send_msg:96) -- Connection refused
+
