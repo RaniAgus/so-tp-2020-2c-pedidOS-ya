@@ -18,7 +18,7 @@ static t_package* cs_package_create(t_header header, t_buffer* payload);
 static t_buffer*  cs_package_to_buffer(t_package* package);
 
 e_status cs_connect_and_send_msg(const char* ip_key, const char* port_key,
-									t_header header, void* msg, uint32_t* ack_ptr)
+									t_header header, void* msg)
 {
 	e_status status;
 	t_buffer* payload = NULL;

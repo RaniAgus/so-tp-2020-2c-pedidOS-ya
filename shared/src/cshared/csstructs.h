@@ -19,10 +19,10 @@ typedef struct
 
 typedef struct
 {
-	char* plato;
+	char* comida;
 	int   cant_lista;
 	int   cant_total;
-}t_plato_y_estado;
+}t_plato;
 
 typedef struct
 {
@@ -30,6 +30,11 @@ typedef struct
 	int   tiempo;
 }t_paso_receta;
 
+typedef struct
+{
+	char* comida;
+	int   precio;
+}t_comida_menu;
 
 /**
 * @NAME cs_enum_estado_pedido_to_str
@@ -41,13 +46,19 @@ const char* cs_enum_estado_pedido_to_str(int value);
 * @NAME cs_platos_destroy
 * @DESC Destruye una lista de platos con sus estados.
 */
-void 	cs_platos_y_estados_destroy(t_list* platos);
+void 	cs_platos_destroy(t_list* platos);
 
 /**
 * @NAME cs_receta_destroy
 * @DESC Destruye una lista de pasos de una receta.
 */
 void 	cs_receta_destroy(t_list* receta);
+
+/**
+* @NAME cs_menu_destroy
+* @DESC Destruye una lista comidas de un menú.
+*/
+void	cs_menu_destroy(t_list* menu);
 
 /**
 * @NAME cs_platos_create
@@ -60,11 +71,11 @@ void 	cs_receta_destroy(t_list* receta);
 * - Salida:
 *   list = [{"Milanesa",0,1},{"Empanada",2,4},{"Ensalada",1,1}]
 */
-t_list* cs_platos_y_estados_create(char* platos, char* listos, char* totales);
+t_list* cs_platos_create(char* comidas, char* listos, char* totales);
 
 /**
 * @NAME cs_receta_create
-* @DESC Crea una lista de pasos de una receta, a partir de strings.
+* @DESC Crea una lista de pasos de una receta a partir de strings.
 * Ejemplo:
 * - Entrada:
 * 	pasos = "[Trozar,Hornear,Reposar]"
@@ -73,5 +84,17 @@ t_list* cs_platos_y_estados_create(char* platos, char* listos, char* totales);
 *   list = [{"Trozar",12},{"Hornear",20},{"Reposar",5}]
 */
 t_list* cs_receta_create(char* pasos, char* tiempos);
+
+/**
+* @NAME cs_menu_create
+* @DESC Crea una lista de comidas de un menu a partir de strings.
+* Ejemplo:
+* - Entrada:
+* 	pasos = "[Pizza, Empanada, Milanesa]"
+* 	tiempos = "[520,70,240]"
+* - Salida:
+*   list = [{"Pizza",520},{"Empanada",70},{"Milanesa",240}]
+*/
+t_list* cs_menu_create(char* comidas, char* precios);
 
 #endif /* CSHARED_CSSTRUCTS_H_ */

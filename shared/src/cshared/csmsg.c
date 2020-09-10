@@ -43,7 +43,7 @@ void cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type)
 	switch(op_code)
 	{
 	case OPCODE_MENSAJE:
-		free(MENSAJE_PTR(msg)->plato);
+		free(MENSAJE_PTR(msg)->comida);
 		free(MENSAJE_PTR(msg)->restaurante);
 		free(msg);
 		break;
@@ -109,7 +109,9 @@ t_mensaje* 	cs_msg_create(e_msgtype msgtype, char* plato, uint32_t cant, char* r
 	t_mensaje* msg;
 	CHECK_STATUS(MALLOC(msg, sizeof(t_mensaje)));
 
-	msg->plato       = string_duplicate(plato);
+	msg->msgtype = msgtype;
+
+	msg->comida      = string_duplicate(plato);
 	msg->cantidad    = cant;
 	msg->restaurante = string_duplicate(rest);
 	msg->pedido_id   = pedido_id;
@@ -128,15 +130,18 @@ t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
 }
 
 t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
-								   char* 	afinidades,
-								   t_pos 	pos_restaurante,
-								   uint32_t cant_hornos)
+								   	   	   char* 	afinidades,
+										   char*	comidas,
+										   char*	precios,
+										   t_pos 	pos_restaurante,
+										   uint32_t cant_hornos)
 {
 	t_rta_obt_rest* rta;
 	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_obt_rest)));
 
 	rta->cant_cocineros    = cant_cocineros;
 	rta->afinidades 	   = string_get_string_as_array(afinidades);
+	rta->menu			   = cs_menu_create(comidas, precios);
 	rta->pos_restaurante.x = pos_restaurante.x;
 	rta->pos_restaurante.y = pos_restaurante.y;
 	rta->cant_hornos 	   = cant_hornos;
@@ -175,7 +180,7 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
 
 	rta->restaurante      = string_duplicate(rest);
 	rta->estado_pedido    = estado_ped;
-	rta->platos_y_estados = cs_platos_y_estados_create(platos, listos, totales);
+	rta->platos_y_estados = cs_platos_create(platos, listos, totales);
 
 	return rta;
 }
@@ -185,7 +190,7 @@ t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* total
 	t_rta_obt_ped* rta;
 	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_obt_ped)));
 
-	rta->platos_y_estados = cs_platos_y_estados_create(platos, listos, totales);
+	rta->platos_y_estados = cs_platos_create(platos, listos, totales);
 
 	return rta;
 }
@@ -205,12 +210,12 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 static void _msg_append(char** msg_str, t_mensaje* msg)
 {
 
-	if(cs_msg_has_argument(msg->msgtype, MSG_PLATO))
+	if(cs_msg_has_argument(msg->msgtype, MSG_COMIDA))
 	{
 		string_append_with_format(
 				msg_str,
 				" {PLATO: %s}",
-				msg->plato
+				msg->comida
 		);
 	}
 	if(cs_msg_has_argument(msg->msgtype, MSG_CANTIDAD))
@@ -269,7 +274,18 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 	string_append_with_format(msg_str, " {POSX: %d} {POSY: %d}",
 			msg->pos_restaurante.x, msg->pos_restaurante.y);
 
-	//TODO: Recetas??
+	string_append(msg_str, " {MENÚ: [");
+
+	void _pasos_receta_append(t_comida_menu* comida_menu)
+	{
+		string_append_with_format(msg_str, "%s ($%d),",
+				comida_menu->comida,
+				comida_menu->precio);
+	}
+	list_iterate(msg->menu, (void*) _pasos_receta_append);
+
+	(*msg_str)[strlen(*msg_str)-1] = ']';
+	string_append(msg_str, "}");
 
 	string_append_with_format(msg_str, " {CANT_HORNOS: %d}",
 			msg->cant_hornos);
@@ -299,10 +315,10 @@ static void _platos_append(char** msg_str, t_list* platos_y_estados)
 {
 	string_append(msg_str, " {ESTADO_PLATOS: [");
 
-	void _plato_y_estado_append(t_plato_y_estado* plato_y_estado)
+	void _plato_y_estado_append(t_plato* plato_y_estado)
 	{
 		string_append_with_format(msg_str, "%s (%d/%d),",
-				plato_y_estado->plato,
+				plato_y_estado->comida,
 				plato_y_estado->cant_lista,
 				plato_y_estado->cant_total);
 	}
@@ -354,7 +370,7 @@ static void _rta_destroy(void* msg, e_msgtype msg_type)
     case OBTENER_RESTAURANTE:
     	string_iterate_lines(RTA_OBT_REST(msg)->afinidades, (void*) free);
     	free(RTA_OBT_REST(msg)->afinidades);
-    	//TODO: Recetas?
+    	cs_menu_destroy(RTA_OBT_REST(msg)->menu);
     	break;
     case CONSULTAR_PLATOS:
     	string_iterate_lines(RTA_CONS_PL(msg)->platos, (void*) free);
@@ -362,10 +378,10 @@ static void _rta_destroy(void* msg, e_msgtype msg_type)
         break;
     case CONSULTAR_PEDIDO:
     	free(RTA_CONSULTAR_PED(msg)->restaurante);
-    	cs_platos_y_estados_destroy(RTA_CONSULTAR_PED(msg)->platos_y_estados);
+    	cs_platos_destroy(RTA_CONSULTAR_PED(msg)->platos_y_estados);
         break;
     case OBTENER_PEDIDO:
-    	cs_platos_y_estados_destroy(RTA_OBTENER_PED(msg)->platos_y_estados);
+    	cs_platos_destroy(RTA_OBTENER_PED(msg)->platos_y_estados);
         break;
     case OBTENER_RECETA:
     	cs_receta_destroy(RTA_OBTENER_RECETA(msg)->pasos_receta);
@@ -381,7 +397,7 @@ static void _rta_destroy(void* msg, e_msgtype msg_type)
 
 static const int _MSG_ARGS[MSGTYPES_CANT][MSG_ARGS_CANT] =
 {
-           /*{plato, cant, rest, p_id}*/
+           /*{comida, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
 /*CONS_RES */{  0  ,  0  ,  0  ,  0  },
 /*SEL_RES  */{  0  ,  0  ,  1  ,  0  }, //todo: ¿¿qué es el cliente??

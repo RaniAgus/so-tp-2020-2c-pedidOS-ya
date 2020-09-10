@@ -7,14 +7,13 @@
 #include "csconncreate.h"
 
 /**
-* @NAME db_send_and_recv_ack
+* @NAME cs_connect_and_send_msg
 * @DESC Envía un mensaje serializado a la IP y PUERTO que lee desde el archivo
-* config interno, retornando la respuesta ack del receptor. Retorna STATUS_SUCCESS
-* en caso de que el envío y recepción haya sido exitoso.
+* config interno. Retorna STATUS_SUCCESS en caso de que el envío haya sido exitoso.
 *
 */
 e_status cs_connect_and_send_msg(const char* ip_key, const char* port_key,
-									t_header header, void* msg, uint32_t* ack_ptr);
+									t_header header, void* msg);
 
 /**
 * @NAME cs_msg_to_buffer

@@ -57,7 +57,7 @@ typedef struct
 {
 	e_msgtype msgtype;
 
-	char* 	 plato;
+	char* 	 comida;
 	uint32_t cantidad;
 	char* 	 restaurante;
 	uint32_t pedido_id;
@@ -67,13 +67,20 @@ typedef struct
 
 typedef enum
 {
-	MSG_PLATO = 0,
+	MSG_COMIDA = 0,
 	MSG_CANTIDAD,
 	MSG_RESTAURANTE,
 	MSG_PEDIDO_ID
 }e_msg_arg;
 
 #define MSG_ARGS_CANT 4
+
+/**
+* @NAME cs_msg_has_argument
+* @DESC Devuelve un boolean indicando si el tipo de mensaje
+* tiene ese argumento.
+*/
+bool cs_msg_has_argument(e_msgtype msgtype, e_msg_arg arg);
 
 /**
 * @NAME cs_msg/rta_create
@@ -107,17 +114,19 @@ t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
 
 typedef struct
 {
-	uint32_t cant_cocineros; //5
-	char** 	 afinidades;	 //[Milanesa,...]
-//	char** 	 recetas;		 //[Milanesa,Ensalada,Empanada,...]
-	t_pos 	 pos_restaurante;//{posx, posy}
-	uint32_t cant_hornos;	 //2
+	uint32_t cant_cocineros;
+	char** 	 afinidades;
+	t_list*  menu;
+	t_pos 	 pos_restaurante;
+	uint32_t cant_hornos;
 }t_rta_obt_rest;
 
 #define RTA_OBT_REST(ptr) ((t_rta_obt_rest*)(ptr))
 
 t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 								   	   	   char* 	afinidades,
+										   char*	comidas,
+										   char*	precios,
 										   t_pos 	pos_restaurante,
 										   uint32_t cant_hornos);
 
@@ -231,12 +240,5 @@ typedef struct
 #define RTA_OBTENER_RECETA(ptr) ((t_rta_obt_rec*)(ptr))
 
 t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos);
-
-/**
-* @NAME cs_msg_has_argument
-* @DESC Devuelve un boolean indicando si el tipo de mensaje
-* tiene ese argumento.
-*/
-bool cs_msg_has_argument(e_msgtype msgtype, e_msg_arg arg);
 
 #endif /* UTILS_MSG_H_ */

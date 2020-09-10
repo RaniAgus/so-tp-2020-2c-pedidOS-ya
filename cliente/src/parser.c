@@ -4,9 +4,6 @@
 #define CL_MIN_AMOUNT_ARGS  1
 #define CL_MSGTYPE_ARG      0
 
-#define CHECK_NUMBER(val, arg)\
-    if(( val = cs_string_to_uint(arg) ) < 0) return CL_ARGS_ERROR
-
 /**************************************** PARSER ********************************************/
 
 cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[])
@@ -32,13 +29,17 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	if(result->header.msgtype == MSGTYPE_UNKNOWN) return CL_MSGTYPE_ARG_ERROR;
 
-	char* plato = string_new(), *restaurante = string_new();
+	char *plato = string_new(), *restaurante = string_new();
 	int cantidad = 0, pedido_id = 0;
 
 	int arg = CL_MSGTYPE_ARG + 1;
-	if(cs_msg_has_argument(result->header.msgtype, MSG_PLATO))
+	if(cs_msg_has_argument(result->header.msgtype, MSG_COMIDA))
 	{
-		if(arg == argc) return CL_CANT_ARGS_ERROR;
+		if(arg == argc)
+		{
+			free(plato), free(restaurante);
+			return CL_CANT_ARGS_ERROR;
+		}
 
 		CS_LOG_TRACE("<PLATO> = %s", argv[arg]);
 
@@ -48,17 +49,30 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	if(cs_msg_has_argument(result->header.msgtype, MSG_CANTIDAD))
 	{
-		if(arg == argc) return CL_CANT_ARGS_ERROR;
+		if(arg == argc)
+		{
+			free(plato), free(restaurante);
+			return CL_CANT_ARGS_ERROR;
+		}
 
 		CS_LOG_TRACE("<#CANT> = %s", argv[arg]);
 
-		CHECK_NUMBER(cantidad, argv[arg]);
+		cantidad = cs_string_to_uint(argv[arg]);
+		if(cantidad < 0)
+		{
+			free(plato), free(restaurante);
+			return CL_ARGS_ERROR;
+		}
 		arg++;
 	}
 
 	if(cs_msg_has_argument(result->header.msgtype, MSG_RESTAURANTE))
 	{
-		if(arg == argc) return CL_CANT_ARGS_ERROR;
+		if(arg == argc)
+		{
+			free(plato), free(restaurante);
+			return CL_CANT_ARGS_ERROR;
+		}
 
 		CS_LOG_TRACE("<RESTAURANTE> = %s", argv[arg]);
 
@@ -68,20 +82,32 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	if(cs_msg_has_argument(result->header.msgtype, MSG_PEDIDO_ID))
 	{
-		if(arg == argc) return CL_CANT_ARGS_ERROR;
+		if(arg == argc)
+		{
+			free(plato), free(restaurante);
+			return CL_CANT_ARGS_ERROR;
+		}
 
 		CS_LOG_TRACE("<#ID_PEDIDO> = %s", argv[arg]);
 
-		CHECK_NUMBER(pedido_id, argv[arg]);
+		pedido_id = cs_string_to_uint(argv[arg]);
+		if(cantidad < 0)
+		{
+			free(plato), free(restaurante);
+			return CL_ARGS_ERROR;
+		}
 		arg++;
 	}
 
 	for(; arg < argc; arg++)
 	{
-		fprintf(stderr, "WARNING - Argumento sin parsear: %s\n", argv[arg]);
+		CS_LOG_WARNING("WARNING - Argumento sin parsear: %s\n", argv[arg]);
 	}
 
 	result->msg = cs_msg_create(result->header.msgtype, plato, cantidad, restaurante, pedido_id);
+
+	free(plato);
+	free(restaurante);
 
 	return CL_SUCCESS;
 
@@ -114,6 +140,7 @@ void client_print_parser_error(cl_parser_status status, cl_parser_result result)
 			client_append_msg_to_error(&err_str, result.header.msgtype);
 	}
 	fprintf(stderr, "PARSER_ERROR (" __FILE__ ":%s:%d) -- %s\n", __func__ ,__LINE__, err_str);
+	free(err_str);
 }
 
 
@@ -126,7 +153,7 @@ static void client_append_msg_to_error(char** str_err_ptr, e_msgtype msgtype)
 	{
 		string_append(str_err_ptr, (char*)cs_enum_msgtype_to_str(msgtype));
 
-		if(cs_msg_has_argument(msgtype, MSG_PLATO))
+		if(cs_msg_has_argument(msgtype, MSG_COMIDA))
 		{
 			string_append(str_err_ptr, " <PLATO>");
 		}

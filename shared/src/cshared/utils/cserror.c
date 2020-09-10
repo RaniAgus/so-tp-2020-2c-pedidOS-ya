@@ -9,7 +9,7 @@ static const char* CS_STATUS_STR[] =
 
 	"MALLOC_ERROR",
 	"SEM_INIT_ERROR",
-	"MUTEX_ERROR",
+	"PTHREAD_ERROR",
 	"SIGACTION_ERROR",
 
 	"CONFIG_ERROR",
