@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	CHECK_STATUS(cs_config_init("../server/config.config"));
-	CHECK_STATUS(cs_logger_init("CLIENT_LOGGER", "CLIENT"));
+	CHECK_STATUS(cs_config_init("cliente.config"));
+	CHECK_STATUS(cs_logger_init("ARCHIVO_LOG", "CLIENTE"));
 
 	CS_LOG_TRACE("Iniciado correctamente.");
 	while(1)

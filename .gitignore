@@ -50,6 +50,7 @@ sindicato/sindicato
 *.su
 *.idb
 *.pdb
+*.log
 
 # Kernel Module Compile Results
 *.mod*
