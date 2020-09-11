@@ -7,13 +7,12 @@
 #include "csconncreate.h"
 
 /**
-* @NAME cs_connect_and_send_msg
-* @DESC Envía un mensaje serializado a la IP y PUERTO que lee desde el archivo
-* config interno. Retorna STATUS_SUCCESS en caso de que el envío haya sido exitoso.
+* @NAME cs_send_msg
+* @DESC Envía un mensaje serializado al socket.
+* Retorna STATUS_SUCCESS en caso de que el envío haya sido exitoso.
 *
 */
-e_status cs_connect_and_send_msg(const char* ip_key, const char* port_key,
-									t_header header, void* msg);
+e_status cs_send_msg(t_sfd conn, t_header header, void* msg);
 
 /**
 * @NAME cs_msg_to_buffer

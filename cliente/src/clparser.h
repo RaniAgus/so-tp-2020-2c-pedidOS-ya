@@ -1,7 +1,7 @@
-#ifndef CLIENT_PARSER_H
-#define CLIENT_PARSER_H
+#ifndef CLPARSER_H_
+#define CLPARSER_H_
 
-#include "../../shared/src/cshared.h"
+#include <cshared/cshared.h>
 
 typedef struct
 {
@@ -20,4 +20,5 @@ typedef enum
 cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[]);
 void 			 client_print_parser_error(cl_parser_status status, cl_parser_result result);
 
-#endif //CLIENT_PARSER_H
+
+#endif

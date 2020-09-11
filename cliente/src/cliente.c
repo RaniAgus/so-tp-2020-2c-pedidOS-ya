@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "clparser.h"
 
 t_sfd conn;
 
@@ -17,10 +17,6 @@ void cs_parse_argument(char* arg)
 	{
 		cs_logger_set_level(log_level_from_string(key_and_value[1]));
 	}
-	if(!strcmp(key_and_value[0],"run-tests"))
-	{
-		printf("Run tests\n");
-	}
 
 	string_iterate_lines(key_and_value,(void*) free);
 	free(key_and_value);
@@ -30,24 +26,22 @@ void cs_parse_argument(char* arg)
 int main(int argc, char* argv[])
 {
 
-#ifndef RELEASE
 	for(int i = 1; i<argc; i++)
 	{
 		if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
 	}
-#endif
 
 	CHECK_STATUS(cs_config_init("cliente.config"));
 	CHECK_STATUS(cs_logger_init("ARCHIVO_LOG", "CLIENTE"));
 
-	e_status status;
+	e_status status = STATUS_SUCCESS;;
 
 	//TODO: Seleccionar módulo y conectarse
 	//TODO: Ver cómo recibir los mensajes
 	conn = -1;
 
 	CS_LOG_TRACE("Iniciado correctamente.");
-	while(1)
+	while(status == STATUS_SUCCESS)
 	{
 		char *received;
 
@@ -72,7 +66,7 @@ int main(int argc, char* argv[])
 
 e_status client_send_msg_routine(char* received)
 {
-	e_status status;
+	e_status status = STATUS_SUCCESS;
 
 	cl_parser_status parser_status;
 	cl_parser_result result;
