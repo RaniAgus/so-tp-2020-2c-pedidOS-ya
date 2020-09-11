@@ -1,5 +1,7 @@
 #include "csstring.h"
 
+static int _string_to_int_array(int** int_arr, char* str, bool is_unsigned);
+
 void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size,
 					int buffer_is_dest)
 {
@@ -57,6 +59,20 @@ int cs_string_to_uint(const char* str)
 	return atoi(str);
 }
 
+int	cs_string_array_lines_count(char** str_arr)
+{
+	int lines = 0;
+	if(!str_arr) return -1;
+
+	void _accumulate_lines(char* element)
+	{
+		lines++;
+	}
+	string_iterate_lines(str_arr,_accumulate_lines);
+
+	return lines;
+}
+
 char** cs_string_get_as_array(char* str)
 {
 	char** str_array = NULL;
@@ -66,15 +82,17 @@ char** cs_string_get_as_array(char* str)
 	{
 		str_array = string_get_string_as_array(str);
 
-		//Resuelve el problema de las comas
+		//TODO: cs_string_get_as_array - Revisar si cambia la firma de 'string_split'
+		//Resuelve el problema de las comas (cambiar a revisar líneas vacías)
 		int commas = 0;
-
 		for(int i=0; str[i] != '\0'; i++)
 			if(str[i]==',') commas++;
 
-		if(commas >= cs_string_array_lines_count(str_array))
+		int lines = cs_string_array_lines_count(str_array);
+		if(commas >= lines)
 		{
-			cs_string_array_destroy(str_array);
+			string_iterate_lines(str_array, (void*) free);
+			free(str_array);
 			str_array = NULL;
 		}
 	}
@@ -86,37 +104,42 @@ bool cs_string_is_array_format(char* str)
 {
 	char** str_array = cs_string_get_as_array(str);
 
-	return str_array ? ({ cs_string_array_destroy(str_array); true; }) : false;
+	return (str_array == NULL)? false :
+		({  string_iterate_lines(str_array, (void*) free); free(str_array); true; });
 }
 
-int	cs_string_array_lines_count(char** str_arr)
+int cs_string_to_uint_array(int** int_arr, char* str)
 {
-	int lines = 0;
-	if(!str_arr) return lines;
-
-	void _accumulate_lines(char* element)
-	{
-		lines++;
-	}
-	string_iterate_lines(str_arr,_accumulate_lines);
-
-	return lines;
+	return _string_to_int_array(int_arr, str, true);
 }
 
-void cs_string_array_destroy(char** str_arr)
+int cs_string_to_int_array(int** int_arr, char* str)
 {
-	if(!str_arr) return;
-
-	void _free_lines(char* element)
-	{
-		if(element) free(element);
-	}
-	string_iterate_lines(str_arr,_free_lines);
-
-	free(str_arr);
+	return _string_to_int_array(int_arr, str, false);
 }
 
-int cs_string_to_int_array(int** int_arr, char* str, bool is_unsigned)
+//TODO: cs_string_to_enum_str_array - hacer publica
+char** cs_string_to_enum_str_array(char* str, char* error_value)
+{
+	char* str2 = string_duplicate(str);
+	str2[0] = ',';
+
+	char* str_with_error_value = string_new();
+	string_append_with_format(&str_with_error_value,
+		"[%s%s", error_value, str
+	);
+
+	char** result = cs_string_get_as_array(str_with_error_value);
+
+	//TODO: cs_string_to_enum_str_array - Quitar repetidos
+
+	free(str2);
+	free(str_with_error_value);
+
+	return result;
+}
+
+static int _string_to_int_array(int** int_arr, char* str, bool is_unsigned)
 {
 	char** str_array;
 	int lines;
@@ -144,7 +167,8 @@ int cs_string_to_int_array(int** int_arr, char* str, bool is_unsigned)
 		}
 		if(int_arr) (*int_arr)[i] = num;
 	}
-	cs_string_array_destroy(str_array);
+	string_iterate_lines(str_array, (void*) free);
+	free(str_array);
 
 	return lines;
 }

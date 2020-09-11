@@ -13,52 +13,43 @@
 #define CS_MSG_NEW_SIZE(str_length)\
 	(CS_STRING_SIZE(str_length) + 2* sizeof(uint32_t) + sizeof(uint32_t))
 
-static e_status   cs_send(t_sfd conn, t_header header, t_buffer* payload);
+static e_status   cs_send_all(t_sfd conn, t_buffer* buffer);
 static t_package* cs_package_create(t_header header, t_buffer* payload);
 static t_buffer*  cs_package_to_buffer(t_package* package);
 
-e_status cs_connect_and_send_msg(const char* ip_key, const char* port_key,
-									t_header header, void* msg)
+e_status cs_connect_and_send_msg(t_sfd conn, t_header header, void* msg)
 {
 	e_status status;
-	t_buffer* payload = NULL;
-	t_sfd conn = -1;
 
-	//Lee las direcciones desde el config interno
-	char* ip   = cs_config_get_string(ip_key);
-	char* port = cs_config_get_string(port_key);
-
-	//Se conecta al receptor como cliente
-	status = cs_tcp_client_create(&conn, ip, port);
-	if(status != STATUS_SUCCESS) return status;
+	t_buffer*  payload = NULL;
+	t_package* package = NULL;
+	t_buffer*  buffer  = NULL;
 
 	//Se pasa el mensaje a payload
 	payload = cs_msg_to_buffer(header, msg);
 
+	//Se arma el paquete y se serializa
+	package = cs_package_create(header, payload);
+	buffer  = cs_package_to_buffer(package);
+
 	//Se envía al receptor
-	status = cs_send(conn, header, payload);
+	status = cs_send_all(conn, buffer);
 
 	//Se liberan los recursos
+	cs_buffer_destroy(buffer);
+	cs_package_destroy(package);
 	cs_buffer_destroy(payload);
-	close(conn);
 
 	return status;
 }
 
-static e_status cs_send(t_sfd conn, t_header header, t_buffer* payload)
+static e_status cs_send_all(t_sfd conn, t_buffer* buffer)
 {
 	e_status status = STATUS_SUCCESS;
-
-	t_package* package = NULL;
-	t_buffer*  buffer  = NULL;
 
 	uint32_t bytes_sent = 0;
 	uint32_t bytes_left;
 	uint32_t n;
-
-	//Se arma el paquete y se serializa
-	package = cs_package_create(header, payload);
-	buffer  = cs_package_to_buffer(package);
 
 	bytes_left = buffer->size;
 	do
@@ -78,10 +69,6 @@ static e_status cs_send(t_sfd conn, t_header header, t_buffer* payload)
 		}
 	//El protocolo TCP puede partir el paquete si es muy grande (>1K)
 	} while(bytes_sent < buffer->size && status == STATUS_SUCCESS);
-
-	//Se liberan los recursos
-	cs_package_destroy(package);
-	cs_buffer_destroy(buffer);
 
 	return status;
 }

@@ -1,8 +1,10 @@
 #include "parser.h"
 
-void 	 client_msg_routine(char* received);
+t_sfd conn;
+
+e_status client_send_msg_routine(char* received);
 e_status client_send_msg(cl_parser_result result);
-void 	 client_recv_msg_routine();
+void 	 client_recv_msg_routine(t_sfd* conn);
 
 void cs_parse_argument(char* arg)
 {
@@ -38,6 +40,12 @@ int main(int argc, char* argv[])
 	CHECK_STATUS(cs_config_init("cliente.config"));
 	CHECK_STATUS(cs_logger_init("ARCHIVO_LOG", "CLIENTE"));
 
+	e_status status;
+
+	//TODO: Seleccionar módulo y conectarse
+	//TODO: Ver cómo recibir los mensajes
+	conn = -1;
+
 	CS_LOG_TRACE("Iniciado correctamente.");
 	while(1)
 	{
@@ -52,26 +60,30 @@ int main(int argc, char* argv[])
 		}
 		CS_LOG_TRACE("Se recibió la línea: %s", received);
 
-		client_msg_routine(received);
+		status = client_send_msg_routine(received);
 	}
 
 	CS_LOG_TRACE("Finalizando...");
 	cs_logger_delete();
 	cs_config_delete();
 
-	return 0;
+	return status;
 }
 
-void client_msg_routine(char* received)
+e_status client_send_msg_routine(char* received)
 {
+	e_status status;
+
 	cl_parser_status parser_status;
 	cl_parser_result result;
 
+	//Divide los argumentos separados por espacios
 	char** arg_values = string_split(received, " ");
 	int    arg_cant   = cs_string_array_lines_count(arg_values);
 
 	CS_LOG_TRACE("La cantidad de argumentos es: %d", arg_cant);
 
+	//Parsea los argumentos
 	parser_status = client_parse_arguments(&result, arg_cant, arg_values);
 	if(parser_status == CL_SUCCESS)
 	{
@@ -79,7 +91,8 @@ void client_msg_routine(char* received)
 		CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
 		free(msg_to_str);
 
-		client_send_msg(result);
+		//Envía el mensaje
+		status = client_send_msg(result);
 	}
 	else
 	{
@@ -89,6 +102,8 @@ void client_msg_routine(char* received)
 	string_iterate_lines(arg_values, (void*) free);
 	free(arg_values);
 	free(received);
+
+	return status;
 }
 
 e_status client_send_msg(cl_parser_result result)
@@ -96,7 +111,7 @@ e_status client_send_msg(cl_parser_result result)
 	e_status status;
 
 	//Llama a la función que hace el envío del mensaje
-	status = cs_connect_and_send_msg("IP", "PUERTO", result.header, result.msg);
+	status = cs_send_msg(conn, result.header, result.msg);
 
 	//Si se envió correctamente, espera la respuesta
 	if(status == STATUS_SUCCESS)
@@ -119,7 +134,7 @@ e_status client_send_msg(cl_parser_result result)
 	return status;
 }
 
-void client_recv_msg_routine()
+void client_recv_msg_routine(t_sfd* conn)
 {
 	/*
 	e_status status = STATUS_SUCCESS;
@@ -129,7 +144,8 @@ void client_recv_msg_routine()
 		char* msg_str;
 
 		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-		CS_LOG_INFO("\nMensaje recibido: %s", cs_msg_to_str(msg, header.opcode, header.msgtype));
+		printf("\n");
+		CS_LOG_INFO("Mensaje recibido: %s", cs_msg_to_str(msg, header.opcode, header.msgtype));
 		printf("> ");
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);

@@ -39,6 +39,12 @@ int cs_string_to_int(int* number, const char* str);
 int cs_string_to_uint(const char* str);
 
 /**
+* @NAME cs_string_array_lines_count
+* @DESC Devuelve la cantidad de líneas que tiene un array de strings
+*/
+int	cs_string_array_lines_count(char** str_arr);
+
+/**
 * @NAME cs_string_get_as_array (versión de string_get_string_as_array de commons/string.h)
 * @DESC Retorna un array separando los elementos de un string con formato de array
 *
@@ -56,30 +62,28 @@ char** cs_string_get_as_array(char* str);
 */
 bool cs_string_is_array_format(char* str);
 
-
-/**
-* @NAME cs_string_array_lines_count
-* @DESC Devuelve la cantidad de líneas que tiene un array de strings
-*/
-int	cs_string_array_lines_count(char** str_arr);
-
-/**
-* @NAME cs_string_array_destroy
-* @DESC Libera un array de strings y sus líneas
-*/
-void cs_string_array_destroy(char** str_arr);
-
 /**
 * @NAME cs_string_to_int_array
-* @DESC Devuelve por argumento un array de enteros (con o sin signo, dependiendo del flag
-* 'is_unsigned'), separando los elementos de un string con formato de array.
+* @DESC Devuelve por argumento un array de enteros, separando los elementos
+* de un string con formato de array.
 * Retorna la cantidad de elementos del array creado, o -1 en caso de error.
 *
 * Ejemplo:
 * char* array_string = "[30,-72,1]"
-* cs_string_to_int_array(&intarray, array_string, 0) => intarray = { 30, -72, 1 };
-* cs_string_to_int_array(&intarray, array_string, 1) => error;
+* cs_string_to_int_array(&intarray, array_string) => intarray = { 30, -72, 1 };
 */
-int cs_string_to_int_array(int** int_arr, char* str, bool is_unsigned);
+int cs_string_to_int_array(int** int_arr, char* str);
+
+/**
+* @NAME cs_string_to_int_array
+* @DESC Devuelve por argumento un array de enteros, separando los elementos
+* de un string con formato de array.
+* Retorna la cantidad de elementos del array creado, o -1 en caso de error.
+*
+* Ejemplo:
+* char* array_string = "[30,72,1]"
+* cs_string_to_int_array(&uintarray, array_string) => uintarray = { 30, 72, 1 };
+*/
+int cs_string_to_uint_array(int** uint_arr, char* str);
 
 #endif /* UTILS_STRING_H_ */

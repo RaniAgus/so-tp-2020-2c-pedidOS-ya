@@ -1,6 +1,6 @@
 #include "csmsg.h"
 
-static void _msg_append(char** msg_str, t_mensaje* msg);
+static void _sol_append(char** msg_str, t_solicitud* msg);
 
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
@@ -42,9 +42,9 @@ void cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type)
 {
 	switch(op_code)
 	{
-	case OPCODE_MENSAJE:
-		free(MENSAJE_PTR(msg)->comida);
-		free(MENSAJE_PTR(msg)->restaurante);
+	case OPCODE_SOLICITUD:
+		free(SOLICITUD_PTR(msg)->comida);
+		free(SOLICITUD_PTR(msg)->restaurante);
 		free(msg);
 		break;
 	case OPCODE_RESPUESTA_OK:
@@ -63,8 +63,8 @@ char* cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type)
 
 	switch(op_code)
 	{
-	case OPCODE_MENSAJE:
-		_msg_append(&msg_str, (t_mensaje*)msg);
+	case OPCODE_SOLICITUD:
+		_sol_append(&msg_str, (t_solicitud*)msg);
 		break;
 	case OPCODE_RESPUESTA_FAIL:
 		string_append(&msg_str, " {RESULTADO: FAIL}");
@@ -104,10 +104,10 @@ char* cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type)
 	return msg_str;
 }
 
-t_mensaje* 	cs_msg_create(e_msgtype msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id)
+t_solicitud* 	_sol_create(e_msgtype msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id)
 {
-	t_mensaje* msg;
-	CHECK_STATUS(MALLOC(msg, sizeof(t_mensaje)));
+	t_solicitud* msg;
+	CHECK_STATUS(MALLOC(msg, sizeof(t_solicitud)));
 
 	msg->msgtype = msgtype;
 
@@ -207,10 +207,10 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 
 /**********************TO STRING**********************/
 
-static void _msg_append(char** msg_str, t_mensaje* msg)
+static void _sol_append(char** msg_str, t_solicitud* msg)
 {
 
-	if(cs_msg_has_argument(msg->msgtype, MSG_COMIDA))
+	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_COMIDA))
 	{
 		string_append_with_format(
 				msg_str,
@@ -218,7 +218,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->comida
 		);
 	}
-	if(cs_msg_has_argument(msg->msgtype, MSG_CANTIDAD))
+	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_CANTIDAD))
 	{
 		string_append_with_format(
 				msg_str,
@@ -226,7 +226,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->cantidad
 		);
 	}
-	if(cs_msg_has_argument(msg->msgtype, MSG_RESTAURANTE))
+	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_RESTAURANTE))
 	{
 		string_append_with_format(
 				msg_str,
@@ -234,7 +234,7 @@ static void _msg_append(char** msg_str, t_mensaje* msg)
 				msg->restaurante
 		);
 	}
-	if(cs_msg_has_argument(msg->msgtype, MSG_PEDIDO_ID))
+	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_PEDIDO_ID))
 	{
 		string_append_with_format(
 				msg_str,
@@ -395,18 +395,18 @@ static void _rta_destroy(void* msg, e_msgtype msg_type)
 
 /***********ELEMENTOS DE CADA TIPO DE SOLICITUD*********/
 
-static const int _MSG_ARGS[MSGTYPES_CANT][MSG_ARGS_CANT] =
+static const int _MSG_ARGS[MSGTYPES_CANT][SOL_ARGS_CANT] =
 {
-           /*{comida, cant, rest, p_id}*/
+/*           {comid, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
 /*CONS_RES */{  0  ,  0  ,  0  ,  0  },
-/*SEL_RES  */{  0  ,  0  ,  1  ,  0  }, //todo: ¿¿qué es el cliente??
+/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },//todo: _MSG_ARGS - ¿¿qué es el cliente??
 /*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
 /*CONS_PL  */{  0  ,  0  ,  1  ,  0  },
 /*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
 /*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
 /*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
-/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },//todo: ¿¿para qué cantidad??
+/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },//todo: _MSG_ARGS - ¿¿para qué cantidad??
 /*CONF_PED */{  0  ,  0  ,  0  ,  1  },
 /*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
 /*CONS_PED */{  0  ,  0  ,  0  ,  1  },
@@ -417,7 +417,7 @@ static const int _MSG_ARGS[MSGTYPES_CANT][MSG_ARGS_CANT] =
 
 };
 
-bool cs_msg_has_argument(e_msgtype msgtype, e_msg_arg arg)
+bool cs_sol_has_argument(e_msgtype msgtype, e_sol_arg arg)
 {
 	return _MSG_ARGS[(int)msgtype][(int)arg];
 }
