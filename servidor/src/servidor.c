@@ -1,11 +1,11 @@
-#include "../../shared/src/cshared.h"
+#include <cshared/cshared.h>
+#include "servresponse.h"
 
 static t_sfd conn;
-static uint32_t msg_id = 0;
 static t_sigaction OLD_SIGINT_ACTION;
 
 void server_recv_msg(t_sfd client_conn);
-uint32_t server_show_msg(t_header header, void* msg);
+void server_show_msg(t_sfd client_conn, t_header header, void* msg);
 void server_error_handler(e_status err);
 
 void server_sigint_handler(int signal)
@@ -25,7 +25,7 @@ void server_sigint_handler(int signal)
 int main(void)
 {
 	//Abre el archivo de configuración
-	CHECK_STATUS(cs_config_init("config.config"));
+	CHECK_STATUS(cs_config_init("server.config"));
 	//Inicia el logger, cuyo nombre se encuentra en el config
 	CHECK_STATUS(cs_logger_init("SERVER_LOGGER", "SERVER"));
 
@@ -60,8 +60,7 @@ int main(void)
 void server_recv_msg(t_sfd client_conn)
 {
 	e_status status;
-	char* ip_str = string_new();
-	char* port_str = string_new();
+	char *ip_str, *port_str;
 
 	//Averigua la IP y puerto del cliente, y los muestra por pantalla
 	status = cs_get_peer_info(client_conn, &ip_str, &port_str);
@@ -78,26 +77,47 @@ void server_recv_msg(t_sfd client_conn)
 	free(port_str);
 }
 
-uint32_t server_show_msg(t_header header, void* msg)
+void server_show_msg(t_sfd client_conn, t_header header, void* msg)
 {
-	//Le asigna un ID
-	header.msg_id = ++msg_id;
-
 	//Pasa el mensaje a string
-	char* msg_str = cs_msg_to_str(msg, header.msgtype);
-
-	//Le agrega el ID al final
-	//string_append_with_format(&msg_str, "[ID: %d]", header.msg_id);
+	char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 
 	//Loguea el mensaje
 	CS_LOG_INFO("%s", msg_str);
 
+	switch(header.msgtype)
+	{
+	case CONSULTAR_RESTAURANTES:
+		server_send_rta_consultar_restaurantes(client_conn);
+	    break;
+	case OBTENER_RESTAURANTE:
+		server_send_rta_obtener_restaurante(client_conn);
+	   	break;
+	case CONSULTAR_PLATOS:
+		server_send_rta_consultar_platos(client_conn);
+	    break;
+	case CREAR_PEDIDO:
+		server_send_rta_crear_pedido(client_conn);
+		break;
+	case CONSULTAR_PEDIDO:
+		server_send_rta_consultar_pedido(client_conn);
+	    break;
+	case OBTENER_PEDIDO:
+		server_send_rta_obtener_pedido(client_conn);
+	    break;
+	case OBTENER_RECETA:
+		server_send_rta_consultar_restaurantes(client_conn);
+	    break;
+	default:
+		server_send_rta_ok(header.msgtype, client_conn);
+	  	break;
+	}
+
 	//Libera los recursos
 	free(msg_str);
-	cs_msg_destroy(msg, header.msgtype);
+	cs_msg_destroy(msg, header.opcode, header.msgtype);
 
-	//Devuelve el ID como ack
-	return header.msg_id;
+	return;
 }
 
 void server_error_handler(e_status err)
