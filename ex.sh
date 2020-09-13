@@ -1,8 +1,8 @@
-BIN=""
+BIN="Debug/"
 OPTION=""
 MODULE=""
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-SHARED_LIB_DIR=$DIR"/shared/src/"
+SHARED_LIB_DIR=$DIR"/cshared/Debug/"
 
 if [ $# -eq 0 ];then
     echo "Expected:[OPTION] [MODULE] [PARAMS]"
