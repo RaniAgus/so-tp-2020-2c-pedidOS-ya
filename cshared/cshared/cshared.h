@@ -6,6 +6,7 @@
 #include "utils/csconfig.h"
 #include "utils/cslog.h"
 #include "utils/csstring.h"
+#include "utils/csconsole.h"
 #include "utils/cstemporal.h"
 #include "utils/cssignal.h"
 #include "csstructs.h"

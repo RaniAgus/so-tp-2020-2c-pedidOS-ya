@@ -214,7 +214,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 	{
 		string_append_with_format(
 				msg_str,
-				" {PLATO: %s}",
+				" {COMIDA: %s}",
 				msg->comida
 		);
 	}

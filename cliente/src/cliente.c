@@ -10,7 +10,7 @@ t_sfd serv_conn;
 
 e_status client_init(pthread_t* thread_recv_msg);
 
-void client_send_msg_routine(char* received);
+void client_send_msg_routine(int arg_cant, char** arg_values);
 void client_recv_msg_routine(void);
 
 e_status client_send_msg(cl_parser_result* result);
@@ -47,18 +47,18 @@ int main(int argc, char* argv[])
 
 	while(status == STATUS_SUCCESS)
 	{
-		char* received;
+		int    arg_cant;
+		char** arg_values;
 
-		received = readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ");
-		if(!strcmp(received,""))
+		arg_values = cs_console_readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ", &arg_cant);
+		if(arg_values == NULL)
 		{
 			CS_LOG_TRACE("Se recibió un salto de línea.");
-			free(received);
 			break;
 		}
-		CS_LOG_TRACE("Se recibió la línea: %s", received);
 
-		client_send_msg_routine(received);
+		CS_LOG_TRACE("La cantidad de argumentos es: %d", arg_cant);
+		client_send_msg_routine(arg_cant, arg_values);
 	}
 
 	CS_LOG_TRACE("Finalizando...");
@@ -77,14 +77,17 @@ e_status client_init(pthread_t* thread_recv_msg)
 {
 	char *modulo, *serv_ip_key = string_new(), *serv_port_key = string_new();
 
+	//Inicia los config y logger
 	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
 	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, MODULE_NAME));
 
+	//Se conecta al módulo y crea el thread
 	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");
 
 	string_append_with_format(&serv_ip_key, "IP_%s", modulo);
 	string_append_with_format(&serv_port_key, "PUERTO_%s", modulo);
 
+	//serv_ip y serv_port sirven para conectarse siempre al mismo servidor
 	serv_ip   = cs_config_get_string(serv_ip_key);
 	serv_port = cs_config_get_string(serv_port_key);
 
@@ -95,28 +98,24 @@ e_status client_init(pthread_t* thread_recv_msg)
 		exit(STATUS_CONFIG_ERROR);
 	}
 
-	free(serv_ip_key);
-	free(serv_port_key);
-	free(modulo);
-
+	//Crea el primer socket para recibir mensajes ahí
 	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
 	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
 
 	CS_LOG_TRACE("Iniciado correctamente.");
 
+	//Libera los strings
+	free(serv_ip_key);
+	free(serv_port_key);
+	free(modulo);
+
 	return STATUS_SUCCESS;
 }
 
-void client_send_msg_routine(char* received)
+void client_send_msg_routine(int arg_cant, char** arg_values)
 {
 	cl_parser_status parser_status;
 	cl_parser_result result;
-
-	//Divide los argumentos separados por espacios
-	char** arg_values = string_split(received, " ");
-	int    arg_cant   = cs_string_array_lines_count(arg_values);
-
-	CS_LOG_TRACE("La cantidad de argumentos es: %d", arg_cant);
 
 	//Parsea los argumentos
 	parser_status = client_parse_arguments(&result, arg_cant, arg_values);
@@ -138,9 +137,6 @@ void client_send_msg_routine(char* received)
 
 	string_iterate_lines(arg_values, (void*) free);
 	free(arg_values);
-	free(received);
-
-	return;
 }
 
 void client_recv_msg_routine(void)
