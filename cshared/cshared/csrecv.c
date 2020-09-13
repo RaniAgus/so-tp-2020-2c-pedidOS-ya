@@ -3,7 +3,7 @@
 static e_status cs_recv_header(t_sfd sfd_cliente, t_header* header) NON_NULL(2);
 static e_status cs_recv_payload(t_sfd sfd_cliente, t_buffer* payload) NON_NULL(2);
 
-e_status cs_recv_msg(t_sfd conn, void (*closure)(t_header, void*))
+e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 {
 	e_status status;
 	t_package package;
@@ -23,7 +23,7 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_header, void*))
 			msg = cs_buffer_to_msg(package.header, package.payload);
 
 			//Se invoca a la función 'closure' que lo utiliza
-			closure(package.header, msg);
+			closure(conn, package.header, msg);
 		}
 
 		cs_buffer_destroy(package.payload);

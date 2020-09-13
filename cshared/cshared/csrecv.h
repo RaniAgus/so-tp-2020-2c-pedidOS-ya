@@ -11,7 +11,7 @@
 * aplica el closure al mensaje recibido. Retorna STATUS_SUCCESS en caso de que se haya
 * recibido con éxito.
 */
-e_status cs_recv_msg(t_sfd conn, void (*closure)(t_header, void*));
+e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*));
 
 /**
 * @NAME cs_buffer_to_msg

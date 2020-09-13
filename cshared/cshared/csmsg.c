@@ -104,14 +104,14 @@ char* cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type)
 	return msg_str;
 }
 
-t_solicitud* 	_sol_create(e_msgtype msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id)
+t_solicitud* 	_sol_create(e_msgtype msgtype, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
 {
 	t_solicitud* msg;
 	CHECK_STATUS(MALLOC(msg, sizeof(t_solicitud)));
 
 	msg->msgtype = msgtype;
 
-	msg->comida      = string_duplicate(plato);
+	msg->comida      = string_duplicate(comida);
 	msg->cantidad    = cant;
 	msg->restaurante = string_duplicate(rest);
 	msg->pedido_id   = pedido_id;

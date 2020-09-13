@@ -47,7 +47,7 @@ char* 	cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type);
 
 /**
 * @NAME cs_msg_destroy
-* @DESC Destruye un mensaje (o respuesta) y su contenido.
+* @DESC Destruye un mensaje y su contenido.
 */
 void 	cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type);
 
@@ -92,7 +92,7 @@ t_solicitud* _sol_create(e_msgtype msgtype, char* plato, uint32_t cant, char* re
 //*************************CONSULTAR RESTAURANTES*************************
 
 #define cs_msg_consultar_rest_create()\
-	cs_msg_create(CONSULTAR_RESTAURANTES, "", 0, "", 0)
+	_sol_create(CONSULTAR_RESTAURANTES, "", 0, "", 0)
 
 typedef struct
 {
@@ -187,7 +187,7 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 //*************************CONSULTAR PEDIDO*************************
 
 #define cs_msg_consultar_ped_create(pedido_id)\
-	cs_msg_create(CONSULTAR_PEDIDO, "", 0, "", pedido_id)
+		_sol_create(CONSULTAR_PEDIDO, "", 0, "", pedido_id)
 
 typedef struct
 {

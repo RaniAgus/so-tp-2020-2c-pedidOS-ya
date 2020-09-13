@@ -16,16 +16,22 @@ const char* cs_enum_opcode_to_str(int value)
 
 void cs_package_destroy(t_package* package)
 {
-	if(package->payload) cs_buffer_destroy(package->payload);
-	free(package);
+	if(package)
+	{
+		if(package->payload) cs_buffer_destroy(package->payload);
+		free(package);
+	}
 
 	return;
 }
 
 void cs_buffer_destroy(t_buffer* buffer)
 {
-	if(buffer->stream) free(buffer->stream);
-	free(buffer);
+	if(buffer)
+	{
+		if(buffer->stream) free(buffer->stream);
+		free(buffer);
+	}
 
 	return;
 }
@@ -36,6 +42,9 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_str_ptr, char** port_str_ptr)
 
 	struct sockaddr_storage addr;
 	socklen_t addr_size = sizeof(struct sockaddr_storage);
+
+	*ip_str_ptr   = string_new();
+	*port_str_ptr = string_new();
 
 	char* ip_str   = string_duplicate("0000:0000:0000:0000:0000:0000:0000:0000");
 	char* port_str = string_duplicate("65535");

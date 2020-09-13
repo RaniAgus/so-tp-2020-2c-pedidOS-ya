@@ -23,7 +23,7 @@
 ({ cs_set_local_err(__val); STATUS_PTHREAD_ERROR;}) : STATUS_SUCCESS); })
 
 #define PTHREAD_CREATE(thread, func, arg) \
-({ int __val = pthread_create(&thread, (void*)NULL, (void*)func, (void*)arg); (__val != 0 ?\
+({ int __val = pthread_create(thread, (void*)NULL, (void*)func, (void*)arg); (__val != 0 ?\
 ({ cs_set_local_err(__val); STATUS_PTHREAD_ERROR;}) : STATUS_SUCCESS); })
 
 typedef enum
