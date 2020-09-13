@@ -1,10 +1,20 @@
 #include "clparser.h"
 
-t_sfd conn;
+#define MODULE_NAME		 "CLIENTE"
+#define CONFIG_FILE_PATH "cliente.config"
+#define LOG_FILE_KEY	 "ARCHIVO_LOG"
 
-e_status client_send_msg_routine(char* received);
-e_status client_send_msg(cl_parser_result result);
-void 	 client_recv_msg_routine(t_sfd* conn);
+char* serv_ip;
+char* serv_port;
+t_sfd serv_conn;
+
+e_status client_init(pthread_t* thread_recv_msg);
+
+void client_send_msg_routine(char* received);
+void client_recv_msg_routine(void);
+
+e_status client_send_msg(cl_parser_result* result);
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type);
 
 void cs_parse_argument(char* arg)
 {
@@ -25,25 +35,19 @@ void cs_parse_argument(char* arg)
 
 int main(int argc, char* argv[])
 {
-
 	for(int i = 1; i<argc; i++)
 	{
 		if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
 	}
 
-	CHECK_STATUS(cs_config_init("cliente.config"));
-	CHECK_STATUS(cs_logger_init("ARCHIVO_LOG", "CLIENTE"));
+	e_status status;
+	pthread_t thread_recv_msg;
 
-	e_status status = STATUS_SUCCESS;;
+	status = client_init(&thread_recv_msg);
 
-	//TODO: Seleccionar módulo y conectarse
-	//TODO: Ver cómo recibir los mensajes
-	conn = -1;
-
-	CS_LOG_TRACE("Iniciado correctamente.");
 	while(status == STATUS_SUCCESS)
 	{
-		char *received;
+		char* received;
 
 		received = readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ");
 		if(!strcmp(received,""))
@@ -54,20 +58,57 @@ int main(int argc, char* argv[])
 		}
 		CS_LOG_TRACE("Se recibió la línea: %s", received);
 
-		status = client_send_msg_routine(received);
+		client_send_msg_routine(received);
 	}
 
 	CS_LOG_TRACE("Finalizando...");
+
+	pthread_cancel(thread_recv_msg);
+	pthread_join(thread_recv_msg, NULL);
+	close(serv_conn);
+
 	cs_logger_delete();
 	cs_config_delete();
 
 	return status;
 }
 
-e_status client_send_msg_routine(char* received)
+e_status client_init(pthread_t* thread_recv_msg)
 {
-	e_status status = STATUS_SUCCESS;
+	char *modulo, *serv_ip_key = string_new(), *serv_port_key = string_new();
 
+	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
+	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, MODULE_NAME));
+
+	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");
+
+	string_append_with_format(&serv_ip_key, "IP_%s", modulo);
+	string_append_with_format(&serv_port_key, "PUERTO_%s", modulo);
+
+	serv_ip   = cs_config_get_string(serv_ip_key);
+	serv_port = cs_config_get_string(serv_port_key);
+
+	if(serv_ip == NULL || serv_port == NULL)
+	{
+		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- Error al encontrar los keys para conectarse a %s\n",
+				 cs_enum_status_to_str(STATUS_CONFIG_ERROR), STATUS_CONFIG_ERROR, __func__ ,__LINE__, modulo);
+		exit(STATUS_CONFIG_ERROR);
+	}
+
+	free(serv_ip_key);
+	free(serv_port_key);
+	free(modulo);
+
+	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
+	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
+
+	CS_LOG_TRACE("Iniciado correctamente.");
+
+	return STATUS_SUCCESS;
+}
+
+void client_send_msg_routine(char* received)
+{
 	cl_parser_status parser_status;
 	cl_parser_result result;
 
@@ -86,7 +127,9 @@ e_status client_send_msg_routine(char* received)
 		free(msg_to_str);
 
 		//Envía el mensaje
-		status = client_send_msg(result);
+		pthread_t thread_msg;
+		PTHREAD_CREATE(&thread_msg,client_send_msg, &result);
+		pthread_detach(thread_msg);
 	}
 	else
 	{
@@ -97,43 +140,62 @@ e_status client_send_msg_routine(char* received)
 	free(arg_values);
 	free(received);
 
-	return status;
+	return;
 }
 
-e_status client_send_msg(cl_parser_result result)
+void client_recv_msg_routine(void)
 {
 	e_status status;
+	do
+	{
+		t_header header;
+		header.opcode = (int8_t)OPCODE_RESPUESTA_OK;
 
-	//Llama a la función que hace el envío del mensaje
-	status = cs_send_msg(conn, result.header, result.msg);
+		status = client_recv_msg(serv_conn, &header.msgtype);
+		if(status == STATUS_SUCCESS)
+		{
+			status = cs_send_msg(serv_conn, header, NULL);
+		}
+	} while(status == STATUS_SUCCESS);
+}
 
-	//Si se envió correctamente, espera la respuesta
+e_status client_send_msg(cl_parser_result* result)
+{
+	e_status status;
+	t_sfd conn;
+
+	//Se conecta al servidor
+	status = cs_tcp_client_create(&conn, serv_ip, serv_port);
 	if(status == STATUS_SUCCESS)
 	{
-		CS_LOG_TRACE("Se envió el mensaje correctamente.");
+		//Envía el mensaje
+		status = cs_send_msg(conn, result->header, result->msg);
+		if(status == STATUS_SUCCESS)
+		{
+			CS_LOG_INFO("Mensaje enviado: %s",
+					cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype));
 
-		pthread_t msg_thread;
-		CHECK_STATUS(PTHREAD_CREATE(msg_thread, client_send_msg, NULL));
-		pthread_detach(msg_thread);
+			//Espera la respuesta
+			status = client_recv_msg(conn, NULL);
+		}
 	}
 	if(status != STATUS_SUCCESS)
 	{
-		CS_LOG_ERROR("%s#%d (" __FILE__ ":%s:%d) -- %s\n",
+		printf("\n");
+		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
 				 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
+		printf("> ");
 	}
 
 	//Libera recursos
-	cs_msg_destroy(result.msg, result.header.opcode, result.header.msgtype);
+	cs_msg_destroy(result->msg, result->header.opcode, result->header.msgtype);
 
 	return status;
 }
 
-void client_recv_msg_routine(t_sfd* conn)
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
 {
-	/*
-	e_status status = STATUS_SUCCESS;
-
-	void _recv_and_print_msg(t_header header, void* msg)
+	void _recv_and_print_msg(t_sfd conn, t_header header, void* msg)
 	{
 		char* msg_str;
 
@@ -141,11 +203,12 @@ void client_recv_msg_routine(t_sfd* conn)
 		printf("\n");
 		CS_LOG_INFO("Mensaje recibido: %s", cs_msg_to_str(msg, header.opcode, header.msgtype));
 		printf("> ");
+
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
+
+		if(msg_type) *msg_type = (int8_t)header.msgtype;
 	}
 
-	while(conn != -1)
-		status = cs_recv_msg(???, _recv_and_print_msg);
- */
+	return cs_recv_msg(conn, _recv_and_print_msg);
 }

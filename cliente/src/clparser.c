@@ -91,7 +91,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		CS_LOG_TRACE("<#ID_PEDIDO> = %s", argv[arg]);
 
 		pedido_id = cs_string_to_uint(argv[arg]);
-		if(cantidad < 0)
+		if(pedido_id < 0)
 		{
 			free(comida), free(restaurante);
 			return CL_ARGS_ERROR;
