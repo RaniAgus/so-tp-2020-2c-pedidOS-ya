@@ -116,8 +116,6 @@ void server_show_msg(t_sfd client_conn, t_header header, void* msg)
 	//Libera los recursos
 	free(msg_str);
 	cs_msg_destroy(msg, header.opcode, header.msgtype);
-
-	return;
 }
 
 void server_error_handler(e_status err)
