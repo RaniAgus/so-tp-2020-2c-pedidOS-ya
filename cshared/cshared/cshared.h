@@ -16,4 +16,10 @@
 #include "cssend.h"
 #include "csrecv.h"
 
+/**
+* @NAME cs_parse_argument
+* @DESC
+*/
+void cs_parse_argument(char* arg);
+
 #endif //SHARED_CSHARED_H
