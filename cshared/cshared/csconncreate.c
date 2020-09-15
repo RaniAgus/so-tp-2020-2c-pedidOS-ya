@@ -21,7 +21,9 @@ void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd), voi
 	    	err_handler(STATUS_ACCEPT_ERROR);
 	    	continue;
 	    }
-	    success_action(client_conn);
+	    pthread_t client_thread;
+	    PTHREAD_CREATE(&client_thread, success_action, client_conn);
+	    pthread_detach(client_thread);
 	}
 }
 
