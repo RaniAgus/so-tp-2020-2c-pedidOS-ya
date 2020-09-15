@@ -1,4 +1,5 @@
 #include "cssend.h"
+#include "utils/cslog.h"
 
 #define CS_STRING_SIZE(str_length)\
 	(sizeof(uint32_t) + str_length)
@@ -9,21 +10,17 @@
 #define CS_PAYLOAD_SIZE\
 	(sizeof(uint32_t) + package->payload->size)
 
-//TODO: [MSG]: Tamaño de cada tipo de mensaje
-#define CS_MSG_NEW_SIZE(str_length)\
-	(CS_STRING_SIZE(str_length) + 2* sizeof(uint32_t) + sizeof(uint32_t))
-
 static e_status   cs_send_all(t_sfd conn, t_buffer* buffer);
 static t_package* cs_package_create(t_header header, t_buffer* payload);
 static t_buffer*  cs_package_to_buffer(t_package* package);
 
 e_status cs_send_msg(t_sfd conn, t_header header, void* msg)
 {
-	e_status status;
+	e_status status = STATUS_SUCCESS;
 
-	t_buffer*  payload = NULL;
-	t_package* package = NULL;
-	t_buffer*  buffer  = NULL;
+	t_buffer  *payload = NULL;
+	t_package *package = NULL;
+	t_buffer  *buffer  = NULL;
 
 	//Se pasa el mensaje a payload
 	payload = cs_msg_to_buffer(header, msg);
@@ -77,14 +74,14 @@ static t_package* cs_package_create(t_header header, t_buffer* payload)
 {
 	t_package* package;
 
-	CHECK_STATUS(MALLOC(package, sizeof(t_package)));
+	package = malloc(sizeof(t_package));
 
     package->header.opcode  = header.opcode;
     package->header.msgtype = header.msgtype;
     if(payload)
     {
-    	CHECK_STATUS(MALLOC(package->payload, sizeof(t_buffer)));
-    	CHECK_STATUS(MALLOC(package->payload->stream, payload->size));
+    	package->payload = malloc(sizeof(t_buffer));
+    	package->payload->stream = malloc(payload->size);
         memcpy(package->payload->stream, payload->stream, payload->size);
         package->payload->size = payload->size;
     } else
@@ -101,11 +98,11 @@ static t_buffer* cs_package_to_buffer(t_package* package)
 	int offset = 0;
 
 	//Se reserva la memoria necesaria
-	CHECK_STATUS(MALLOC(buffer, sizeof(t_buffer)));
+	buffer = malloc(sizeof(t_buffer));
 
 	buffer->size = CS_HEADER_FIXED_SIZE;
 	if(package->payload) buffer->size += CS_PAYLOAD_SIZE;
-	CHECK_STATUS(MALLOC(buffer->stream, buffer->size));
+	buffer->stream = malloc(buffer->size);
 
 	cs_stream_copy(buffer->stream, &offset, &package->header.opcode,  sizeof(int8_t), 1);
 	cs_stream_copy(buffer->stream, &offset, &package->header.msgtype, sizeof(int8_t), 1);
@@ -120,14 +117,147 @@ static t_buffer* cs_package_to_buffer(t_package* package)
 	return buffer;
 }
 
-//Todo: [MSG -> BUFFER]
+static t_buffer* cs_solicitud_to_buffer(t_solicitud* msg);
+static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
+static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
+static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
+static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg);
+static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg);
+static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg);
+static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg);
+
 t_buffer* cs_msg_to_buffer(t_header header, void* msg)
 {
-	switch(header.msgtype)
+	switch(header.opcode)
 	{
+	case OPCODE_SOLICITUD:
+		return cs_solicitud_to_buffer((t_solicitud*)msg);
+	case OPCODE_RESPUESTA_OK:
+		switch(header.msgtype)
+		{
+		case CONSULTAR_RESTAURANTES:
+			return cs_rta_cons_rest_to_buffer((t_rta_cons_rest*)msg);
+		case OBTENER_RESTAURANTE:
+			return cs_rta_obt_rest_to_buffer((t_rta_obt_rest*)msg);
+		case CONSULTAR_PLATOS:
+			return cs_rta_cons_pl_to_buffer((t_rta_cons_pl*)msg);
+		case CREAR_PEDIDO:
+			return cs_rta_crear_ped_to_buffer((t_rta_crear_ped*)msg);
+		case CONSULTAR_PEDIDO:
+			return cs_rta_cons_ped_to_buffer((t_rta_cons_ped*)msg);
+		case OBTENER_PEDIDO:
+			return cs_rta_obt_ped_to_buffer((t_rta_obt_ped*)msg);
+		case OBTENER_RECETA:
+			return cs_rta_obt_rec_to_buffer((t_rta_obt_rec*)msg);
+		default:
+			return NULL;
+		}
+		break;
 	default:
 		break;
 	}
 	return NULL;
 }
 
+static t_buffer* cs_solicitud_to_buffer(t_solicitud* msg)
+{
+	t_buffer *buffer;
+	int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+	buffer->size = 4 * sizeof(uint32_t) + msg->comida_length + msg->restaurante_length;
+	buffer->stream = malloc(buffer->size);
+
+	cs_stream_copy(buffer->stream, &offset, &msg->comida_length     , sizeof(uint32_t)       , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset,  msg->comida            , msg->comida_length     , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->cantidad          , sizeof(uint32_t)       , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->restaurante_length, sizeof(uint32_t)       , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset,  msg->restaurante       , msg->restaurante_length, COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->pedido_id         , sizeof(uint32_t)       , COPY_SEND);
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_cons_rest_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_obt_rest_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_cons_pl_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_crear_ped_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_cons_ped_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_obt_ped_to_buffer
+
+	return buffer;
+}
+
+static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
+{
+	t_buffer *buffer;
+	//int offset = 0;
+
+	buffer = malloc(sizeof(t_buffer));
+
+	//TODO: [MSG->BUFFER] cs_rta_obt_rec_to_buffer
+
+	return buffer;
+}
