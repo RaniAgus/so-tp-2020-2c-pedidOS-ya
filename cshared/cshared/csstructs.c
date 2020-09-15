@@ -58,7 +58,7 @@ t_list* cs_platos_create(char* comidas, char* listos, char* totales)
 	{
 		t_plato* plato_y_estado;
 
-		CHECK_STATUS(MALLOC(plato_y_estado, sizeof(t_plato)));
+		plato_y_estado = malloc(sizeof(t_plato));
 
 		plato_y_estado->comida = string_duplicate(platos_arr[i]);
 		plato_y_estado->cant_lista = atoi(listos_arr[i]);
@@ -92,7 +92,7 @@ t_list* cs_receta_create(char* pasos, char* tiempos)
 	{
 		t_paso_receta* paso_receta;
 
-		CHECK_STATUS(MALLOC(paso_receta, sizeof(t_paso_receta)));
+		paso_receta = malloc(sizeof(t_paso_receta));
 
 		paso_receta->paso   = string_duplicate(pasos_arr[i]);
 		paso_receta->tiempo = atoi(tiempos_arr[i]);
@@ -123,7 +123,7 @@ t_list* cs_menu_create(char* comidas, char* precios)
 	{
 		t_comida_menu* comida_menu;
 
-		CHECK_STATUS(MALLOC(comida_menu, sizeof(t_paso_receta)));
+		comida_menu = malloc(sizeof(t_paso_receta));
 
 		comida_menu->comida = string_duplicate(comidas_arr[i]);
 		comida_menu->precio = atoi(precios_arr[i]);

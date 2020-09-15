@@ -7,7 +7,6 @@ static const char* CS_STATUS_STR[] =
 	"SUCCESS",
 	"LOOK_UP_ERROR",
 
-	"MALLOC_ERROR",
 	"SEM_INIT_ERROR",
 	"PTHREAD_ERROR",
 	"SIGACTION_ERROR",

@@ -10,10 +10,6 @@
         cs_enum_status_to_str(__val), __val, __func__ ,__LINE__, cs_string_error(__val) );\
         exit(__val);} })
 
-#define MALLOC(dest,size)\
-({ (dest = malloc(size)) == NULL ?\
-({ cs_set_local_err(errno); STATUS_MALLOC_ERROR;}) : STATUS_SUCCESS; })
-
 #define SEM_INIT(semaphor, value)\
 ({ sem_init(&semaphor, 0, value) ?\
 ({ cs_set_local_err(errno); STATUS_SEM_INIT_ERROR;}) : STATUS_SUCCESS; })
@@ -31,7 +27,6 @@ typedef enum
 	STATUS_SUCCESS = 0,
 	STATUS_LOOK_UP_ERROR,
 
-	STATUS_MALLOC_ERROR,
 	STATUS_SEM_INIT_ERROR,
 	STATUS_PTHREAD_ERROR,
 	STATUS_SIGACTION_ERROR,
