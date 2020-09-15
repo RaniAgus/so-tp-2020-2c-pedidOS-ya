@@ -43,22 +43,24 @@ const char*	cs_enum_msgtype_to_str(int value);
 * @DESC Recibe un mensaje y devuelve un string con su contenido
 * (normalmente para luego mostrarlo por pantalla en un log).
 */
-char* 	cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type);
+char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
 
 /**
 * @NAME cs_msg_destroy
 * @DESC Destruye un mensaje y su contenido.
 */
-void 	cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type);
+void 	cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type);
 
 //*************************MENSAJES************************
 
 typedef struct
 {
-	e_msgtype msgtype;
+	int8_t msgtype;
 
+	uint32_t comida_length;
 	char* 	 comida;
 	uint32_t cantidad;
+	uint32_t restaurante_length;
 	char* 	 restaurante;
 	uint32_t pedido_id;
 }t_solicitud;
@@ -80,9 +82,9 @@ typedef enum
 * @DESC Devuelve un boolean indicando si el tipo de solicitud
 * tiene ese argumento.
 */
-bool cs_sol_has_argument(e_msgtype msgtype, e_sol_arg arg);
+bool cs_sol_has_argument(int8_t msgtype, int8_t arg);
 
-t_solicitud* _sol_create(e_msgtype msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
+t_solicitud* _sol_create(int8_t msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
 
 /**
 * @NAME cs_sol/rta_create
@@ -92,7 +94,7 @@ t_solicitud* _sol_create(e_msgtype msgtype, char* plato, uint32_t cant, char* re
 //*************************CONSULTAR RESTAURANTES*************************
 
 #define cs_msg_consultar_rest_create()\
-	_sol_create(CONSULTAR_RESTAURANTES, "", 0, "", 0)
+	_sol_create((int8_t)CONSULTAR_RESTAURANTES, "", 0, "", 0)
 
 typedef struct
 {
@@ -106,12 +108,12 @@ t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
 //*************************SELECCIONAR RESTAURANTE*************************
 
 #define cs_msg_seleccionar_rest_create(rest)\
-		_sol_create(SELECCIONAR_RESTAURANTE, "", 0, rest, 0)
+		_sol_create((int8_t)SELECCIONAR_RESTAURANTE, "", 0, rest, 0)
 
 //*************************OBTENER RESTAURANTE*************************
 
 #define cs_msg_obtener_rest_create(rest)\
-		_sol_create(OBTENER_RESTAURANTE, "", 0, rest, 0)
+		_sol_create((int8_t)OBTENER_RESTAURANTE, "", 0, rest, 0)
 
 typedef struct
 {
@@ -134,7 +136,7 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 //*************************CONSULTAR PLATOS*************************
 
 #define cs_msg_consultar_pl_create(rest)\
-		_sol_create(CONSULTAR_PLATOS, "", 0, rest, 0)
+		_sol_create((int8_t)CONSULTAR_PLATOS, "", 0, rest, 0)
 
 typedef struct
 {
@@ -148,7 +150,7 @@ t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos);
 //*************************CREAR PEDIDO*************************
 
 #define cs_msg_crear_ped_create()\
-		_sol_create(CREAR_PEDIDO, "", 0, "", 0)
+		_sol_create((int8_t)CREAR_PEDIDO, "", 0, "", 0)
 
 typedef struct
 {
@@ -162,38 +164,38 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 //*************************GUARDAR PEDIDO*************************
 
 #define cs_msg_guardar_ped_create(rest, pedido_id)\
-		_sol_create(GUARDAR_PEDIDO, "", 0, rest, pedido_id)
+		_sol_create((int8_t)GUARDAR_PEDIDO, "", 0, rest, pedido_id)
 
 //*************************AÑADIR PLATO*************************
 
 #define cs_msg_aniadir_pl_create(plato, pedido_id)\
-		_sol_create(ANIADIR_PLATO, plato, 0, "", pedido_id)
+		_sol_create((int8_t)ANIADIR_PLATO, plato, 0, "", pedido_id)
 
 //*************************GUARDAR PLATO*************************
 
 #define cs_msg_guardar_pl_create(plato, cant, rest, pedido_id)\
-		_sol_create(GUARDAR_PLATO, plato, cant, rest, pedido_id)
+		_sol_create((int8_t)GUARDAR_PLATO, plato, cant, rest, pedido_id)
 
 //*************************CONFIRMAR PEDIDO*************************
 
 #define cs_msg_confirmar_ped_create(pedido_id)\
-		_sol_create(CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
+		_sol_create((int8_t)CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
 
 //*************************PLATO LISTO*************************
 
 #define cs_msg_plato_listo_create(plato, rest, pedido_id)\
-		_sol_create(PLATO_LISTO, plato, 0, rest, pedido_id)
+		_sol_create((int8_t)PLATO_LISTO, plato, 0, rest, pedido_id)
 
 //*************************CONSULTAR PEDIDO*************************
 
 #define cs_msg_consultar_ped_create(pedido_id)\
-		_sol_create(CONSULTAR_PEDIDO, "", 0, "", pedido_id)
+		_sol_create((int8_t)CONSULTAR_PEDIDO, "", 0, "", pedido_id)
 
 typedef struct
 {
-	char* 	 		restaurante;
-	e_estado_ped 	estado_pedido;
-	t_list*			platos_y_estados;
+	char* 	restaurante;
+	int8_t 	estado_pedido;
+	t_list*	platos_y_estados;
 }t_rta_cons_ped;
 
 #define RTA_CONSULTAR_PED(ptr)	((t_rta_cons_ped*)(ptr))
@@ -207,7 +209,7 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest,
 //*************************OBTENER PEDIDO*************************
 
 #define cs_msg_obtener_ped_create(rest, pedido_id)\
-		_sol_create(OBTENER_PEDIDO, "", 0, rest, pedido_id)
+		_sol_create((int8_t)OBTENER_PEDIDO, "", 0, rest, pedido_id)
 
 typedef struct
 {
@@ -221,17 +223,17 @@ t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* total
 //*************************FINALIZAR PEDIDO*************************
 
 #define cs_msg_fin_ped_create(rest, pedido_id)\
-		_sol_create(FINALIZAR_PEDIDO, "", 0, rest, pedido_id)
+		_sol_create((int8_t)FINALIZAR_PEDIDO, "", 0, rest, pedido_id)
 
 //*************************TERMINAR PEDIDO*************************
 
 #define cs_msg_term_ped_create(rest, pedido_id)\
-		_sol_create(TERMINAR_PEDIDO, "", 0, rest, pedido_id)
+		_sol_create((int8_t)TERMINAR_PEDIDO, "", 0, rest, pedido_id)
 
 //*************************OBTENER RECETA*************************
 
 #define cs_msg_rta_obtener_receta_create(plato)\
-		_sol_create(OBTENER_RECETA, plato, 0, "", 0)
+		_sol_create((int8_t)OBTENER_RECETA, plato, 0, "", 0)
 
 typedef struct
 {

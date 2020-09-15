@@ -36,9 +36,9 @@ const char* cs_enum_msgtype_to_str(int value)
 	return _MSGTYPE_STR[value];
 }
 
-static void _rta_destroy(void* msg, e_msgtype msg_type);
+static void _rta_destroy(void* msg, int8_t msg_type);
 
-void cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type)
+void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 {
 	switch(op_code)
 	{
@@ -55,7 +55,7 @@ void cs_msg_destroy(void* msg, e_opcode op_code, e_msgtype msg_type)
 	}
 }
 
-char* cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type)
+char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 {
 	char* msg_str = string_duplicate(
 			(char*)cs_enum_msgtype_to_str((int)msg_type)
@@ -104,12 +104,15 @@ char* cs_msg_to_str(void* msg, e_opcode op_code, e_msgtype msg_type)
 	return msg_str;
 }
 
-t_solicitud* 	_sol_create(e_msgtype msgtype, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
+t_solicitud* 	_sol_create(int8_t msg_type, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
 {
 	t_solicitud* msg;
-	CHECK_STATUS(MALLOC(msg, sizeof(t_solicitud)));
+	msg = malloc(sizeof(t_solicitud));
 
-	msg->msgtype = msgtype;
+	msg->msgtype = msg_type;
+
+	msg->comida_length      = strlen(comida);
+	msg->restaurante_length = strlen(rest);
 
 	msg->comida      = string_duplicate(comida);
 	msg->cantidad    = cant;
@@ -122,7 +125,7 @@ t_solicitud* 	_sol_create(e_msgtype msgtype, char* comida, uint32_t cant, char* 
 t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
 {
 	t_rta_cons_rest* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_cons_rest)));
+	rta = malloc(sizeof(t_rta_cons_rest));
 
 	rta->restaurantes = string_get_string_as_array(restaurantes);
 
@@ -137,7 +140,7 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 										   uint32_t cant_hornos)
 {
 	t_rta_obt_rest* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_obt_rest)));
+	rta = malloc(sizeof(t_rta_obt_rest));
 
 	rta->cant_cocineros    = cant_cocineros;
 	rta->afinidades 	   = string_get_string_as_array(afinidades);
@@ -153,7 +156,7 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos)
 {
 	t_rta_cons_pl* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_cons_rest)));
+	rta = malloc(sizeof(t_rta_cons_rest));
 
 	rta->platos = string_get_string_as_array(platos);
 
@@ -163,7 +166,7 @@ t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos)
 t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id)
 {
 	t_rta_crear_ped* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_crear_ped)));
+	rta = malloc(sizeof(t_rta_crear_ped));
 
 	rta->pedido_id = pedido_id;
 
@@ -176,7 +179,7 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
 								   char* totales)
 {
 	t_rta_cons_ped* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_cons_ped)));
+	rta = malloc(sizeof(t_rta_cons_ped));
 
 	rta->restaurante      = string_duplicate(rest);
 	rta->estado_pedido    = estado_ped;
@@ -188,7 +191,7 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
 t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales)
 {
 	t_rta_obt_ped* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_obt_ped)));
+	rta = malloc(sizeof(t_rta_obt_ped));
 
 	rta->platos_y_estados = cs_platos_create(platos, listos, totales);
 
@@ -198,7 +201,7 @@ t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* total
 t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 {
 	t_rta_obt_rec* rta;
-	CHECK_STATUS(MALLOC(rta, sizeof(t_rta_obt_rec)));
+	rta = malloc(sizeof(t_rta_obt_rec));
 
 	rta->pasos_receta = cs_receta_create(pasos, tiempos);
 
@@ -210,7 +213,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 static void _sol_append(char** msg_str, t_solicitud* msg)
 {
 
-	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_COMIDA))
+	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_COMIDA))
 	{
 		string_append_with_format(
 				msg_str,
@@ -218,7 +221,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->comida
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_CANTIDAD))
+	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_CANTIDAD))
 	{
 		string_append_with_format(
 				msg_str,
@@ -226,7 +229,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->cantidad
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_RESTAURANTE))
+	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_RESTAURANTE))
 	{
 		string_append_with_format(
 				msg_str,
@@ -234,7 +237,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->restaurante
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, SOL_ARG_PEDIDO_ID))
+	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_PEDIDO_ID))
 	{
 		string_append_with_format(
 				msg_str,
@@ -359,7 +362,7 @@ static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg)
 
 /******************ELEMENT DESTROYERS**********************/
 
-static void _rta_destroy(void* msg, e_msgtype msg_type)
+static void _rta_destroy(void* msg, int8_t msg_type)
 {
     switch(msg_type)
     {
@@ -417,7 +420,7 @@ static const int _MSG_ARGS[MSGTYPES_CANT][SOL_ARGS_CANT] =
 
 };
 
-bool cs_sol_has_argument(e_msgtype msgtype, e_sol_arg arg)
+bool cs_sol_has_argument(int8_t msgtype, int8_t arg)
 {
 	return _MSG_ARGS[(int)msgtype][(int)arg];
 }
