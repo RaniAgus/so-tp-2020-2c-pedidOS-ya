@@ -7,6 +7,7 @@ char** cs_console_readline(const char* text, int* argc)
 	line = readline(text);
 	if(line[0] != '\0')
 	{
+		add_history(line);
 		argv  = string_split(line, " ");
 		*argc = cs_string_array_lines_count(argv);
 	} else *argc = 0;
