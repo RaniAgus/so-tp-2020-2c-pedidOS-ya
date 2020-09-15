@@ -10,28 +10,9 @@ t_sfd serv_conn;
 
 e_status client_init(pthread_t* thread_recv_msg);
 
-void client_send_msg_routine(int arg_cant, char** arg_values);
 void client_recv_msg_routine(void);
-
 e_status client_send_msg(cl_parser_result* result);
 e_status client_recv_msg(t_sfd conn, int8_t* msg_type);
-
-void cs_parse_argument(char* arg)
-{
-	char *arg_without_dashes, **key_and_value;
-
-	arg_without_dashes = string_substring_from(arg, 2);
-	key_and_value = string_n_split(arg_without_dashes, 2, "=");
-
-	if(!strcmp(key_and_value[0],"log-level"))
-	{
-		cs_logger_set_level(log_level_from_string(key_and_value[1]));
-	}
-
-	string_iterate_lines(key_and_value,(void*) free);
-	free(key_and_value);
-	free(arg_without_dashes);
-}
 
 int main(int argc, char* argv[])
 {
@@ -50,15 +31,38 @@ int main(int argc, char* argv[])
 		int    arg_cant;
 		char** arg_values;
 
+		cl_parser_status  parser_status;
+		cl_parser_result *result = malloc(sizeof(cl_parser_result));
+
 		arg_values = cs_console_readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ", &arg_cant);
 		if(arg_values == NULL)
 		{
 			CS_LOG_TRACE("Se recibió un salto de línea.");
+			free(result);
 			break;
 		}
 
-		CS_LOG_TRACE("La cantidad de argumentos es: %d", arg_cant);
-		client_send_msg_routine(arg_cant, arg_values);
+		//Parsea los argumentos
+		parser_status = client_parse_arguments(result, arg_cant, arg_values);
+		if(parser_status == CL_SUCCESS)
+		{
+			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
+			CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
+			free(msg_to_str);
+
+			//Envía el mensaje
+			pthread_t thread_msg;
+			PTHREAD_CREATE(&thread_msg, client_send_msg, result);
+			pthread_detach(thread_msg);
+		}
+		else
+		{
+			client_print_parser_error(parser_status, *result);
+			free(result);
+		}
+
+		string_iterate_lines(arg_values, (void*) free);
+		free(arg_values);
 	}
 
 	CS_LOG_TRACE("Finalizando...");
@@ -112,47 +116,31 @@ e_status client_init(pthread_t* thread_recv_msg)
 	return STATUS_SUCCESS;
 }
 
-void client_send_msg_routine(int arg_cant, char** arg_values)
-{
-	cl_parser_status parser_status;
-	cl_parser_result result;
-
-	//Parsea los argumentos
-	parser_status = client_parse_arguments(&result, arg_cant, arg_values);
-	if(parser_status == CL_SUCCESS)
-	{
-		char* msg_to_str = cs_msg_to_str(result.msg, result.header.opcode, result.header.msgtype);
-		CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
-		free(msg_to_str);
-
-		//Envía el mensaje
-		pthread_t thread_msg;
-		PTHREAD_CREATE(&thread_msg,client_send_msg, &result);
-		pthread_detach(thread_msg);
-	}
-	else
-	{
-		client_print_parser_error(parser_status, result);
-	}
-
-	string_iterate_lines(arg_values, (void*) free);
-	free(arg_values);
-}
-
 void client_recv_msg_routine(void)
 {
 	e_status status;
+
 	do
 	{
 		t_header header;
-		header.opcode = (int8_t)OPCODE_RESPUESTA_OK;
 
+		//Recibe la solicitud
 		status = client_recv_msg(serv_conn, &header.msgtype);
 		if(status == STATUS_SUCCESS)
 		{
+			//Cliente solo recibe "Terminar Pedido"
+			if(header.msgtype == TERMINAR_PEDIDO)
+				header.opcode = (int8_t)OPCODE_RESPUESTA_OK;
+			else
+				header.opcode = (int8_t)OPCODE_RESPUESTA_FAIL;
+
+			//Envía la respuesta
 			status = cs_send_msg(serv_conn, header, NULL);
 		}
 	} while(status == STATUS_SUCCESS);
+
+	fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
+			 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
 }
 
 e_status client_send_msg(cl_parser_result* result)
@@ -168,11 +156,12 @@ e_status client_send_msg(cl_parser_result* result)
 		status = cs_send_msg(conn, result->header, result->msg);
 		if(status == STATUS_SUCCESS)
 		{
-			CS_LOG_INFO("Mensaje enviado: %s",
-					cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype));
+			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
+			CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
+			free(msg_to_str);
 
 			//Espera la respuesta
-			status = client_recv_msg(conn, NULL);
+			//status = client_recv_msg(conn, NULL);
 		}
 	}
 	if(status != STATUS_SUCCESS)
@@ -185,6 +174,7 @@ e_status client_send_msg(cl_parser_result* result)
 
 	//Libera recursos
 	cs_msg_destroy(result->msg, result->header.opcode, result->header.msgtype);
+	free(result);
 
 	return status;
 }
@@ -203,7 +193,7 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
 
-		if(msg_type) *msg_type = (int8_t)header.msgtype;
+		if(msg_type) *msg_type = header.msgtype;
 	}
 
 	return cs_recv_msg(conn, _recv_and_print_msg);
