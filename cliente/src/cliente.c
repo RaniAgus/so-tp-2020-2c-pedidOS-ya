@@ -161,7 +161,7 @@ e_status client_send_msg(cl_parser_result* result)
 			free(msg_to_str);
 
 			//Espera la respuesta
-			//status = client_recv_msg(conn, NULL);
+			status = client_recv_msg(conn, NULL);
 		}
 	}
 	if(status != STATUS_SUCCESS)
@@ -187,7 +187,7 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
 
 		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 		printf("\n");
-		CS_LOG_INFO("Mensaje recibido: %s", cs_msg_to_str(msg, header.opcode, header.msgtype));
+		CS_LOG_INFO("Mensaje recibido: %s", msg_str);
 		printf("> ");
 
 		free(msg_str);
