@@ -140,3 +140,63 @@ t_list* cs_menu_create(char* comidas, char* precios)
 	//Retorna la lista
 	return list;
 }
+
+void cs_platos_to_string(t_list* platos, char** comidas, char** listos, char** totales)
+{
+	//Inicia los array de comidas y estados
+	*comidas = string_duplicate("[");
+	*listos  = string_duplicate("[");
+	*totales = string_duplicate("[");
+
+	//Itera la lista, agregando la comida y el estado al respectivo string
+	void _platos_to_string(t_plato* plato)
+	{
+		string_append_with_format(comidas, "%s,", plato->comida);
+		string_append_with_format(listos , "%d,", plato->cant_lista);
+		string_append_with_format(totales, "%d,", plato->cant_total);
+	}
+	list_iterate(platos, (void*)_platos_to_string);
+
+	//Corrige la coma al final
+	(*comidas)[strlen(*comidas) - 1] = ']';
+	(*listos )[strlen(*listos ) - 1] = ']';
+	(*totales)[strlen(*totales) - 1] = ']';
+}
+
+void cs_receta_to_string(t_list* receta, char** pasos, char** tiempos)
+{
+	//Inicia los array de pasos y tiempos
+	*pasos   = string_duplicate("[");
+	*tiempos = string_duplicate("[");
+
+	//Itera la lista, agregando el nombre del paso y el tiempo al respectivo string
+	void _receta_to_string(t_paso_receta* paso_receta)
+	{
+		string_append_with_format(pasos,   "%s,", paso_receta->paso);
+		string_append_with_format(tiempos, "%d,", paso_receta->tiempo);
+	}
+	list_iterate(receta, (void*)_receta_to_string);
+
+	//Corrige la coma al final
+	(*pasos  )[strlen(*pasos  ) - 1] = ']';
+	(*tiempos)[strlen(*tiempos) - 1] = ']';
+}
+
+void cs_menu_to_string(t_list* menu, char** comidas, char** precios)
+{
+	//Inicia los array de comidas y precios
+	*comidas = string_duplicate("[");
+	*precios = string_duplicate("[");
+
+	//Itera la lista, agregando la comida y el precio al respectivo string
+	void _menu_to_string(t_comida_menu* comida_menu)
+	{
+		string_append_with_format(comidas, "%s,", comida_menu->comida);
+		string_append_with_format(precios, "%d,", comida_menu->precio);
+	}
+	list_iterate(menu, (void*)_menu_to_string);
+
+	//Corrige la coma al final
+	(*comidas)[strlen(*comidas) - 1] = ']';
+	(*precios)[strlen(*precios) - 1] = ']';
+}

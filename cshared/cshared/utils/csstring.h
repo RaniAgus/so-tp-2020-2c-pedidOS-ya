@@ -45,45 +45,45 @@ int cs_string_to_uint(const char* str);
 int	cs_string_array_lines_count(char** str_arr);
 
 /**
-* @NAME cs_string_get_as_array (versión de string_get_string_as_array de commons/string.h)
-* @DESC Retorna un array separando los elementos de un string con formato de array
+* @NAME cs_string_is_in_string_array_format
+* @DESC Retorna != 0 si el string pasado por argumento está en formato array.
 *
-* Ejemplo:
-* char* array_string = "[1,2,3,4]"
-* cs_string_get_string_as_array(array_string) => ["1","2","3","4"]
+* Ejemplos válidos:
+* 	"[1,2,3,4]", "[abc,def,ghi]", "[abc,123,de4,56f]", "[abcd]"
+* Ejemplos no válidos:
+* 	"[a,b,c", "[a,b,,c]", "a,b,c]"
 */
-char** cs_string_get_as_array(char* str);
+bool cs_string_is_in_string_array_format(char* str);
 
 /**
-* @NAME cs_string_is_array_format
-* @DESC Retorna verdadero si el string pasado por argumento está en formato lista.
+* @NAME cs_string_is_in_uint_array_format
+* @DESC Retorna != 0 si el string pasado por argumento está en formato array
+* de enteros sin signo.
 *
-* Ejemplos: "[1,2,3,4]", "[abc,def,ghi]", "[abc,123,de4,56f]"
+* Ejemplos válidos:
+* 	"[1,2,3,4]", "[1234]"
+* Ejemplos NO válidos:
+* 	"[a,0,1]", "[0,1,2", "[0,1,,2]", "0,1,2]", "[-2,-1,0,1,2]"
 */
-bool cs_string_is_array_format(char* str);
+bool cs_string_is_in_uint_array_format(char* str);
 
 /**
-* @NAME cs_string_to_int_array
-* @DESC Devuelve por argumento un array de enteros, separando los elementos
-* de un string con formato de array.
-* Retorna la cantidad de elementos del array creado, o -1 en caso de error.
+* @NAME cs_string_is_in_int_array_format
+* @DESC Retorna != 0 si el string pasado por argumento está en formato array
+* de enteros.
 *
-* Ejemplo:
-* char* array_string = "[30,-72,1]"
-* cs_string_to_int_array(&intarray, array_string) => intarray = { 30, -72, 1 };
+* Ejemplos válidos:
+* 	"[1,2,3,4]", "[-2,-1,0,+1,2]", "[-1234]"
+* Ejemplos NO válidos:
+* 	"[a,0,1]", "[0,1,2", "[0,1,,2]", "0,1,2]"
 */
-int cs_string_to_int_array(int** int_arr, char* str);
+bool cs_string_is_in_int_array_format(char* str);
 
 /**
-* @NAME cs_string_to_int_array
-* @DESC Devuelve por argumento un array de enteros, separando los elementos
-* de un string con formato de array.
-* Retorna la cantidad de elementos del array creado, o -1 en caso de error.
-*
-* Ejemplo:
-* char* array_string = "[30,72,1]"
-* cs_string_to_int_array(&uintarray, array_string) => uintarray = { 30, 72, 1 };
+* @NAME cs_string_array_to_string
+* @DESC Devuelve un string en formato array, a partir de un array de strings
 */
-int cs_string_to_uint_array(int** uint_arr, char* str);
+char* cs_string_array_to_string(char** str_arr);
+
 
 #endif /* UTILS_STRING_H_ */

@@ -97,4 +97,25 @@ t_list* cs_receta_create(char* pasos, char* tiempos);
 */
 t_list* cs_menu_create(char* comidas, char* precios);
 
+/**
+* @NAME cs_platos_to_string
+* @DESC Realiza el paso inverso a cs_platos_create
+*
+*/
+void cs_platos_to_string(t_list* menu, char** comidas, char** listos, char** totales);
+
+/**
+* @NAME cs_receta_to_string
+* @DESC Realiza el paso inverso a cs_receta_create
+*
+*/
+void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
+
+/**
+* @NAME cs_menu_to_string
+* @DESC Realiza el paso inverso a cs_menu_create
+*
+*/
+void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
+
 #endif /* CSHARED_CSSTRUCTS_H_ */

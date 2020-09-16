@@ -1,6 +1,6 @@
 #include "csstring.h"
 
-static int _string_to_int_array(int** int_arr, char* str, bool is_unsigned);
+static bool _string_is_in_num_array_format(char* str, bool _signed);
 
 void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size,
 					int buffer_is_dest)
@@ -40,7 +40,13 @@ int cs_string_to_int(int* number, const char* str)
 	{
 		*number -= cs_string_to_uint(str + 1);
 		if(*number > 0) return -1;
-	} else
+	}
+	else if(str[0] == '+' && str[1])
+	{
+		*number += cs_string_to_uint(str + 1);
+		if(*number < 0) return -1;
+	}
+	else
 	{
 		*number += cs_string_to_uint(str);
 		if(*number < 0) return -1;
@@ -73,102 +79,71 @@ int	cs_string_array_lines_count(char** str_arr)
 	return lines;
 }
 
-char** cs_string_get_as_array(char* str)
+bool cs_string_is_in_string_array_format(char* str)
 {
-	char** str_array = NULL;
+	return string_starts_with(str, "[") && string_ends_with(str, "]") &&
+		   !(string_contains(str, "[,") || string_contains(str, ",,") || string_contains(str, ",]"));
+}
 
-	//Resuelve el problema de los corchetes
-	if(string_starts_with(str, "[") && string_ends_with(str, "]"))
+char* cs_string_array_to_string(char** str_arr)
+{
+	char* str = string_duplicate("[");
+
+	void _append_lines_to_str(char* line)
 	{
-		str_array = string_get_string_as_array(str);
-
-		//TODO: cs_string_get_as_array - Revisar si cambia la firma de 'string_split'
-		//Resuelve el problema de las comas (cambiar a revisar líneas vacías)
-		int commas = 0;
-		for(int i=0; str[i] != '\0'; i++)
-			if(str[i]==',') commas++;
-
-		int lines = cs_string_array_lines_count(str_array);
-		if(commas >= lines)
-		{
-			string_iterate_lines(str_array, (void*) free);
-			free(str_array);
-			str_array = NULL;
-		}
+		string_append(&str, line);
+		string_append(&str, ",");
 	}
+	string_iterate_lines(str_arr, _append_lines_to_str);
+	str[strlen(str) - 1] = ']';
 
-	return str_array;
+	return str;
 }
 
-bool cs_string_is_array_format(char* str)
+char* cs_int_array_to_string(int* int_arr, int size)
 {
-	char** str_array = cs_string_get_as_array(str);
+	char* str = string_duplicate("[");
 
-	return (str_array == NULL)? false :
-		({  string_iterate_lines(str_array, (void*) free); free(str_array); true; });
+	for(int i = 0; i < size; i++)
+	{
+		string_append_with_format(&str, "%d,", int_arr[i]);
+	}
+	str[strlen(str) - 1] = ']';
+
+	return str;
 }
 
-int cs_string_to_uint_array(int** int_arr, char* str)
+bool cs_string_is_in_uint_array_format(char* str)
 {
-	return _string_to_int_array(int_arr, str, true);
+	return _string_is_in_num_array_format(str, false);
 }
 
-int cs_string_to_int_array(int** int_arr, char* str)
+bool cs_string_is_in_int_array_format(char* str)
 {
-	return _string_to_int_array(int_arr, str, false);
+	return _string_is_in_num_array_format(str, true);
 }
 
-//TODO: cs_string_to_enum_str_array - hacer publica
-char** cs_string_to_enum_str_array(char* str, char* error_value)
-{
-	char* str2 = string_duplicate(str);
-	str2[0] = ',';
-
-	char* str_with_error_value = string_new();
-	string_append_with_format(&str_with_error_value,
-		"[%s%s", error_value, str
-	);
-
-	char** result = cs_string_get_as_array(str_with_error_value);
-
-	//TODO: cs_string_to_enum_str_array - Quitar repetidos
-
-	free(str2);
-	free(str_with_error_value);
-
-	return result;
-}
-
-static int _string_to_int_array(int** int_arr, char* str, bool is_unsigned)
+static bool _string_is_in_num_array_format(char* str, bool _signed)
 {
 	char** str_array;
-	int lines;
+	bool result = false;
 
-	str_array = cs_string_get_as_array(str);
-	if(!str_array) return -1;
-
-	lines = cs_string_array_lines_count(str_array);
-
-	if(int_arr) *int_arr = calloc(lines,sizeof(int));
-
-	for(int i = 0; i < lines; i++)
+	if(cs_string_is_in_string_array_format(str))
 	{
-		int num, res;
-		if(is_unsigned)
-			res = num = cs_string_to_uint(str_array[i]);
-		else
-			res = cs_string_to_int(&num, str_array[i]);
-
-		if(res < 0)
+		result = true;
+		str_array = string_get_string_as_array(str);
+		void _check_numbers(char* line)
 		{
-			if(int_arr) free(*int_arr);
-			lines = -1;
-			break;
+			int num;
+			if(_signed)
+				if( cs_string_to_int(&num, line) < 0 ) result = false;
+			else
+				if( cs_string_to_uint(line) < 0 ) result = false;
 		}
-		if(int_arr) (*int_arr)[i] = num;
+		string_iterate_lines(str_array, _check_numbers);
+		string_iterate_lines(str_array, (void*) free);
+		free(str_array);
 	}
-	string_iterate_lines(str_array, (void*) free);
-	free(str_array);
 
-	return lines;
+	return result;
 }
