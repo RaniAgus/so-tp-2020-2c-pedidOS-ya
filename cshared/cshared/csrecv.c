@@ -112,36 +112,32 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 static t_solicitud* cs_buffer_to_solicitud(int8_t msg_type, t_buffer* buffer)
 {
 	t_solicitud* msg;
-
-	char *comida, *restaurante;
-	uint32_t comida_len, restaurante_len, cantidad, pedido_id;
-
 	int offset = 0;
 
+	uint32_t comida_len;
+	uint32_t restaurante_len;
+
+	//El mensaje se puede copiar directamente
+	msg = malloc(sizeof(t_solicitud));
+	msg->msgtype = msg_type;
+
 	//Comida
-	cs_stream_copy(buffer->stream, &offset, &comida_len     , sizeof(uint32_t), COPY_RECV);
-	comida = malloc(comida_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  comida         , comida_len      , COPY_RECV);
-	comida[comida_len] = '\0';
+	cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_RECV);
+	msg->comida = malloc(comida_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_RECV);
+	msg->comida[comida_len] = '\0';
 
 	//Cantidad
-	cs_stream_copy(buffer->stream, &offset, &cantidad       , sizeof(uint32_t), COPY_RECV);
+	cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_RECV);
 
 	//Restaurante
-	cs_stream_copy(buffer->stream, &offset, &restaurante_len, sizeof(uint32_t), COPY_RECV);
-	restaurante = malloc(restaurante_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  restaurante    , restaurante_len , COPY_RECV);
-	restaurante[restaurante_len] = '\0';
+	cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_RECV);
+	msg->restaurante = malloc(restaurante_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_RECV);
+	msg->restaurante[restaurante_len] = '\0';
 
 	//Pedido id
-	cs_stream_copy(buffer->stream, &offset, &pedido_id      , sizeof(uint32_t), COPY_RECV);
-
-	//Crea el mensaje
-	msg = _sol_create(msg_type, comida, cantidad, restaurante, pedido_id);
-
-	//Libera recursos
-	free(comida);
-	free(restaurante);
+	cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_RECV);
 
 	return msg;
 }
@@ -159,16 +155,52 @@ static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 {
-/*
-	char *afinidades, *comidas, *precios;
-	uint32_t cant_cocineros, cant_hornos;
-*/	t_pos pos_restaurante = {0,0};
-/*
-	int offset = 0;
-*/
-	//TODO: [BUFFER->MSG] cs_buffer_to_rta_obt_rest
+	t_rta_obt_rest* msg;
 
-	return cs_rta_obtener_rest_create(0, NULL, NULL, NULL, pos_restaurante, 0);
+	char *afinidades, *comidas, *precios;
+	uint32_t afinidades_len, comidas_len, precios_len;
+	uint32_t cant_cocineros, cant_hornos;
+	t_pos pos_restaurante;
+
+	int offset = 0;
+
+	//Cantidad de cocineros
+	cs_stream_copy(buffer->stream, &offset, &cant_cocineros   , sizeof(uint32_t), COPY_RECV);
+
+	//Afinidades
+	cs_stream_copy(buffer->stream, &offset, &afinidades_len   , sizeof(uint32_t), COPY_RECV);
+	afinidades = malloc(afinidades_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  afinidades       , afinidades_len  , COPY_RECV);
+	afinidades[afinidades_len] = '\0';
+
+	//Comidas
+	cs_stream_copy(buffer->stream, &offset, &comidas_len      , sizeof(uint32_t), COPY_RECV);
+	comidas = malloc(comidas_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  comidas          , comidas_len     , COPY_RECV);
+	comidas[comidas_len] = '\0';
+
+	//Precios
+	cs_stream_copy(buffer->stream, &offset, &precios_len      , sizeof(uint32_t), COPY_RECV);
+	precios = malloc(precios_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  precios          , precios_len     , COPY_RECV);
+	precios[precios_len] = '\0';
+
+	//Posición del restaurante
+	cs_stream_copy(buffer->stream, &offset, &pos_restaurante.x, sizeof(uint32_t), COPY_RECV);
+	cs_stream_copy(buffer->stream, &offset, &pos_restaurante.y, sizeof(uint32_t), COPY_RECV);
+
+	//Cantidad de hornos
+	cs_stream_copy(buffer->stream, &offset, &cant_hornos      , sizeof(uint32_t), COPY_RECV);
+
+	//Se crea el mensaje
+	msg = cs_rta_obtener_rest_create(cant_cocineros, afinidades, comidas, precios, pos_restaurante, cant_hornos);
+
+	//Libera recursos
+	free(afinidades);
+	free(comidas);
+	free(precios);
+
+	return msg;
 }
 
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl(t_buffer* buffer)
