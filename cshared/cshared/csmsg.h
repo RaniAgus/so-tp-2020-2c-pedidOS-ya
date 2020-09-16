@@ -57,10 +57,8 @@ typedef struct
 {
 	int8_t msgtype;
 
-	uint32_t comida_length;
 	char* 	 comida;
 	uint32_t cantidad;
-	uint32_t restaurante_length;
 	char* 	 restaurante;
 	uint32_t pedido_id;
 }t_solicitud;

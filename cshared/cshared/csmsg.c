@@ -111,9 +111,6 @@ t_solicitud* 	_sol_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 
 	msg->msgtype = msg_type;
 
-	msg->comida_length      = strlen(comida);
-	msg->restaurante_length = strlen(rest);
-
 	msg->comida      = string_duplicate(comida);
 	msg->cantidad    = cant;
 	msg->restaurante = string_duplicate(rest);
