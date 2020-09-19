@@ -155,7 +155,7 @@ t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos)
 	t_rta_cons_pl* rta;
 	rta = malloc(sizeof(t_rta_cons_rest));
 
-	rta->platos = string_get_string_as_array(platos);
+	rta->comidas = string_get_string_as_array(platos);
 
 	return rta;
 }
@@ -299,7 +299,7 @@ static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg)
 	{
 		string_append_with_format(msg_str, "%s,", plato);
 	}
-	string_iterate_lines(msg->platos, _platos_append);
+	string_iterate_lines(msg->comidas, _platos_append);
 
 	(*msg_str)[strlen(*msg_str)-1] = ']';
 	string_append(msg_str, "}");
@@ -373,8 +373,8 @@ static void _rta_destroy(void* msg, int8_t msg_type)
     	cs_menu_destroy(RTA_OBT_REST(msg)->menu);
     	break;
     case CONSULTAR_PLATOS:
-    	string_iterate_lines(RTA_CONS_PL(msg)->platos, (void*) free);
-    	free(RTA_CONS_PL(msg)->platos);
+    	string_iterate_lines(RTA_CONS_PL(msg)->comidas, (void*) free);
+    	free(RTA_CONS_PL(msg)->comidas);
         break;
     case CONSULTAR_PEDIDO:
     	free(RTA_CONSULTAR_PED(msg)->restaurante);

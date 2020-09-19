@@ -138,7 +138,7 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 
 typedef struct
 {
-	char** platos;
+	char** comidas;
 }t_rta_cons_pl;
 
 #define RTA_CONS_PL(ptr) ((t_rta_cons_pl*)(ptr))

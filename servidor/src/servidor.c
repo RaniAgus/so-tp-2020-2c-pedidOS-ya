@@ -106,7 +106,7 @@ void server_show_msg(t_sfd client_conn, t_header header, void* msg)
 		server_send_rta_obtener_pedido(client_conn);
 	    break;
 	case OBTENER_RECETA:
-		server_send_rta_consultar_restaurantes(client_conn);
+		server_send_rta_obtener_receta(client_conn);
 	    break;
 	default:
 		server_send_rta_ok(header.msgtype, client_conn);
