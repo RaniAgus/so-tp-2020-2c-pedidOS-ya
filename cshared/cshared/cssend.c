@@ -184,11 +184,19 @@ static t_buffer* cs_solicitud_to_buffer(t_solicitud* msg)
 static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
 {
 	t_buffer *buffer;
-	//int offset = 0;
+	int offset = 0;
 
+	char* restaurantes;
+	//array a string
+	restaurantes = cs_string_array_to_string(msg->restaurantes);
+
+	uint32_t restaurantes_len = strlen(restaurantes);
+	//memoria
 	buffer = malloc(sizeof(t_buffer));
-
-	//TODO: [MSG->BUFFER] cs_rta_cons_rest_to_buffer
+	buffer->size = restaurantes_len + sizeof(uint32_t);
+	buffer->stream = malloc(buffer->size);
+	cs_stream_copy(buffer->stream,&offset,&restaurantes_len,sizeof(uint32_t),COPY_SEND);
+	cs_stream_copy(buffer->stream,&offset,restaurantes,restaurantes_len,COPY_SEND);
 
 	return buffer;
 }
@@ -248,23 +256,30 @@ static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
 static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
 {
 	t_buffer *buffer;
-	//int offset = 0;
-
+	int offset = 0;
+	char* platos;
+	platos= cs_string_array_to_string(msg->platos); //TODO: acá no estoy usando platos to string
+	uint32_t platos_len = strlen(platos);
 	buffer = malloc(sizeof(t_buffer));
+	buffer->size = platos_len + sizeof(uint32_t);
+	buffer->stream= malloc(buffer->size);
+	cs_stream_copy(buffer->stream,&offset,&platos_len,sizeof(uint32_t),COPY_SEND);
+	cs_stream_copy(buffer->stream,&offset,platos,platos_len,COPY_SEND);
 
-	//TODO: [MSG->BUFFER] cs_rta_cons_pl_to_buffer
 
 	return buffer;
 }
 
+
 static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
 {
 	t_buffer *buffer;
-	//int offset = 0;
+	int offset = 0;
 
 	buffer = malloc(sizeof(t_buffer));
-
-	//TODO: [MSG->BUFFER] cs_rta_crear_ped_to_buffer
+	buffer->size=sizeof(uint32_t);
+	buffer->stream = malloc(buffer->size);
+	cs_stream_copy(buffer->stream,&offset,&msg->pedido_id,sizeof(uint32_t),COPY_SEND);
 
 	return buffer;
 }
@@ -272,11 +287,12 @@ static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
 static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
 {
 	t_buffer *buffer;
-	//int offset = 0;
+	int offset = 0;
 
 	buffer = malloc(sizeof(t_buffer));
 
 	//TODO: [MSG->BUFFER] cs_rta_cons_ped_to_buffer
+	//qué hago con el platos y estado? Como lo convierto? //ver mañana
 
 	return buffer;
 }

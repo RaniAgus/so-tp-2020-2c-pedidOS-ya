@@ -143,14 +143,18 @@ static t_solicitud* cs_buffer_to_solicitud(int8_t msg_type, t_buffer* buffer)
 }
 
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
-{/*
+{
+	t_rta_cons_rest* msg;
+
+
 	char* restaurantes;
-
+	uint32_t restaurantes_len;
 	int offset = 0;
-*/
-	//TODO: [BUFFER->MSG] cs_buffer_to_rta_cons_rest
+	cs_stream_copy(buffer->stream,&offset,&restaurantes_len,sizeof(uint32_t),COPY_RECV);
+	restaurantes = malloc(restaurantes_len);
+	cs_stream_copy(buffer->stream,&offset,restaurantes,restaurantes_len,COPY_RECV);
 
-	return cs_rta_consultar_rest_create(NULL);
+	return cs_rta_consultar_rest_create(restaurantes);
 }
 
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
@@ -204,34 +208,36 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 }
 
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl(t_buffer* buffer)
-{/*
+{
 	char *platos;
-
+	uint32_t platos_len;
 	int offset = 0;
-*/
+	cs_stream_copy(buffer->stream,&offset,&platos_len,sizeof(uint32_t),COPY_RECV);
+	platos = malloc(platos_len);
+	cs_stream_copy(buffer->stream,&offset,platos,platos_len,COPY_RECV);
+
 	//TODO: [BUFFER->MSG] cs_buffer_to_rta_cons_pl
 
-	return cs_rta_consultar_pl_create(NULL);
+	return cs_rta_consultar_pl_create(platos);
 }
 
 static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer)
-{/*
+{
 	uint32_t pedido_id;
 
 	int offset = 0;
-*/
-	//TODO: [BUFFER->MSG] cs_buffer_to_rta_crear_ped
+	cs_stream_copy(buffer->stream,&offset,&pedido_id,sizeof(uint32_t),COPY_RECV);
 
-	return cs_rta_crear_ped_create(0);
+	return cs_rta_crear_ped_create(pedido_id);
 }
 
 static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
-{/*
+{
 	char *rest, *platos, *listos, *totales;
 	int8_t estado_ped;
 
 	int offset = 0;
-*/
+
 	//TODO: [BUFFER->MSG] cs_buffer_to_rta_cons_ped
 
 	return cs_rta_consultar_ped_create(NULL, 0, NULL, NULL, NULL);
