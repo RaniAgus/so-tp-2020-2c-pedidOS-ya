@@ -71,8 +71,7 @@ int main(int argc, char* argv[])
 	pthread_join(thread_recv_msg, NULL);
 	close(serv_conn);
 
-	cs_logger_delete();
-	cs_config_delete();
+	cs_module_close();
 
 	return status;
 }
@@ -82,8 +81,7 @@ e_status client_init(pthread_t* thread_recv_msg)
 	char *modulo, *serv_ip_key, *serv_port_key;
 
 	//Inicia los config y logger
-	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
-	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, MODULE_NAME));
+	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
 	//Se conecta al módulo y crea el thread
 	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");

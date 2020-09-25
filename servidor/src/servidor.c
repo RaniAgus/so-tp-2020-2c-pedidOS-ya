@@ -1,6 +1,10 @@
 #include <cshared/cshared.h>
 #include "servresponse.h"
 
+#define MODULE_NAME		 "SERVER"
+#define CONFIG_FILE_PATH "server.config"
+#define LOG_FILE_KEY	 "SERVER_LOGGER"
+
 static t_sfd conn;
 static t_sigaction OLD_SIGINT_ACTION;
 
@@ -25,9 +29,7 @@ void server_sigint_handler(int signal)
 int main(void)
 {
 	//Abre el archivo de configuración
-	CHECK_STATUS(cs_config_init("server.config"));
-	//Inicia el logger, cuyo nombre se encuentra en el config
-	CHECK_STATUS(cs_logger_init("SERVER_LOGGER", "SERVER"));
+	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
 	//Modifica la acción de SIGINT para cortar el programa con Ctrl+C
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&OLD_SIGINT_ACTION));
@@ -49,9 +51,7 @@ int main(void)
 		printf("(%s) Servidor cerrado a las: %s\n", date, time);
 	}));
 
-	//Finaliza el server
-	cs_logger_delete();
-	cs_config_delete();
+	cs_module_close();
 
 	return EXIT_SUCCESS;
 }
@@ -113,7 +113,6 @@ void server_show_msg(t_sfd client_conn, t_header header, void* msg)
 	  	break;
 	}
 
-	//Libera los recursos
 	free(msg_str);
 	cs_msg_destroy(msg, header.opcode, header.msgtype);
 }
@@ -121,8 +120,5 @@ void server_show_msg(t_sfd client_conn, t_header header, void* msg)
 void server_error_handler(e_status err)
 {
 	//Imprime el mensaje de error
-	fprintf(stderr, "%s (" __FILE__ ":%s:%d) -- %s\n",
-			cs_enum_status_to_str(err),
-			__func__ ,__LINE__,
-			cs_string_error(err));
+	PRINT_ERROR(err);
 }

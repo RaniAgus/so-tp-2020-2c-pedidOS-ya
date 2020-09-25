@@ -22,4 +22,16 @@
 */
 void cs_parse_argument(char* arg);
 
+/**
+* @NAME cs_module_init
+* @DESC
+*/
+void cs_module_init(const char* config_file_path, const char* log_file_key, const char* module_name);
+
+/**
+* @NAME cs_module_close
+* @DESC
+*/
+void cs_module_close(void);
+
 #endif //SHARED_CSHARED_H

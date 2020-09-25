@@ -3,11 +3,14 @@
 
 #include "cscore.h"
 
+#define PRINT_ERROR(err)\
+({  fprintf( stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",\
+	cs_enum_status_to_str(err), err, __func__ ,__LINE__, cs_string_error(err) ); })
+
 #define CHECK_STATUS(func) \
 ({	e_status __val = (func);\
     if(__val != STATUS_SUCCESS) {\
-        fprintf( stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",\
-        cs_enum_status_to_str(__val), __val, __func__ ,__LINE__, cs_string_error(__val) );\
+        PRINT_ERROR(__val);\
         exit(__val);} })
 
 #define SEM_INIT(semaphor, value)\
@@ -56,11 +59,23 @@ typedef enum
 const char* cs_enum_status_to_str(int value);
 
 /**
+* @NAME cs_error_init
+* @DESC Inicia el mutex del estado de error interno.
+*/
+void cs_error_init(void);
+
+/**
+* @NAME cs_error_delete
+* @DESC Destruye el mutex del estado de error interno.
+*/
+void cs_error_delete(void);
+
+/**
 * @NAME cs_string_error
 * @DESC Devuelve un string que describe el error, según el t_enum_status y la
  * variable 'cs_err'.
 */
-const char* cs_string_error(e_status val);
+char* cs_string_error(e_status val);
 
 /**
 * @NAME cs_set_err
