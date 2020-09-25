@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
 e_status client_init(pthread_t* thread_recv_msg)
 {
-	char *modulo, *serv_ip_key = string_new(), *serv_port_key = string_new();
+	char *modulo, *serv_ip_key, *serv_port_key;
 
 	//Inicia los config y logger
 	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
@@ -88,10 +88,10 @@ e_status client_init(pthread_t* thread_recv_msg)
 	//Se conecta al módulo y crea el thread
 	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");
 
-	string_append_with_format(&serv_ip_key, "IP_%s", modulo);
-	string_append_with_format(&serv_port_key, "PUERTO_%s", modulo);
+	serv_ip_key   = string_from_format("IP_%s", modulo);
+	serv_port_key = string_from_format("PUERTO_%s", modulo);
 
-	//serv_ip y serv_port sirven para conectarse siempre al mismo servidor
+	//serv_ip y serv_port almacenan la info del servidor a conectarse
 	serv_ip   = cs_config_get_string(serv_ip_key);
 	serv_port = cs_config_get_string(serv_port_key);
 
@@ -129,11 +129,13 @@ void client_recv_msg_routine(void)
 		if(status == STATUS_SUCCESS)
 		{
 			//Cliente solo recibe "Terminar Pedido"
-			if(header.msgtype == TERMINAR_PEDIDO)
+			if(header.msgtype == TERMINAR_PEDIDO || header.msgtype == PLATO_LISTO)
+			{
 				header.opcode = (int8_t)OPCODE_RESPUESTA_OK;
-			else
+			} else
+			{
 				header.opcode = (int8_t)OPCODE_RESPUESTA_FAIL;
-
+			}
 			//Envía la respuesta
 			status = cs_send_msg(serv_conn, header, NULL);
 		}

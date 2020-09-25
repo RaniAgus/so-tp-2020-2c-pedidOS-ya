@@ -147,17 +147,21 @@ static t_solicitud* cs_buffer_to_solicitud(int8_t msg_type, t_buffer* buffer)
 
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 {
-
+	t_rta_cons_rest* msg;
+	int offset = 0;
 
 	char* restaurantes;
 	uint32_t restaurantes_len;
-	int offset = 0;
+
+	//Restaurantes
 	cs_stream_copy(buffer->stream,&offset,&restaurantes_len,sizeof(uint32_t),COPY_RECV);
 	restaurantes = malloc(restaurantes_len +1);
 	cs_stream_copy(buffer->stream,&offset,restaurantes,restaurantes_len,COPY_RECV);
 	restaurantes[restaurantes_len] = '\0';
 
-	t_rta_cons_rest* msg = cs_rta_consultar_rest_create(restaurantes);
+	//Crea el mensaje
+	msg = cs_rta_consultar_rest_create(restaurantes);
+
 	free(restaurantes);
 
 	return msg;
@@ -166,13 +170,12 @@ static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 {
 	t_rta_obt_rest* msg;
+	int offset = 0;
 
 	char *afinidades, *comidas, *precios;
 	uint32_t afinidades_len, comidas_len, precios_len;
 	uint32_t cant_cocineros, cant_hornos;
 	t_pos pos_restaurante;
-
-	int offset = 0;
 
 	//Cantidad de cocineros
 	cs_stream_copy(buffer->stream, &offset, &cant_cocineros   , sizeof(uint32_t), COPY_RECV);
@@ -183,13 +186,13 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 	cs_stream_copy(buffer->stream, &offset,  afinidades       , afinidades_len  , COPY_RECV);
 	afinidades[afinidades_len] = '\0';
 
-	//Comidas
+	//Menú -- Comidas
 	cs_stream_copy(buffer->stream, &offset, &comidas_len      , sizeof(uint32_t), COPY_RECV);
 	comidas = malloc(comidas_len + 1);
 	cs_stream_copy(buffer->stream, &offset,  comidas          , comidas_len     , COPY_RECV);
 	comidas[comidas_len] = '\0';
 
-	//Precios
+	//Menú -- Precios
 	cs_stream_copy(buffer->stream, &offset, &precios_len      , sizeof(uint32_t), COPY_RECV);
 	precios = malloc(precios_len + 1);
 	cs_stream_copy(buffer->stream, &offset,  precios          , precios_len     , COPY_RECV);
@@ -202,10 +205,9 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 	//Cantidad de hornos
 	cs_stream_copy(buffer->stream, &offset, &cant_hornos      , sizeof(uint32_t), COPY_RECV);
 
-	//Se crea el mensaje
+	//Crea el mensaje
 	msg = cs_rta_obtener_rest_create(cant_cocineros, afinidades, comidas, precios, pos_restaurante, cant_hornos);
 
-	//Libera recursos
 	free(afinidades);
 	free(comidas);
 	free(precios);
@@ -215,24 +217,33 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl(t_buffer* buffer)
 {
+	t_rta_cons_pl* msg;
+	int offset = 0;
+
 	char *platos;
 	uint32_t platos_len;
-	int offset = 0;
+
+	//Platos
 	cs_stream_copy(buffer->stream,&offset,&platos_len,sizeof(uint32_t),COPY_RECV);
-	platos = malloc(platos_len+1);
+	platos = malloc(platos_len + 1);
 	cs_stream_copy(buffer->stream,&offset,platos,platos_len,COPY_RECV);
 	platos[platos_len] = '\0';
 
-	t_rta_cons_pl* msg= cs_rta_consultar_pl_create(platos);
+	//Crea el mensaje
+	msg = cs_rta_consultar_pl_create(platos);
+
 	free(platos);
+
 	return msg;
 }
 
 static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer)
 {
+	int offset = 0;
+
 	uint32_t pedido_id;
 
-	int offset = 0;
+	//Pedido ID
 	cs_stream_copy(buffer->stream,&offset,&pedido_id,sizeof(uint32_t),COPY_RECV);
 
 	return cs_rta_crear_ped_create(pedido_id);
@@ -240,85 +251,112 @@ static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer)
 
 static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
 {
+	t_rta_cons_ped* msg;
+	int offset = 0;
+
 	char *restaurante, *comidas, *listos, *totales;
 	int8_t estado_pedido;
 	uint32_t comidas_len,listos_len,totales_len,restaurante_len;
 
-	int offset = 0;
-
+	//Restaurante
 	cs_stream_copy(buffer->stream,&offset,&restaurante_len,sizeof(uint32_t),COPY_RECV);
-	restaurante = malloc(restaurante_len+1);
+	restaurante = malloc(restaurante_len + 1);
 	cs_stream_copy(buffer->stream,&offset,restaurante,restaurante_len,COPY_RECV);
 	restaurante[restaurante_len] = '\0';
+
+	//Estado del pedido
 	cs_stream_copy(buffer->stream,&offset,&estado_pedido,sizeof(uint8_t),COPY_RECV);
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
-	comidas=malloc(comidas_len+1);
+	comidas = malloc(comidas_len+1);
+
+	//Platos -- Comidas
 	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_RECV);
 	comidas[comidas_len] = '\0';
+
+	//Platos -- Listos
 	cs_stream_copy(buffer->stream,&offset,&listos_len,sizeof(uint32_t),COPY_RECV);
-	listos=malloc(listos_len+1);
+	listos = malloc(listos_len+1);
 	cs_stream_copy(buffer->stream,&offset,listos,listos_len,COPY_RECV);
 	listos[listos_len] = '\0';
+
+	//Platos -- Totales
 	cs_stream_copy(buffer->stream,&offset,&totales_len,sizeof(uint32_t),COPY_RECV);
 	totales = malloc(totales_len+1);
 	cs_stream_copy(buffer->stream,&offset,totales,totales_len,COPY_RECV);
 	totales[totales_len] ='\0';
 
-	t_rta_cons_ped* msg= cs_rta_consultar_ped_create(restaurante, (e_estado_ped)estado_pedido, comidas, listos, totales);
+	//Crea el mensaje
+	msg = cs_rta_consultar_ped_create(restaurante, (e_estado_ped)estado_pedido, comidas, listos, totales);
+
 	free(restaurante);
 	free(comidas);
 	free(listos);
 	free(totales);
+
 	return msg;
 }
 
 static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 {
+	t_rta_obt_ped* msg;
+	int offset = 0;
+
 	char *comidas, *listos, *totales;
 	uint32_t comidas_len, listos_len, totales_len;
 
-	int offset = 0;
-
+	//Comidas
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
-	comidas=malloc(comidas_len+1);
+	comidas = malloc(comidas_len + 1);
 	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_RECV);
 	comidas[comidas_len] = '\0';
+
+	//Platos -- Listos
 	cs_stream_copy(buffer->stream,&offset,&listos_len,sizeof(uint32_t),COPY_RECV);
-	listos=malloc(listos_len+1);
+	listos = malloc(listos_len + 1);
 	cs_stream_copy(buffer->stream,&offset,listos,listos_len,COPY_RECV);
 	listos[listos_len] = '\0';
+
+	//Platos -- Totales
 	cs_stream_copy(buffer->stream,&offset,&totales_len,sizeof(uint32_t),COPY_RECV);
-	totales = malloc(totales_len+1);
+	totales = malloc(totales_len + 1);
 	cs_stream_copy(buffer->stream,&offset,totales,totales_len,COPY_RECV);
 	totales[totales_len] ='\0';
 
+	//Crea el mensaje
+	msg = cs_rta_obtener_ped_create(comidas, listos, totales);
 
-	t_rta_obt_ped* msg=  cs_rta_obtener_ped_create(comidas, listos, totales);
 	free(comidas);
 	free(listos);
 	free(totales);
+
 	return msg;
 }
 
 static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
 {
+	t_rta_obt_rec* msg;
+	int offset = 0;
+
 	char *pasos, *tiempos;
 	uint32_t pasos_len, tiempos_len;
 
-	int offset = 0;
-
-
+	//Receta -- Pasos
 	cs_stream_copy(buffer->stream,&offset,&pasos_len,sizeof(uint32_t),COPY_RECV);
-	pasos = malloc(pasos_len+1);
+	pasos = malloc(pasos_len + 1);
 	cs_stream_copy(buffer->stream,&offset,pasos,pasos_len,COPY_RECV);
 	pasos[pasos_len] = '\0';
+
+	//Receta -- Tiempos
 	cs_stream_copy(buffer->stream,&offset,&tiempos_len,sizeof(uint32_t),COPY_RECV);
-	tiempos=malloc(tiempos_len+1);
+	tiempos = malloc(tiempos_len + 1);
 	cs_stream_copy(buffer->stream,&offset,tiempos,tiempos_len,COPY_RECV);
 	tiempos[tiempos_len] = '\0';
 
-	t_rta_obt_rec* msg = cs_rta_obtener_receta_create(pasos, tiempos);
+	//Crea el mensaje
+	msg = cs_rta_obtener_receta_create(pasos, tiempos);
+
 	free(pasos);
 	free(tiempos);
+
 	return msg;
 }

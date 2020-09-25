@@ -48,7 +48,7 @@ const char* cs_string_error(e_status val)
 		case STATUS_CONN_LOST:
 			return "Peer has performed an orderly shutdown.";
 		default:
-			return strerror(cs_err);
+			return cs_err ? strerror(cs_err) : "Unknown error.";
 	}
 }
 

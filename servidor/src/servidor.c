@@ -124,5 +124,5 @@ void server_error_handler(e_status err)
 	fprintf(stderr, "%s (" __FILE__ ":%s:%d) -- %s\n",
 			cs_enum_status_to_str(err),
 			__func__ ,__LINE__,
-			strerror(errno));
+			cs_string_error(err));
 }
