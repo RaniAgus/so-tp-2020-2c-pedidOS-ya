@@ -13,7 +13,7 @@
 * NOTA: Para utilizar funciones que reciban más parámetros como "success_action()", usa
 * orden superior.
 */
-void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd), void(*err_handler)(e_status));
+void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), void(*err_handler)(e_status));
 
 /**
 * @NAME cs_tcp_server_create

@@ -47,13 +47,13 @@ const char* cs_enum_opcode_to_str(int value);
 * @NAME cs_package_destroy
 * @DESC Destruye un paquete y su contenido
 */
-void cs_package_destroy(t_package* package) NON_NULL(1);
+void cs_package_destroy(t_package* package);
 
 /**
 * @NAME cs_buffer_destroy
 * @DESC Destruye un buffer y su contenido
 */
-void cs_buffer_destroy(t_buffer* buffer) NON_NULL(1);
+void cs_buffer_destroy(t_buffer* buffer);
 
 /**
 * @NAME cs_get_peer_info

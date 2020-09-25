@@ -8,8 +8,8 @@
 static t_sfd conn;
 static t_sigaction old_sigint_action;
 
-void server_recv_msg(t_sfd client_conn);
-void server_show_msg(t_sfd client_conn, t_header header, void* msg);
+void server_recv_msg(t_sfd* client_conn);
+void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg);
 void server_error_handler(e_status err);
 
 void server_sigint_handler(int signal)
@@ -57,27 +57,30 @@ int main(void)
 }
 
 //Es la función que se llama al aceptar una conexión 'client_conn' (ver cs_tcp_server_accept_routine)
-void server_recv_msg(t_sfd client_conn)
+void server_recv_msg(t_sfd* client_conn)
 {
 	e_status status;
 	char *ip_str, *port_str;
 
 	//Averigua la IP y puerto del cliente, y los muestra por pantalla
-	status = cs_get_peer_info(client_conn, &ip_str, &port_str);
+	status = cs_get_peer_info(*client_conn, &ip_str, &port_str);
 	if (status == STATUS_SUCCESS)
 	{
 		CS_LOG_INFO("Conectado con un nuevo cliente. [IP: %s] [PUERTO: %s]", ip_str, port_str);
 	} else server_error_handler(status);
 
 	//Recibe el mensaje del cliente y llama a la función que lo muestra
-	status = cs_recv_msg(client_conn, server_show_msg);
+	status = cs_recv_msg(*client_conn, server_log_and_send_reply);
 	if( status != STATUS_SUCCESS )	server_error_handler(status);
 
 	free(ip_str);
 	free(port_str);
+
+	close(*client_conn);
+	free((void*)client_conn);
 }
 
-void server_show_msg(t_sfd client_conn, t_header header, void* msg)
+void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 {
 	//Pasa el mensaje a string
 	char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);

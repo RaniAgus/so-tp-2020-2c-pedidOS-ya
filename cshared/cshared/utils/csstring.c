@@ -135,10 +135,11 @@ static bool _string_is_in_num_array_format(char* str, bool _signed)
 		void _check_numbers(char* line)
 		{
 			int num;
-			if(_signed)
+			if(_signed) {
 				if( cs_string_to_int(&num, line) < 0 ) result = false;
-			else
+			} else {
 				if( cs_string_to_uint(line) < 0 ) result = false;
+			}
 		}
 		string_iterate_lines(str_array, _check_numbers);
 		string_iterate_lines(str_array, (void*) free);

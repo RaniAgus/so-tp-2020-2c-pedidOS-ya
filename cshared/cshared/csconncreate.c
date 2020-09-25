@@ -5,18 +5,20 @@
 #define CS_AI_FLAGS			AI_PASSIVE
 #define CS_BACKLOG 			SOMAXCONN
 
-void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd), void(*err_handler)(e_status))
+void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), void(*err_handler)(e_status))
 {
-	t_sfd client_conn;
+	t_sfd* client_conn;
 
 	struct sockaddr_storage client_addr;
 	unsigned int addr_size = sizeof(struct sockaddr_storage);
 
 	while(*conn != -1)
 	{
-	    client_conn = accept(*conn,(struct sockaddr*) &client_addr, &addr_size);
-	    if(client_conn == -1)
+		client_conn  = malloc(sizeof(t_sfd));
+	    *client_conn = accept(*conn,(struct sockaddr*) &client_addr, &addr_size);
+	    if(*client_conn == -1)
 	    {
+	    	free((void*)client_conn);
 	    	cs_set_local_err(errno);
 	    	err_handler(STATUS_ACCEPT_ERROR);
 	    	continue;
