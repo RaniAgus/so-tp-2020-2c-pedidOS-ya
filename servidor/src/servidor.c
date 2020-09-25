@@ -6,7 +6,7 @@
 #define LOG_FILE_KEY	 "SERVER_LOGGER"
 
 static t_sfd conn;
-static t_sigaction OLD_SIGINT_ACTION;
+static t_sigaction old_sigint_action;
 
 void server_recv_msg(t_sfd client_conn);
 void server_show_msg(t_sfd client_conn, t_header header, void* msg);
@@ -19,7 +19,7 @@ void server_sigint_handler(int signal)
 	//La marca como '-1' para salir del while (ver cs_tcp_server_accept_routine)
 	conn = -1;
 	//Devuelve a SIGINT la acción original, por las dudas
-	if(sigaction(SIGINT, &OLD_SIGINT_ACTION, NULL) == -1)
+	if(sigaction(SIGINT, &old_sigint_action, NULL) == -1)
 	{
 		server_error_handler(STATUS_SIGACTION_ERROR);
 		exit(-1);
@@ -32,7 +32,7 @@ int main(void)
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
 	//Modifica la acción de SIGINT para cortar el programa con Ctrl+C
-	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&OLD_SIGINT_ACTION));
+	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
 
 	//Lee las direcciones desde el config interno
 	char* ip   = cs_config_get_string("IP");
@@ -69,7 +69,7 @@ void server_recv_msg(t_sfd client_conn)
 		CS_LOG_INFO("Conectado con un nuevo cliente. [IP: %s] [PUERTO: %s]", ip_str, port_str);
 	} else server_error_handler(status);
 
-	//Recibe el mensaje del cliente (aceptando todos los header posibles) y llama a la función que lo muestra
+	//Recibe el mensaje del cliente y llama a la función que lo muestra
 	status = cs_recv_msg(client_conn, server_show_msg);
 	if( status != STATUS_SUCCESS )	server_error_handler(status);
 

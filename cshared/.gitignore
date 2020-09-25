@@ -1,3 +1,7 @@
 /Debug/
-/Release/
 /.settings/
+/obj/
+/.idea/
+/.vscode/
+libcshared.so
+makefile

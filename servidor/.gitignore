@@ -1,2 +1,7 @@
 /Debug/
 /.settings/
+/obj/
+/.idea/
+/.vscode/
+servidor
+makefile
