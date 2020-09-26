@@ -122,7 +122,7 @@ void client_recv_msg_routine(void)
 	{
 		t_header header;
 
-		//Recibe la solicitud
+		//Recibe la consulta
 		status = client_recv_msg(serv_conn, &header.msgtype);
 		if(status == STATUS_SUCCESS)
 		{

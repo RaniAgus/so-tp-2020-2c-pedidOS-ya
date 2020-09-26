@@ -1,6 +1,6 @@
 #include "csmsg.h"
 
-static void _sol_append(char** msg_str, t_solicitud* msg);
+static void _cons_append(char** msg_str, t_consulta* msg);
 
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
@@ -42,9 +42,9 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 {
 	switch(op_code)
 	{
-	case OPCODE_SOLICITUD:
-		free(SOLICITUD_PTR(msg)->comida);
-		free(SOLICITUD_PTR(msg)->restaurante);
+	case OPCODE_CONSULTA:
+		free(CONSULTA_PTR(msg)->comida);
+		free(CONSULTA_PTR(msg)->restaurante);
 		free(msg);
 		break;
 	case OPCODE_RESPUESTA_OK:
@@ -63,8 +63,8 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 
 	switch(op_code)
 	{
-	case OPCODE_SOLICITUD:
-		_sol_append(&msg_str, (t_solicitud*)msg);
+	case OPCODE_CONSULTA:
+		_cons_append(&msg_str, (t_consulta*)msg);
 		break;
 	case OPCODE_RESPUESTA_FAIL:
 		string_append(&msg_str, " {RESULTADO: FAIL}");
@@ -104,10 +104,10 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	return msg_str;
 }
 
-t_solicitud* 	_sol_create(int8_t msg_type, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
+t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
 {
-	t_solicitud* msg;
-	msg = malloc(sizeof(t_solicitud));
+	t_consulta* msg;
+	msg = malloc(sizeof(t_consulta));
 
 	msg->msgtype = msg_type;
 
@@ -207,10 +207,10 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 
 /**********************TO STRING**********************/
 
-static void _sol_append(char** msg_str, t_solicitud* msg)
+static void _cons_append(char** msg_str, t_consulta* msg)
 {
 
-	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_COMIDA))
+	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_COMIDA))
 	{
 		string_append_with_format(
 				msg_str,
@@ -218,7 +218,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->comida
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_CANTIDAD))
+	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_CANTIDAD))
 	{
 		string_append_with_format(
 				msg_str,
@@ -226,7 +226,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->cantidad
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_RESTAURANTE))
+	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_RESTAURANTE))
 	{
 		string_append_with_format(
 				msg_str,
@@ -234,7 +234,7 @@ static void _sol_append(char** msg_str, t_solicitud* msg)
 				msg->restaurante
 		);
 	}
-	if(cs_sol_has_argument(msg->msgtype, (int8_t)SOL_ARG_PEDIDO_ID))
+	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_PEDIDO_ID))
 	{
 		string_append_with_format(
 				msg_str,
@@ -393,9 +393,9 @@ static void _rta_destroy(void* msg, int8_t msg_type)
 	if(msg) free(msg);
 }
 
-/***********ELEMENTOS DE CADA TIPO DE SOLICITUD*********/
+/***********ELEMENTOS DE CADA TIPO DE CONSULTA*********/
 
-static const int _MSG_ARGS[MSGTYPES_CANT][SOL_ARGS_CANT] =
+static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 {
 /*           {comid, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
@@ -417,7 +417,7 @@ static const int _MSG_ARGS[MSGTYPES_CANT][SOL_ARGS_CANT] =
 
 };
 
-bool cs_sol_has_argument(int8_t msgtype, int8_t arg)
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg)
 {
 	return _MSG_ARGS[(int)msgtype][(int)arg];
 }

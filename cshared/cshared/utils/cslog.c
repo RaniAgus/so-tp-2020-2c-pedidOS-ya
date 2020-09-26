@@ -2,7 +2,7 @@
 
 static t_log*           CS_LOGGER_INTERNAL = NULL;
 static pthread_mutex_t  CS_LOGGER_MUTEX;
-static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_TRACE;
+static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_INFO;
 
 e_status cs_logger_init(const char* file_key, const char* program_name)
 {

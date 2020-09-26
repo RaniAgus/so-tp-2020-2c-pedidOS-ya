@@ -20,7 +20,7 @@ typedef struct
 typedef enum
 {
 	OPCODE_UNKNOWN = 0,
-	OPCODE_SOLICITUD,
+	OPCODE_CONSULTA,
 	OPCODE_RESPUESTA_OK,
 	OPCODE_RESPUESTA_FAIL
 }e_opcode;

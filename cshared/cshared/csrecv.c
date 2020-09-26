@@ -71,7 +71,7 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	return STATUS_SUCCESS;
 }
 
-static t_solicitud* 	cs_buffer_to_solicitud    (int8_t msg_type, t_buffer* buffer);
+static t_consulta* 	cs_buffer_to_consulta    (int8_t msg_type, t_buffer* buffer);
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
@@ -84,8 +84,8 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 {
 	switch(header.opcode)
 	{
-	case OPCODE_SOLICITUD:
-		return (void*)cs_buffer_to_solicitud(header.msgtype, buffer);
+	case OPCODE_CONSULTA:
+		return (void*)cs_buffer_to_consulta(header.msgtype, buffer);
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
@@ -112,16 +112,16 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	}
 }
 
-static t_solicitud* cs_buffer_to_solicitud(int8_t msg_type, t_buffer* buffer)
+static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 {
-	t_solicitud* msg;
+	t_consulta* msg;
 	int offset = 0;
 
 	uint32_t comida_len;
 	uint32_t restaurante_len;
 
 	//El mensaje se puede copiar directamente
-	msg = malloc(sizeof(t_solicitud));
+	msg = malloc(sizeof(t_consulta));
 	msg->msgtype = msg_type;
 
 	//Comida

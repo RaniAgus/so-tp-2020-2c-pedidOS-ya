@@ -24,7 +24,7 @@ void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), vo
 	    	continue;
 	    }
 	    pthread_t client_thread;
-	    PTHREAD_CREATE(&client_thread, success_action, client_conn);
+	    pthread_create(&client_thread, NULL, (void*)success_action, (void*)client_conn);
 	    pthread_detach(client_thread);
 	}
 }

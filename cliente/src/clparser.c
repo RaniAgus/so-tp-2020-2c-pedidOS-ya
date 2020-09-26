@@ -17,8 +17,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		return CL_CANT_ARGS_ERROR;	//Tipo de error: argumentos insuficientes.
 	}
 
-	// El cliente solo envía solicitudes
-	result->header.opcode = OPCODE_SOLICITUD;
+	// El cliente solo envía consultas
+	result->header.opcode = OPCODE_CONSULTA;
 
 	// Lee el tipo de mensaje
 	result->header.msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
@@ -33,7 +33,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	int cantidad = 0, pedido_id = 0;
 
 	int arg = CL_MSGTYPE_ARG + 1;
-	if(cs_sol_has_argument(result->header.msgtype, SOL_ARG_COMIDA))
+	if(cs_cons_has_argument(result->header.msgtype, CONS_ARG_COMIDA))
 	{
 		if(arg == argc)
 		{
@@ -47,7 +47,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		arg++;
 	}
 
-	if(cs_sol_has_argument(result->header.msgtype, SOL_ARG_CANTIDAD))
+	if(cs_cons_has_argument(result->header.msgtype, CONS_ARG_CANTIDAD))
 	{
 		if(arg == argc)
 		{
@@ -66,7 +66,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		arg++;
 	}
 
-	if(cs_sol_has_argument(result->header.msgtype, SOL_ARG_RESTAURANTE))
+	if(cs_cons_has_argument(result->header.msgtype, CONS_ARG_RESTAURANTE))
 	{
 		if(arg == argc)
 		{
@@ -80,7 +80,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		arg++;
 	}
 
-	if(cs_sol_has_argument(result->header.msgtype, SOL_ARG_PEDIDO_ID))
+	if(cs_cons_has_argument(result->header.msgtype, CONS_ARG_PEDIDO_ID))
 	{
 		if(arg == argc)
 		{
@@ -104,7 +104,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		CS_LOG_WARNING("WARNING - Argumento sin parsear: %s\n", argv[arg]);
 	}
 
-	result->msg = _sol_create(result->header.msgtype, comida, cantidad, restaurante, pedido_id);
+	result->msg = _cons_create(result->header.msgtype, comida, cantidad, restaurante, pedido_id);
 
 	free(comida);
 	free(restaurante);
@@ -153,22 +153,22 @@ static void client_append_msg_to_error(char** str_err_ptr, e_msgtype msgtype)
 	{
 		string_append(str_err_ptr, (char*)cs_enum_msgtype_to_str(msgtype));
 
-		if(cs_sol_has_argument(msgtype, SOL_ARG_COMIDA))
+		if(cs_cons_has_argument(msgtype, CONS_ARG_COMIDA))
 		{
 			string_append(str_err_ptr, " <PLATO>");
 		}
 
-		if(cs_sol_has_argument(msgtype, SOL_ARG_CANTIDAD))
+		if(cs_cons_has_argument(msgtype, CONS_ARG_CANTIDAD))
 		{
 			string_append(str_err_ptr, " <#CANT>");
 		}
 
-		if(cs_sol_has_argument(msgtype, SOL_ARG_RESTAURANTE))
+		if(cs_cons_has_argument(msgtype, CONS_ARG_RESTAURANTE))
 		{
 			string_append(str_err_ptr, " <RESTAURANTE>");
 		}
 
-		if(cs_sol_has_argument(msgtype, SOL_ARG_PEDIDO_ID))
+		if(cs_cons_has_argument(msgtype, CONS_ARG_PEDIDO_ID))
 		{
 			string_append(str_err_ptr, " <#ID_PEDIDO>");
 		}

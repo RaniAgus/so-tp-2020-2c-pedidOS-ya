@@ -114,7 +114,7 @@ static t_buffer* cs_package_to_buffer(t_package* package)
 	return buffer;
 }
 
-static t_buffer* cs_solicitud_to_buffer(t_solicitud* msg);
+static t_buffer* cs_consulta_to_buffer(t_consulta* msg);
 static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
 static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
 static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
@@ -128,8 +128,8 @@ t_buffer* cs_msg_to_buffer(t_header header, void* msg)
 {
 	switch(header.opcode)
 	{
-	case OPCODE_SOLICITUD:
-		return cs_solicitud_to_buffer((t_solicitud*)msg);
+	case OPCODE_CONSULTA:
+		return cs_consulta_to_buffer((t_consulta*)msg);
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
@@ -157,7 +157,7 @@ t_buffer* cs_msg_to_buffer(t_header header, void* msg)
 	return cs_buffer_create(0);
 }
 
-static t_buffer* cs_solicitud_to_buffer(t_solicitud* msg)
+static t_buffer* cs_consulta_to_buffer(t_consulta* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
