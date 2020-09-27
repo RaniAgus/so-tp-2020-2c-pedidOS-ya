@@ -6,14 +6,24 @@ void crearDirectorioAFIP(){
 	char* path = string_new();
 	string_append(&path,puntoMontaje);
 
-	if(!mkdir(path, 0777)){
+	char* metadata = string_duplicate(path);
+	string_append(&metadata, "/Metadata/Metadata.AFIP");
+
+	char* bitmap = string_duplicate(path);
+	string_append(&bitmap, "/Metadata/Bitmap.bin");
+
+	if(fopen(metadata,"r") == NULL || fopen(bitmap, "r") == NULL){
 		log_info(logger, "Genere el directorio para el FL en %s", puntoMontaje);
 		crearMetadata(path);
 		crearFiles(path);
 		crearBlocks(path);
 	} else {
 	free(path);
+	puts("No hice nada");
 	}
+
+	free(metadata);
+	free(bitmap);
 }
 
 
