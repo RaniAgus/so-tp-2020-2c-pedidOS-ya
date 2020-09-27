@@ -177,3 +177,38 @@ void eliminarBit(int index){
 	free(cantBloques);
 	free(path);
 }
+
+// --------------------- AUX --------------------- //
+
+int cantidadDeBloques(char** bloques){
+	int i = 0;
+	while(bloques[i]!=NULL){
+		i++;
+	}
+	return i;
+}
+
+int tamanioDeBloque(char* bloque){
+	char* path = string_new();
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/TALL_GRASS/Blocks/");
+	string_append(&path, bloque);
+	string_append(&path, ".bin");
+
+	FILE* fd = fopen(path, "rb");
+	fseek(fd, 0, SEEK_END);
+	int tamanio = ftell(fd);
+
+	fclose(fd);
+	free(path);
+	return tamanio;
+}
+
+void liberar_lista(char** lista){
+	int contador = 0;
+	while(lista[contador] != NULL){
+			free(lista[contador]);
+			contador++;
+	}
+	free(lista);
+}

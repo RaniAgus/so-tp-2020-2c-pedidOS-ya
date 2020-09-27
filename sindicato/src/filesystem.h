@@ -16,4 +16,10 @@ void generarBitmap(char*, t_config*);
 int obtenerYEscribirProximoDisponible();
 void eliminarBit(int);
 
+// -------- AUX -------- //
+
+int cantidadDeBloques(char**);
+int tamanioDeBloque(char*);
+void liberar_lista(char**);
+
 #endif /* FILESYSTEM_H_ */
