@@ -13,6 +13,10 @@
 #include<sys/mman.h>
 #include <fcntl.h>
 
+// ------------ SINCRO ------------ //
+
+sem_t bitmapSem;
+
 // ------------ ARCHIVOS ------------ //
 
 t_log* logger;

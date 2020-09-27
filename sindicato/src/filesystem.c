@@ -107,3 +107,73 @@ void generarBitmap(char* pathOrigin, t_config* md){
 
 	log_info(logger, "Genere el bitmap");
 }
+
+// --------------------- MANEJO BITMAP --------------------- //
+
+int obtenerYEscribirProximoDisponible(){
+	char* path = string_new();
+
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/Metadata/Bitmap.bin");
+
+	sem_wait(&bitmapSem);
+	int bitmapFile = open(path, O_CREAT | O_RDWR, 0664);
+
+	void* punteroABitmap = mmap(NULL, cantidadBloques/8, PROT_READ | PROT_WRITE, MAP_SHARED, bitmapFile, 0);
+
+	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadBloques/8, MSB_FIRST);
+
+	for(int i=0; i<cantidadBloques; i++){
+		if(bitarray_test_bit(bitmap, i) == 0){
+			bitarray_set_bit(bitmap ,i);
+			printf("Posicion %d\n", i);
+			msync(punteroABitmap ,cantidadBloques/8 ,0);
+			//write(bitmapFile, punteroABitmap, cantidadBloques/8);
+			close(bitmapFile);
+			sem_post(&bitmapSem);
+			free(path);
+			bitarray_destroy(bitmap);
+			return i;
+		}
+	}
+	close(bitmapFile);
+	sem_post(&bitmapSem);
+	bitarray_destroy(bitmap);
+	free(path);
+	printf("Espacio lleno\n");
+	return 0;
+}
+
+void eliminarBit(int index){
+	char* path = string_new();
+	char* cantBloques;
+
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/TALL_GRASS/Metadata");
+
+	cantBloques = string_duplicate(path);
+	string_append(&cantBloques, "/Metadata.bin");
+	t_config* md = config_create(cantBloques);
+
+	int cantidadDeBloques = config_get_int_value(md, "BLOCKS");
+
+	sem_wait(&bitmapSem);
+	string_append(&path, "/Bitmap.bin");
+	int bitmapFile = open(path, O_CREAT | O_RDWR, 0664);
+
+	void* punteroABitmap = mmap(NULL, cantidadDeBloques/8, PROT_READ | PROT_WRITE, MAP_SHARED, bitmapFile, 0);
+
+	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadDeBloques/8, MSB_FIRST);
+
+	bitarray_clean_bit(bitmap, index);
+
+	msync(punteroABitmap ,cantidadDeBloques/8 ,0);
+
+	close(bitmapFile);
+	sem_post(&bitmapSem);
+	bitarray_destroy(bitmap);
+
+	config_destroy(md);
+	free(cantBloques);
+	free(path);
+}
