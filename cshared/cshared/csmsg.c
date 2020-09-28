@@ -3,6 +3,7 @@
 static void _cons_append(char** msg_str, t_consulta* msg);
 static void _hs_append(char** msg_str, t_handshake* msg);
 
+static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg);
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
 static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg);
@@ -36,6 +37,20 @@ static const char* _MSGTYPE_STR[] =
 const char* cs_enum_msgtype_to_str(int value)
 {
 	return _MSGTYPE_STR[value];
+}
+
+static const char* _MODULES_STR[] = {
+		"Desconocido",
+		"Comanda",
+		"Sindicato",
+		"Cliente",
+		"App",
+		"Restaurante",
+		NULL
+};
+
+const char* cs_enum_module_to_str(int value) {
+	return _MODULES_STR[value];
 }
 
 static void _rta_destroy(void* msg, int8_t msg_type);
@@ -86,6 +101,9 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	case OPCODE_RESPUESTA_OK:
 		switch(msg_type)
 		{
+		case HANDSHAKE:
+			_rta_handshake_append(&msg_str, (t_rta_handshake*)msg);
+			break;
 		case CONSULTAR_RESTAURANTES:
 			_rta_cons_rest_append(&msg_str, (t_rta_cons_rest*)msg);
 		    break;
@@ -143,6 +161,16 @@ t_handshake* 	cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t pos
 	msg->posicion.y = posy;
 
 	return msg;
+}
+
+t_rta_handshake* cs_rta_handshake_create(void)
+{
+	t_rta_handshake* rta;
+	rta = malloc(sizeof(t_rta_handshake));
+
+	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+
+	return rta;
 }
 
 t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
@@ -239,7 +267,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 static void _cons_append(char** msg_str, t_consulta* msg)
 {
 
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_COMIDA))
+	if(!string_is_empty(msg->comida))
 	{
 		string_append_with_format(
 				msg_str,
@@ -247,7 +275,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->comida
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_CANTIDAD))
+	if(msg->cantidad)
 	{
 		string_append_with_format(
 				msg_str,
@@ -255,7 +283,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->cantidad
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_RESTAURANTE))
+	if(!string_is_empty(msg->restaurante))
 	{
 		string_append_with_format(
 				msg_str,
@@ -263,7 +291,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->restaurante
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_PEDIDO_ID))
+	if(msg->pedido_id)
 	{
 		string_append_with_format(
 				msg_str,
@@ -281,6 +309,15 @@ static void _hs_append(char** msg_str, t_handshake* msg)
 			msg->nombre,
 			msg->posicion.x,
 			msg->posicion.y
+	);
+}
+
+static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg)
+{
+	string_append_with_format(
+			msg_str,
+			" {MODULO: %s}",
+			cs_enum_module_to_str(msg->modulo)
 	);
 }
 
@@ -446,13 +483,13 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*           {comid, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
 /*CONS_RES */{  0  ,  0  ,  0  ,  0  },
-/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },//todo: _MSG_ARGS - ¿¿qué es el cliente??
+/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },
 /*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
 /*CONS_PL  */{  0  ,  0  , -1  ,  0  },
 /*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
 /*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
 /*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
-/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },//todo: _MSG_ARGS - ¿¿para qué cantidad??
+/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },
 /*CONF_PED */{  0  ,  0  , -1  ,  1  },
 /*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
 /*CONS_PED */{  0  ,  0  ,  0  ,  1  },
@@ -463,10 +500,8 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*HANDSHAKE*/{  0  ,  0  ,  0  ,  0  }
 };
 
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg)
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
 {
-	int8_t module = 0;
-
 	int result = _MSG_ARGS[(int)msgtype][(int)arg];
 
 	if(result < 0) result = ({ module < 0 ? 1 : 0; });

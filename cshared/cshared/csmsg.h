@@ -82,7 +82,7 @@ typedef enum
 * @DESC Devuelve un boolean indicando si el tipo de consulta
 * tiene ese argumento.
 */
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg);
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
 
 t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
 
@@ -105,12 +105,15 @@ t_handshake* cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy
 
 typedef enum
 {
+	MODULO_DESCONOCIDO = -3,
 	MODULO_COMANDA = -2,
 	MODULO_SINDICATO = -1,
 	MODULO_CLIENTE = 0,
 	MODULO_APP = 1,
 	MODULO_RESTAURANTE = 2
 }e_module;
+
+const char* cs_enum_module_to_str(int value);
 
 typedef struct
 {
@@ -119,7 +122,7 @@ typedef struct
 
 #define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake*)(ptr))
 
-//TODO: t_rta_handshake -- create, to string, enviar, recibir
+t_rta_handshake* cs_rta_handshake_create(void);
 
 //*************************CONSULTAR RESTAURANTES*************************
 
@@ -167,7 +170,10 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 
 //*************************CONSULTAR PLATOS*************************
 
-#define cs_msg_consultar_pl_create(rest)\
+#define cs_msg_consultar_pl_create()\
+		_cons_create((int8_t)CONSULTAR_PLATOS, "", 0, "", 0)
+
+#define cs_msg_consultar_pl_rest_create(rest)\
 		_cons_create((int8_t)CONSULTAR_PLATOS, "", 0, rest, 0)
 
 typedef struct
@@ -212,6 +218,9 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 
 #define cs_msg_confirmar_ped_create(pedido_id)\
 		_cons_create((int8_t)CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
+
+#define cs_msg_confirmar_ped_rest_create(rest, pedido_id)\
+		_cons_create((int8_t)CONFIRMAR_PEDIDO, "", 0, rest, pedido_id)
 
 //*************************PLATO LISTO*************************
 

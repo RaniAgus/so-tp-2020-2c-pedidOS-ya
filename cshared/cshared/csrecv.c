@@ -71,8 +71,10 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	return STATUS_SUCCESS;
 }
 
-static t_consulta* 	cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
-static t_handshake* cs_buffer_to_handshake(t_buffer* buffer);
+static t_consulta* 		cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
+static t_handshake* 	cs_buffer_to_handshake(t_buffer* buffer);
+
+static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer);
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
@@ -96,6 +98,8 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
+		case HANDSHAKE:
+			return (void*)cs_buffer_to_rta_handshake(buffer);
 		case CONSULTAR_RESTAURANTES:
 			return (void*)cs_buffer_to_rta_cons_rest(buffer);
 		case OBTENER_RESTAURANTE:
@@ -119,6 +123,7 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	}
 }
 
+//TODO: cs_buffer_to_consulta -- poner ifs por parámetro, leer módulo desde config
 static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 {
 	t_consulta* msg;
@@ -173,6 +178,12 @@ static t_handshake* cs_buffer_to_handshake(t_buffer* buffer)
 	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_RECV);
 
 	return msg;
+}
+
+//TODO: cs_buffer_to_rta_handshake
+static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer)
+{
+	return NULL;
 }
 
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
