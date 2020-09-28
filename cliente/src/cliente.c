@@ -3,6 +3,8 @@
 #define MODULE_NAME		 "CLIENTE"
 #define CONFIG_FILE_PATH "cliente.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
+#define IP_SERVER 		 "IP"
+#define PORT_SERVER 	 "PUERTO"
 
 char* serv_ip;
 char* serv_port;
@@ -78,25 +80,16 @@ int main(int argc, char* argv[])
 
 e_status client_init(pthread_t* thread_recv_msg)
 {
-	char *modulo, *serv_ip_key, *serv_port_key;
-
 	//Inicia los config y logger
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
-	//Se conecta al módulo y crea el thread
-	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");
-
-	serv_ip_key   = string_from_format("IP_%s", modulo);
-	serv_port_key = string_from_format("PUERTO_%s", modulo);
-
 	//serv_ip y serv_port almacenan la info del servidor a conectarse
-	serv_ip   = cs_config_get_string(serv_ip_key);
-	serv_port = cs_config_get_string(serv_port_key);
+	serv_ip   = cs_config_get_string(IP_SERVER);
+	serv_port = cs_config_get_string(PORT_SERVER);
 
 	if(serv_ip == NULL || serv_port == NULL)
 	{
-		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- Error al encontrar los keys para conectarse a %s\n",
-				 cs_enum_status_to_str(STATUS_CONFIG_ERROR), STATUS_CONFIG_ERROR, __func__ ,__LINE__, modulo);
+		PRINT_ERROR(STATUS_CONFIG_ERROR);
 		exit(STATUS_CONFIG_ERROR);
 	}
 
@@ -106,19 +99,32 @@ e_status client_init(pthread_t* thread_recv_msg)
 
 	CS_LOG_TRACE("Iniciado correctamente.");
 
-	//Libera los strings
-	free(serv_ip_key);
-	free(serv_port_key);
-	free(modulo);
-
 	return STATUS_SUCCESS;
+}
+
+e_status client_send_handshake(t_sfd serv_conn)
+{
+	e_status status;
+	//Envia el hs
+	t_header header = { OPCODE_CONSULTA, HANDSHAKE };
+
+	t_handshake* msg = cs_cons_handshake_create(
+			cs_config_get_string("ID_CLIENTE"),
+			(uint32_t) cs_config_get_int("POSICION_X"),
+			(uint32_t) cs_config_get_int("POSICION_Y"));
+
+	status = cs_send_msg(serv_conn, header, (void*) msg);
+	if (status == STATUS_SUCCESS)
+	{
+		status = client_recv_msg(serv_conn, NULL);
+	}
+	return status;
 }
 
 void client_recv_msg_routine(void)
 {
-	e_status status;
-
-	do
+	e_status status = client_send_handshake(serv_conn);
+	while(status == STATUS_SUCCESS)
 	{
 		t_header header;
 
@@ -137,7 +143,7 @@ void client_recv_msg_routine(void)
 			//Envía la respuesta
 			status = cs_send_msg(serv_conn, header, NULL);
 		}
-	} while(status == STATUS_SUCCESS);
+	}
 
 	fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
 			 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
@@ -152,16 +158,21 @@ e_status client_send_msg(cl_parser_result* result)
 	status = cs_tcp_client_create(&conn, serv_ip, serv_port);
 	if(status == STATUS_SUCCESS)
 	{
-		//Envía el mensaje
-		status = cs_send_msg(conn, result->header, result->msg);
+		//Envía el hs
+		status = client_send_handshake(conn);
 		if(status == STATUS_SUCCESS)
 		{
-			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
-			CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
-			free(msg_to_str);
+			//Envía el mensaje
+			status = cs_send_msg(conn, result->header, result->msg);
+			if(status == STATUS_SUCCESS)
+			{
+				char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
+				CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
+				free(msg_to_str);
 
-			//Espera la respuesta
-			status = client_recv_msg(conn, NULL);
+				//Espera la respuesta
+				status = client_recv_msg(conn, NULL);
+			}
 		}
 	}
 	if(status != STATUS_SUCCESS)

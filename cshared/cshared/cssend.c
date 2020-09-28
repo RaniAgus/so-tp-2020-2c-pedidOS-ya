@@ -115,6 +115,7 @@ static t_buffer* cs_package_to_buffer(t_package* package)
 }
 
 static t_buffer* cs_consulta_to_buffer(t_consulta* msg);
+static t_buffer* cs_handshake_to_buffer(t_handshake* msg);
 static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
 static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
 static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
@@ -129,7 +130,13 @@ t_buffer* cs_msg_to_buffer(t_header header, void* msg)
 	switch(header.opcode)
 	{
 	case OPCODE_CONSULTA:
-		return cs_consulta_to_buffer((t_consulta*)msg);
+		if(header.msgtype != HANDSHAKE)
+		{
+			return cs_consulta_to_buffer((t_consulta*)msg);
+		} else
+		{
+			return cs_handshake_to_buffer((t_handshake*)msg);
+		}
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
@@ -177,6 +184,23 @@ static t_buffer* cs_consulta_to_buffer(t_consulta* msg)
 	return buffer;
 }
 
+static t_buffer* cs_handshake_to_buffer(t_handshake* msg)
+{
+	t_buffer *buffer;
+	int offset = 0;
+
+	uint32_t nombre_len = strlen(msg->nombre);
+
+	buffer = cs_buffer_create(3 * sizeof(uint32_t) + nombre_len);
+
+	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_SEND);
+
+	return buffer;
+}
+
 static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
 {
 	t_buffer *buffer;
@@ -219,7 +243,7 @@ static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
 	comidas_len    = strlen(comidas);
 	precios_len    = strlen(precios);
 
-	buffer = cs_buffer_create(7 * sizeof(uint32_t) + afinidades_len + comidas_len + precios_len);
+	buffer = cs_buffer_create(8 * sizeof(uint32_t) + afinidades_len + comidas_len + precios_len);
 
 	//Cocineros -- Cantidad (se copia directamente)
 	cs_stream_copy(buffer->stream, &offset, &msg->cant_cocineros   , sizeof(uint32_t), COPY_SEND);
@@ -242,6 +266,9 @@ static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
 
 	//Cantidad de hornos (se copia directamente)
 	cs_stream_copy(buffer->stream, &offset, &msg->cant_hornos      , sizeof(uint32_t), COPY_SEND);
+
+	//Cantidad de pedidos
+	cs_stream_copy(buffer->stream, &offset, &msg->cant_pedidos     , sizeof(uint32_t), COPY_SEND);
 
 	free(afinidades);
 	free(comidas);
