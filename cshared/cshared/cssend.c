@@ -469,8 +469,15 @@ static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
 	return buffer;
 }
 
-//TODO: cs_rta_handshake_to_buffer
 static t_buffer* cs_rta_handshake_to_buffer(t_rta_handshake* msg)
 {
-	return NULL;
+	t_buffer *buffer;
+	int offset = 0;
+
+	buffer = cs_buffer_create(sizeof(int8_t));
+
+	//Módulo
+	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(uint8_t),COPY_SEND);
+
+	return buffer;
 }

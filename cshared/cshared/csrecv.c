@@ -180,12 +180,6 @@ static t_handshake* cs_buffer_to_handshake(t_buffer* buffer)
 	return msg;
 }
 
-//TODO: cs_buffer_to_rta_handshake
-static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer)
-{
-	return NULL;
-}
-
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 {
 	t_rta_cons_rest* msg;
@@ -405,6 +399,19 @@ static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
 
 	free(pasos);
 	free(tiempos);
+
+	return msg;
+}
+
+static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer)
+{
+	t_rta_handshake* msg;
+	int offset = 0;
+
+	msg = malloc(sizeof(t_rta_handshake));
+
+	//Módulo (se copia directamente)
+	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(int8_t),COPY_RECV);
 
 	return msg;
 }
