@@ -12,7 +12,7 @@
 * Retorna STATUS_SUCCESS en caso de que el envío haya sido exitoso.
 *
 */
-e_status cs_send_handshake(t_sfd conn, e_msgtype msg_type, t_handshake* msg);
+e_status cs_send_handshake(t_sfd conn, t_handshake* msg);
 e_status cs_send_consulta (t_sfd conn, e_msgtype msg_type, t_consulta* msg, e_module dest);
 e_status cs_send_respuesta(t_sfd conn, t_header  header, void* msg);
 

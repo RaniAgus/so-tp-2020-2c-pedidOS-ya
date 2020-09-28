@@ -15,9 +15,9 @@ static t_package* _package_create(t_header header, t_buffer* payload);
 static t_buffer*  _package_to_buffer(t_package* package);
 static e_status   _send_all(t_sfd conn, t_buffer* buffer);
 
-e_status cs_send_handshake(t_sfd conn, e_msgtype msg_type, t_handshake* msg)
+e_status cs_send_handshake(t_sfd conn, t_handshake* msg)
 {
-	t_header header = { OPCODE_CONSULTA, msg_type };
+	t_header header = { OPCODE_CONSULTA, HANDSHAKE };
 	t_buffer* _to_buffer_func(void)
 	{
 		return cs_handshake_to_buffer(msg);

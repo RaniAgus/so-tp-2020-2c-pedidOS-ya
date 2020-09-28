@@ -46,10 +46,10 @@ int main(int argc, char* argv[])
 		}
 
 		//Parsea los argumentos
-		parser_status = client_parse_arguments(result, arg_cant, arg_values);
+		parser_status = client_parse_arguments(result, arg_cant, arg_values, serv_module);
 		if(parser_status == CL_SUCCESS)
 		{
-			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
+			char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
 			CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
 			free(msg_to_str);
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			client_print_parser_error(parser_status, *result);
+			client_print_parser_error(parser_status, *result, serv_module);
 			free(result);
 		}
 
@@ -114,7 +114,7 @@ e_status client_send_handshake(t_sfd serv_conn)
 			(uint32_t) cs_config_get_int("POSICION_X"),
 			(uint32_t) cs_config_get_int("POSICION_Y"));
 
-	status = cs_send_msg(serv_conn, header, (void*) msg);
+	status = cs_send_handshake(serv_conn, msg);
 	if (status == STATUS_SUCCESS)
 	{
 		status = client_recv_msg(serv_conn, NULL, &serv_module);
@@ -145,7 +145,7 @@ void client_recv_msg_routine(void)
 				header.opcode = (int8_t)OPCODE_RESPUESTA_FAIL;
 			}
 			//Envía la respuesta
-			status = cs_send_msg(serv_conn, header, NULL);
+			status = cs_send_respuesta(serv_conn, header, NULL);
 		}
 	}
 
@@ -167,10 +167,10 @@ e_status client_send_msg(cl_parser_result* result)
 		if(status == STATUS_SUCCESS)
 		{
 			//Envía el mensaje
-			status = cs_send_msg(conn, result->header, result->msg);
+			status = cs_send_consulta(conn, result->msgtype, result->msg, serv_conn);
 			if(status == STATUS_SUCCESS)
 			{
-				char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
+				char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
 				CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
 				free(msg_to_str);
 
@@ -186,7 +186,7 @@ e_status client_send_msg(cl_parser_result* result)
 	}
 
 	close(conn);
-	cs_msg_destroy(result->msg, result->header.opcode, result->header.msgtype);
+	cs_msg_destroy(result->msg, OPCODE_CONSULTA, result->msgtype);
 	free(result);
 
 	return status;
