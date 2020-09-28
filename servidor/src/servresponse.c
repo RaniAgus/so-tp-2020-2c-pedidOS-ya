@@ -118,7 +118,7 @@ void server_send_rta_obtener_pedido(t_sfd client_conn)
 	t_rta_obt_ped* respuesta;
 	char*rta_to_str;
 	t_header header= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
-	respuesta= cs_rta_obtener_ped_create("[milanga,asado]","[1,2]","[3,4]");
+	respuesta= cs_rta_obtener_ped_create(PEDIDO_CONFIRMADO, "[milanga,asado]","[1,2]","[3,4]");
 	rta_to_str = cs_msg_to_str(respuesta, header.opcode, header.msgtype);
 
 	if( cs_send_msg(client_conn, header, respuesta) == STATUS_SUCCESS )

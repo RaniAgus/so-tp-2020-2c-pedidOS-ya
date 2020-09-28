@@ -299,10 +299,10 @@ static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
 
 	//Estado del pedido
 	cs_stream_copy(buffer->stream,&offset,&estado_pedido,sizeof(uint8_t),COPY_RECV);
-	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
-	comidas = malloc(comidas_len+1);
 
 	//Platos -- Comidas
+	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
+	comidas = malloc(comidas_len+1);
 	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_RECV);
 	comidas[comidas_len] = '\0';
 
@@ -335,7 +335,11 @@ static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 	int offset = 0;
 
 	char *comidas, *listos, *totales;
+	int8_t estado_pedido;
 	uint32_t comidas_len, listos_len, totales_len;
+
+	//Estado del pedido
+	cs_stream_copy(buffer->stream,&offset,&estado_pedido,sizeof(uint8_t),COPY_RECV);
 
 	//Comidas
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
@@ -356,7 +360,7 @@ static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 	totales[totales_len] ='\0';
 
 	//Crea el mensaje
-	msg = cs_rta_obtener_ped_create(comidas, listos, totales);
+	msg = cs_rta_obtener_ped_create(estado_pedido, comidas, listos, totales);
 
 	free(comidas);
 	free(listos);

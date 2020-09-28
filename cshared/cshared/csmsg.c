@@ -213,11 +213,12 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
 	return rta;
 }
 
-t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales)
+t_rta_obt_ped* cs_rta_obtener_ped_create(e_estado_ped estado_ped, char* platos, char* listos, char* totales)
 {
 	t_rta_obt_ped* rta;
 	rta = malloc(sizeof(t_rta_obt_ped));
 
+	rta->estado_pedido    = estado_ped;
 	rta->platos_y_estados = cs_platos_create(platos, listos, totales);
 
 	return rta;
@@ -380,6 +381,9 @@ static void _rta_cons_ped_append(char** msg_str, t_rta_cons_ped* msg)
 
 static void _rta_obt_ped_append(char** msg_str, t_rta_obt_ped* msg)
 {
+	string_append_with_format(msg_str, " {ESTADO_PEDIDO: %s}",
+			cs_enum_estado_pedido_to_str(msg->estado_pedido));
+
 	_platos_append(msg_str, msg->platos_y_estados);
 }
 

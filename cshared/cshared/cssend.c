@@ -333,14 +333,14 @@ static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
 	totales_len = strlen(totales);
 	restaurante_len = strlen(msg->restaurante);
 
-	buffer = cs_buffer_create(4 * sizeof(uint32_t) + comidas_len + listos_len + totales_len + restaurante_len + sizeof(uint8_t));
+	buffer = cs_buffer_create(4 * sizeof(uint32_t) + comidas_len + listos_len + totales_len + restaurante_len + sizeof(int8_t));
 
 	//Restaurante (se copia directamente)
 	cs_stream_copy(buffer->stream,&offset,&restaurante_len,sizeof(uint32_t),COPY_SEND);
 	cs_stream_copy(buffer->stream,&offset,msg->restaurante,restaurante_len,COPY_SEND);
 
 	//Estado del pedido (se copia directamente)
-	cs_stream_copy(buffer->stream,&offset,&msg->estado_pedido,sizeof(uint8_t),COPY_SEND);
+	cs_stream_copy(buffer->stream,&offset,&msg->estado_pedido,sizeof(int8_t),COPY_SEND);
 
 	//Platos -- Comidas
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_SEND);
@@ -377,7 +377,10 @@ static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
 	listos_len  = strlen(listos);
 	totales_len = strlen(totales);
 
-	buffer = cs_buffer_create(3 * sizeof(uint32_t) + comidas_len + listos_len + totales_len);
+	buffer = cs_buffer_create(3 * sizeof(uint32_t) + comidas_len + listos_len + totales_len + sizeof(int8_t));
+
+	//Estado del pedido (se copia directamente)
+	cs_stream_copy(buffer->stream,&offset,&msg->estado_pedido,sizeof(int8_t),COPY_SEND);
 
 	//Platos -- Comidas
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_SEND);

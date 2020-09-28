@@ -227,12 +227,13 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest,
 
 typedef struct
 {
-	t_list*	 platos_y_estados;
+	int8_t 	estado_pedido;
+	t_list*	platos_y_estados;
 }t_rta_obt_ped;
 
 #define RTA_OBTENER_PED(ptr)	((t_rta_obt_ped*)(ptr))
 
-t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales);
+t_rta_obt_ped* cs_rta_obtener_ped_create(e_estado_ped estado_ped, char* platos, char* listos, char* totales);
 
 //*************************FINALIZAR PEDIDO*************************
 

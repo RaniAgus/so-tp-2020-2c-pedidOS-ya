@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 		cl_parser_status  parser_status;
 		cl_parser_result *result = malloc(sizeof(cl_parser_result));
 
-		arg_values = cs_console_readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ", &arg_cant);
+		arg_values = cs_console_readline("Ingrese mensaje a enviar (ENTER para finalizar):\n", &arg_cant);
 		if(arg_values == NULL)
 		{
 			CS_LOG_TRACE("Se recibió un salto de línea.");
@@ -180,13 +180,11 @@ e_status client_send_msg(cl_parser_result* result)
 	}
 	if(status != STATUS_SUCCESS)
 	{
-		printf("\n");
 		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
 				 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
-		printf("> ");
 	}
 
-	//Libera recursos
+	close(conn);
 	cs_msg_destroy(result->msg, result->header.opcode, result->header.msgtype);
 	free(result);
 
@@ -200,9 +198,7 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
 		char* msg_str;
 
 		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-		printf("\n");
 		CS_LOG_INFO("Mensaje recibido: %s", msg_str);
-		printf("> ");
 
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
