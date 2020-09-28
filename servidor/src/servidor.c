@@ -82,6 +82,9 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 
 	switch(header.msgtype)
 	{
+	case HANDSHAKE:
+		server_send_rta_handshake(client_conn);
+		break;
 	case CONSULTAR_RESTAURANTES:
 		server_send_rta_consultar_restaurantes(client_conn);
 	    break;

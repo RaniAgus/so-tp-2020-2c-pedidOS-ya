@@ -317,7 +317,7 @@ static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg)
 	string_append_with_format(
 			msg_str,
 			" {MODULO: %s}",
-			cs_enum_module_to_str(msg->modulo)
+			cs_enum_module_to_str(msg->modulo + 3)
 	);
 }
 
