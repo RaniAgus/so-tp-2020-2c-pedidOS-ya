@@ -118,6 +118,9 @@ e_status client_send_handshake(t_sfd serv_conn)
 	{
 		status = client_recv_msg(serv_conn, NULL);
 	}
+
+	cs_msg_destroy(msg, header.opcode, header.msgtype);
+
 	return status;
 }
 
