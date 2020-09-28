@@ -6,15 +6,16 @@
 #define IP_SERVER 		 "IP"
 #define PORT_SERVER 	 "PUERTO"
 
-char* serv_ip;
-char* serv_port;
-t_sfd serv_conn;
+char*  serv_ip;
+char*  serv_port;
+t_sfd  serv_conn;
+int8_t serv_module;
 
 e_status client_init(pthread_t* thread_recv_msg);
 
 void client_recv_msg_routine(void);
 e_status client_send_msg(cl_parser_result* result);
-e_status client_recv_msg(t_sfd conn, int8_t* msg_type);
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module);
 
 int main(int argc, char* argv[])
 {
@@ -116,7 +117,7 @@ e_status client_send_handshake(t_sfd serv_conn)
 	status = cs_send_msg(serv_conn, header, (void*) msg);
 	if (status == STATUS_SUCCESS)
 	{
-		status = client_recv_msg(serv_conn, NULL);
+		status = client_recv_msg(serv_conn, NULL, &serv_module);
 	}
 
 	cs_msg_destroy(msg, header.opcode, header.msgtype);
@@ -132,7 +133,7 @@ void client_recv_msg_routine(void)
 		t_header header;
 
 		//Recibe la consulta
-		status = client_recv_msg(serv_conn, &header.msgtype);
+		status = client_recv_msg(serv_conn, &header.msgtype, NULL);
 		if(status == STATUS_SUCCESS)
 		{
 			//Cliente solo recibe "Terminar Pedido"
@@ -174,7 +175,7 @@ e_status client_send_msg(cl_parser_result* result)
 				free(msg_to_str);
 
 				//Espera la respuesta
-				status = client_recv_msg(conn, NULL);
+				status = client_recv_msg(conn, NULL, NULL);
 			}
 		}
 	}
@@ -191,7 +192,7 @@ e_status client_send_msg(cl_parser_result* result)
 	return status;
 }
 
-e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 {
 	void _recv_and_print_msg(t_sfd conn, t_header header, void* msg)
 	{
@@ -200,10 +201,11 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
 		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 		CS_LOG_INFO("Mensaje recibido: %s", msg_str);
 
+		if(msg_type) *msg_type = header.msgtype;
+		if(module)   *module   = RTA_HANDSHAKE_PTR(msg)->modulo;
+	
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
-
-		if(msg_type) *msg_type = header.msgtype;
 	}
 
 	return cs_recv_msg(conn, _recv_and_print_msg);

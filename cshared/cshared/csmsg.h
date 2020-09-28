@@ -103,6 +103,24 @@ typedef struct
 
 t_handshake* cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy);
 
+typedef enum
+{
+	MODULO_COMANDA = -2,
+	MODULO_SINDICATO = -1,
+	MODULO_CLIENTE = 0,
+	MODULO_APP = 1,
+	MODULO_RESTAURANTE = 2
+}e_module;
+
+typedef struct
+{
+	int8_t 	modulo;
+}t_rta_handshake;
+
+#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake*)(ptr))
+
+//TODO: t_rta_handshake -- create, to string, enviar, recibir
+
 //*************************CONSULTAR RESTAURANTES*************************
 
 #define cs_msg_consultar_rest_create()\

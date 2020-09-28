@@ -448,12 +448,12 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*CONS_RES */{  0  ,  0  ,  0  ,  0  },
 /*SEL_RES  */{  0  ,  0  ,  1  ,  0  },//todo: _MSG_ARGS - ¿¿qué es el cliente??
 /*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
-/*CONS_PL  */{  0  ,  0  ,  1  ,  0  },
+/*CONS_PL  */{  0  ,  0  , -1  ,  0  },
 /*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
 /*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
 /*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
 /*GUARD_PL */{  1  ,  1  ,  1  ,  1  },//todo: _MSG_ARGS - ¿¿para qué cantidad??
-/*CONF_PED */{  0  ,  0  ,  0  ,  1  },
+/*CONF_PED */{  0  ,  0  , -1  ,  1  },
 /*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
 /*CONS_PED */{  0  ,  0  ,  0  ,  1  },
 /*OBT_PED  */{  0  ,  0  ,  1  ,  1  },
@@ -465,5 +465,11 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 
 bool cs_cons_has_argument(int8_t msgtype, int8_t arg)
 {
-	return _MSG_ARGS[(int)msgtype][(int)arg];
+	int8_t module = 0;
+
+	int result = _MSG_ARGS[(int)msgtype][(int)arg];
+
+	if(result < 0) result = ({ module < 0 ? 1 : 0; });
+
+	return result;
 }
