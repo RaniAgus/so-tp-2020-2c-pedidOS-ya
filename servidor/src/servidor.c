@@ -60,21 +60,13 @@ int main(void)
 void server_recv_msg(t_sfd* client_conn)
 {
 	e_status status;
-	char *ip_str, *port_str;
-
-	//Averigua la IP y puerto del cliente, y los muestra por pantalla
-	status = cs_get_peer_info(*client_conn, &ip_str, &port_str);
-	if (status == STATUS_SUCCESS)
+	
+//Recibe el mensaje del cliente y llama a la función que lo muestra
+	do
 	{
-		CS_LOG_INFO("Conectado con un nuevo cliente. [IP: %s] [PUERTO: %s]", ip_str, port_str);
-	} else server_error_handler(status);
-
-	//Recibe el mensaje del cliente y llama a la función que lo muestra
-	status = cs_recv_msg(*client_conn, server_log_and_send_reply);
-	if( status != STATUS_SUCCESS )	server_error_handler(status);
-
-	free(ip_str);
-	free(port_str);
+		status = cs_recv_msg(*client_conn, server_log_and_send_reply);
+		if( status != STATUS_SUCCESS )	server_error_handler(status);
+	} while(status == STATUS_SUCCESS);
 
 	close(*client_conn);
 	free((void*)client_conn);

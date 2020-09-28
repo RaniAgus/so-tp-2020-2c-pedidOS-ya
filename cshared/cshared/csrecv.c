@@ -71,7 +71,8 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	return STATUS_SUCCESS;
 }
 
-static t_consulta* 	cs_buffer_to_consulta    (int8_t msg_type, t_buffer* buffer);
+static t_consulta* 	cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
+static t_handshake* cs_buffer_to_handshake(t_buffer* buffer);
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
@@ -85,7 +86,13 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	switch(header.opcode)
 	{
 	case OPCODE_CONSULTA:
-		return (void*)cs_buffer_to_consulta(header.msgtype, buffer);
+		if(header.msgtype != HANDSHAKE)
+		{
+			return (void*)cs_buffer_to_consulta(header.msgtype, buffer);
+		} else
+		{
+			return (void*)cs_buffer_to_handshake(buffer);
+		}
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
@@ -145,6 +152,29 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	return msg;
 }
 
+static t_handshake* cs_buffer_to_handshake(t_buffer* buffer)
+{
+	t_handshake* msg;
+	int offset = 0;
+
+	uint32_t nombre_len;
+
+	//El mensaje se puede copiar directamente
+	msg = malloc(sizeof(t_handshake));
+
+	//Nombre
+	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_RECV);
+	msg->nombre = malloc(nombre_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_RECV);
+	msg->nombre[nombre_len] = '\0';
+
+	//Posicion
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_RECV);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_RECV);
+
+	return msg;
+}
+
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 {
 	t_rta_cons_rest* msg;
@@ -174,7 +204,7 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 
 	char *afinidades, *comidas, *precios;
 	uint32_t afinidades_len, comidas_len, precios_len;
-	uint32_t cant_cocineros, cant_hornos;
+	uint32_t cant_cocineros, cant_hornos, cant_pedidos;
 	t_pos pos_restaurante;
 
 	//Cantidad de cocineros
@@ -205,8 +235,11 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 	//Cantidad de hornos
 	cs_stream_copy(buffer->stream, &offset, &cant_hornos      , sizeof(uint32_t), COPY_RECV);
 
+	//Cantidad de pedidos
+	cs_stream_copy(buffer->stream, &offset, &cant_pedidos     , sizeof(uint32_t), COPY_RECV);
+
 	//Crea el mensaje
-	msg = cs_rta_obtener_rest_create(cant_cocineros, afinidades, comidas, precios, pos_restaurante, cant_hornos);
+	msg = cs_rta_obtener_rest_create(cant_cocineros, afinidades, comidas, precios, pos_restaurante, cant_hornos, cant_pedidos);
 
 	free(afinidades);
 	free(comidas);

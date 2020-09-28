@@ -1,6 +1,7 @@
 #include "csmsg.h"
 
 static void _cons_append(char** msg_str, t_consulta* msg);
+static void _hs_append(char** msg_str, t_handshake* msg);
 
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
@@ -28,6 +29,7 @@ static const char* _MSGTYPE_STR[] =
 	"FINALIZAR_PEDIDO",
 	"TERMINAR_PEDIDO",
 	"OBTENER_RECETA",
+	"HANDSHAKE",
 	NULL
 };
 
@@ -43,8 +45,14 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	switch(op_code)
 	{
 	case OPCODE_CONSULTA:
-		free(CONSULTA_PTR(msg)->comida);
-		free(CONSULTA_PTR(msg)->restaurante);
+		if(msg_type != HANDSHAKE)
+		{
+			free(CONSULTA_PTR(msg)->comida);
+			free(CONSULTA_PTR(msg)->restaurante);
+		} else
+		{
+			free(HANDSHAKE_PTR(msg)->nombre);
+		}
 		free(msg);
 		break;
 	case OPCODE_RESPUESTA_OK:
@@ -64,7 +72,13 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	switch(op_code)
 	{
 	case OPCODE_CONSULTA:
-		_cons_append(&msg_str, (t_consulta*)msg);
+		if(msg_type != HANDSHAKE)
+		{
+			_cons_append(&msg_str, (t_consulta*)msg);
+		} else
+		{
+			_hs_append(&msg_str, (t_handshake*)msg);
+		}
 		break;
 	case OPCODE_RESPUESTA_FAIL:
 		string_append(&msg_str, " {RESULTADO: FAIL}");
@@ -119,6 +133,18 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 	return msg;
 }
 
+t_handshake* 	cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy)
+{
+	t_handshake* msg;
+	msg = malloc(sizeof(t_handshake));
+
+	msg->nombre = string_duplicate(nombre);
+	msg->posicion.x = posx;
+	msg->posicion.y = posy;
+
+	return msg;
+}
+
 t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
 {
 	t_rta_cons_rest* rta;
@@ -134,7 +160,8 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 										   char*	comidas,
 										   char*	precios,
 										   t_pos 	pos_restaurante,
-										   uint32_t cant_hornos)
+										   uint32_t cant_hornos,
+										   uint32_t cant_pedidos)
 {
 	t_rta_obt_rest* rta;
 	rta = malloc(sizeof(t_rta_obt_rest));
@@ -145,6 +172,7 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 	rta->pos_restaurante.x = pos_restaurante.x;
 	rta->pos_restaurante.y = pos_restaurante.y;
 	rta->cant_hornos 	   = cant_hornos;
+	rta->cant_pedidos      = cant_pedidos;
 
 	return rta;
 
@@ -244,6 +272,17 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 	}
 }
 
+static void _hs_append(char** msg_str, t_handshake* msg)
+{
+	string_append_with_format(
+			msg_str,
+			" {NOMBRE: %s} {POSX: %d} {POSY: %d}",
+			msg->nombre,
+			msg->posicion.x,
+			msg->posicion.y
+	);
+}
+
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg)
 {
 	string_append(msg_str, " {RESTAURANTES: [");
@@ -278,7 +317,7 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 
 	void _pasos_receta_append(t_comida_menu* comida_menu)
 	{
-		string_append_with_format(msg_str, "%s ($%d),",
+		string_append_with_format(msg_str, "%s($%d),",
 				comida_menu->comida,
 				comida_menu->precio);
 	}
@@ -287,8 +326,11 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 	(*msg_str)[strlen(*msg_str)-1] = ']';
 	string_append(msg_str, "}");
 
-	string_append_with_format(msg_str, " {CANT_HORNOS: %d}",
-			msg->cant_hornos);
+	string_append_with_format(msg_str,
+			" {CANT_HORNOS: %d} {CANT_PEDIDOS: %d}",
+			msg->cant_hornos,
+			msg->cant_pedidos
+	);
 }
 
 static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg)
@@ -413,8 +455,8 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*OBT_PED  */{  0  ,  0  ,  1  ,  1  },
 /*FIN_PED  */{  0  ,  0  ,  1  ,  1  },
 /*TERM_PED */{  0  ,  0  ,  1  ,  1  },
-/*OBT_REC  */{  1  ,  0  ,  0  ,  0  }
-
+/*OBT_REC  */{  1  ,  0  ,  0  ,  0  },
+/*HANDSHAKE*/{  0  ,  0  ,  0  ,  0  }
 };
 
 bool cs_cons_has_argument(int8_t msgtype, int8_t arg)

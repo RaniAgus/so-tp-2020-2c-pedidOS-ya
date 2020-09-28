@@ -27,10 +27,12 @@ typedef enum
 	OBTENER_PEDIDO,
 	FINALIZAR_PEDIDO,
 	TERMINAR_PEDIDO,
-	OBTENER_RECETA
+	OBTENER_RECETA,
+
+	HANDSHAKE
 }e_msgtype;
 
-#define MSGTYPES_CANT 15+1
+#define MSGTYPES_CANT 16+1
 
 /**
 * @NAME cs_enum_msgtype_to_str
@@ -89,6 +91,18 @@ t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest,
 * @DESC Crean una estructura consulta o respuesta.
 */
 
+//*****************************HANDSHAKE**********************************
+
+typedef struct
+{
+	char*	nombre;
+	t_pos 	posicion;
+}t_handshake;
+
+#define HANDSHAKE_PTR(ptr) ((t_handshake*)(ptr))
+
+t_handshake* cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy);
+
 //*************************CONSULTAR RESTAURANTES*************************
 
 #define cs_msg_consultar_rest_create()\
@@ -120,6 +134,7 @@ typedef struct
 	t_list*  menu;
 	t_pos 	 pos_restaurante;
 	uint32_t cant_hornos;
+	uint32_t cant_pedidos;
 }t_rta_obt_rest;
 
 #define RTA_OBT_REST(ptr) ((t_rta_obt_rest*)(ptr))
@@ -129,7 +144,8 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 										   char*	comidas,
 										   char*	precios,
 										   t_pos 	pos_restaurante,
-										   uint32_t cant_hornos);
+										   uint32_t cant_hornos,
+										   uint32_t cant_pedidos);
 
 //*************************CONSULTAR PLATOS*************************
 

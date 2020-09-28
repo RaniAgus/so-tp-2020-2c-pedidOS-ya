@@ -34,7 +34,9 @@ void server_send_rta_obtener_restaurante(t_sfd client_conn)
 			"[Milanesa,Empanada,Ensalada]",
 			"[450,55,300]",
 			pos_restaurante,
-			2);
+			2,
+			10
+	);
 
 	rta_to_str = cs_msg_to_str(respuesta, header.opcode, header.msgtype);
 
