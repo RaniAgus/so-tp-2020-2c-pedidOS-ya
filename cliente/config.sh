@@ -5,19 +5,15 @@ FILE="cliente.config"
 IP=""
 PORT=""
 CLIENT_ID=""
-if [ $# -lt 2 ];then
+if [ $# -lt 1 ];then
     echo "Expected:"
-    echo "./config.sh [IP] [PORT]"
-    echo "./config.sh [IP] [PORT] [CLIENT_ID]"
+    echo "./config.sh [IP] [PUERTO]"
+    echo "./config.sh [ID_CLIENTE]"
 else
-    IP=$1
-    PORT=$2
-    CLIENT_ID=$3
-
-    sed -i "1s/.*/IP=$IP/" $BIN$FILE
-    sed -i "2s/.*/PUERTO=$PORT/" $BIN$FILE
-
-    if [ $# -eq 3 ];then
-        sed -i "6s/.*/ID_CLIENTE=Cliente$CLIENT_ID/" $BIN$FILE
+    if [ $# -eq 1 ];then
+        sed -i "6s/.*/ID_CLIENTE=Cliente$1/" $BIN$FILE
+    elif [ $# -eq 2 ];then
+        sed -i "1s/.*/IP=$1/" $BIN$FILE
+        sed -i "2s/.*/PUERTO=$2/" $BIN$FILE
     fi
 fi
