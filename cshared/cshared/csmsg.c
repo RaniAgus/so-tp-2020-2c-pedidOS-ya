@@ -62,8 +62,8 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	case OPCODE_CONSULTA:
 		if(msg_type != HANDSHAKE)
 		{
-			free(CONSULTA_PTR(msg)->comida);
-			free(CONSULTA_PTR(msg)->restaurante);
+			if(CONSULTA_PTR(msg)->comida)      free(CONSULTA_PTR(msg)->comida);
+			if(CONSULTA_PTR(msg)->restaurante) free(CONSULTA_PTR(msg)->restaurante);
 		} else
 		{
 			free(HANDSHAKE_PTR(msg)->nombre);
@@ -143,9 +143,9 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 
 	msg->msgtype = msg_type;
 
-	msg->comida      = string_duplicate(comida);
+	msg->comida      = ({ comida ? string_duplicate(comida) : NULL; });
 	msg->cantidad    = cant;
-	msg->restaurante = string_duplicate(rest);
+	msg->restaurante = ({ rest ?   string_duplicate(rest)   : NULL; });
 	msg->pedido_id   = pedido_id;
 
 	return msg;
@@ -267,7 +267,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 static void _cons_append(char** msg_str, t_consulta* msg)
 {
 
-	if(!string_is_empty(msg->comida))
+	if(msg->comida)
 	{
 		string_append_with_format(
 				msg_str,
@@ -283,7 +283,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->cantidad
 		);
 	}
-	if(!string_is_empty(msg->restaurante))
+	if(msg->restaurante)
 	{
 		string_append_with_format(
 				msg_str,

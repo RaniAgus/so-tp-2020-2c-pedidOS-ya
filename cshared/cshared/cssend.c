@@ -1,9 +1,6 @@
 #include "cssend.h"
 #include "utils/cslog.h"
 
-#define CS_STRING_SIZE(str_length)\
-	(sizeof(uint32_t) + str_length)
-
 #define CS_HEADER_FIXED_SIZE\
 	(sizeof(int8_t) + sizeof(int8_t))
 

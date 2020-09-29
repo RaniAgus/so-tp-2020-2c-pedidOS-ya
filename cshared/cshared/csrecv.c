@@ -148,7 +148,7 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 		msg->comida[comida_len] = '\0';
 	} else
 	{
-		msg->comida = string_new();
+		msg->comida = NULL;
 	}
 
 	//Cantidad
@@ -169,7 +169,7 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 		msg->restaurante[restaurante_len] = '\0';
 	} else
 	{
-		msg->restaurante = string_new();
+		msg->restaurante = NULL;
 	}
 
 	//Pedido id

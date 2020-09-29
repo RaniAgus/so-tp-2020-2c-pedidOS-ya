@@ -25,7 +25,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	if(result->msgtype == MSGTYPE_UNKNOWN) return CL_MSGTYPE_ARG_ERROR;
 
-	char *comida = string_new(), *restaurante = string_new();
+	char *comida = NULL, *restaurante = NULL;
 	int cantidad = 0, pedido_id = 0;
 
 	int arg = CL_MSGTYPE_ARG + 1;
@@ -39,7 +39,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 		CS_LOG_TRACE("<COMIDA> = %s", argv[arg]);
 
-		string_append(&comida, argv[arg]);
+		comida = string_duplicate(argv[arg]);
 		arg++;
 	}
 
@@ -72,7 +72,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 		CS_LOG_TRACE("<RESTAURANTE> = %s", argv[arg]);
 
-		string_append(&restaurante, argv[arg]);
+		restaurante = string_duplicate(argv[arg]);
 		arg++;
 	}
 
@@ -102,8 +102,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	result->msg = _cons_create(result->msgtype, comida, cantidad, restaurante, pedido_id);
 
-	free(comida);
-	free(restaurante);
+	if(comida)      free(comida);
+	if(restaurante) free(restaurante);
 
 	return CL_SUCCESS;
 
