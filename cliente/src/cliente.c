@@ -11,11 +11,33 @@ char*  serv_port;
 t_sfd  serv_conn;
 int8_t serv_module;
 
-e_status client_init(pthread_t* thread_recv_msg);
-
 void client_recv_msg_routine(void);
 e_status client_send_msg(cl_parser_result* result);
 e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module);
+
+e_status client_init(pthread_t* thread_recv_msg)
+{
+	//Inicia los config y logger
+	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+
+	//serv_ip y serv_port almacenan la info del servidor a conectarse
+	serv_ip   = cs_config_get_string(IP_SERVER);
+	serv_port = cs_config_get_string(PORT_SERVER);
+
+	if(serv_ip == NULL || serv_port == NULL)
+	{
+		PRINT_ERROR(STATUS_CONFIG_ERROR);
+		exit(STATUS_CONFIG_ERROR);
+	}
+
+	//Crea el primer socket para recibir mensajes ahí
+	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
+	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
+
+	CS_LOG_TRACE("Iniciado correctamente.");
+
+	return STATUS_SUCCESS;
+}
 
 int main(int argc, char* argv[])
 {
@@ -77,30 +99,6 @@ int main(int argc, char* argv[])
 	cs_module_close();
 
 	return status;
-}
-
-e_status client_init(pthread_t* thread_recv_msg)
-{
-	//Inicia los config y logger
-	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
-
-	//serv_ip y serv_port almacenan la info del servidor a conectarse
-	serv_ip   = cs_config_get_string(IP_SERVER);
-	serv_port = cs_config_get_string(PORT_SERVER);
-
-	if(serv_ip == NULL || serv_port == NULL)
-	{
-		PRINT_ERROR(STATUS_CONFIG_ERROR);
-		exit(STATUS_CONFIG_ERROR);
-	}
-
-	//Crea el primer socket para recibir mensajes ahí
-	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
-	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
-
-	CS_LOG_TRACE("Iniciado correctamente.");
-
-	return STATUS_SUCCESS;
 }
 
 e_status client_send_handshake(t_sfd serv_conn)
@@ -167,7 +165,7 @@ e_status client_send_msg(cl_parser_result* result)
 		if(status == STATUS_SUCCESS)
 		{
 			//Envía el mensaje
-			status = cs_send_consulta(conn, result->msgtype, result->msg, serv_conn);
+			status = cs_send_consulta(conn, result->msgtype, result->msg, serv_module);
 			if(status == STATUS_SUCCESS)
 			{
 				char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
