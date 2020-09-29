@@ -68,6 +68,7 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	} else {
 		payload->stream = NULL;
 	}
+
 	return STATUS_SUCCESS;
 }
 
@@ -132,27 +133,53 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	uint32_t comida_len;
 	uint32_t restaurante_len;
 
+	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+
 	//El mensaje se puede copiar directamente
 	msg = malloc(sizeof(t_consulta));
 	msg->msgtype = msg_type;
 
 	//Comida
-	cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_RECV);
-	msg->comida = malloc(comida_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_RECV);
-	msg->comida[comida_len] = '\0';
+	if(cs_cons_has_argument(msg_type, CONS_ARG_COMIDA, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_RECV);
+		msg->comida = malloc(comida_len + 1);
+		cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_RECV);
+		msg->comida[comida_len] = '\0';
+	} else
+	{
+		msg->comida = string_new();
+	}
 
 	//Cantidad
-	cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_RECV);
+	if(cs_cons_has_argument(msg_type, CONS_ARG_CANTIDAD, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_RECV);
+	} else
+	{
+		msg->cantidad = 0;
+	}
 
 	//Restaurante
-	cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_RECV);
-	msg->restaurante = malloc(restaurante_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_RECV);
-	msg->restaurante[restaurante_len] = '\0';
+	if(cs_cons_has_argument(msg_type, CONS_ARG_RESTAURANTE, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_RECV);
+		msg->restaurante = malloc(restaurante_len + 1);
+		cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_RECV);
+		msg->restaurante[restaurante_len] = '\0';
+	} else
+	{
+		msg->restaurante = string_new();
+	}
 
 	//Pedido id
-	cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_RECV);
+	if(cs_cons_has_argument(msg_type, CONS_ARG_PEDIDO_ID, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_RECV);
+	} else
+	{
+		msg->pedido_id = 0;
+	}
 
 	return msg;
 }

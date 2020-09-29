@@ -173,17 +173,39 @@ t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 	t_buffer *buffer;
 	int offset = 0;
 
+	uint32_t size = 0;
 	uint32_t comida_len      = strlen(msg->comida);
 	uint32_t restaurante_len = strlen(msg->restaurante);
 
-	buffer = cs_buffer_create(4 * sizeof(uint32_t) + comida_len + restaurante_len);
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
+		size += sizeof(uint32_t) + comida_len;
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
+		size += sizeof(uint32_t);
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
+		size += sizeof(uint32_t) + restaurante_len;
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
+		size += sizeof(uint32_t);
 
-	cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_SEND);
+	buffer = cs_buffer_create(size);
+
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
+	{
+		cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_SEND);
+		cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_SEND);
+	}
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_SEND);
+	}
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
+	{
+		cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_SEND);
+		cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_SEND);
+	}
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_SEND);
+	}
 
 	return buffer;
 }
