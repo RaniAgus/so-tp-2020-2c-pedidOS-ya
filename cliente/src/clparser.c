@@ -97,7 +97,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 
 	for(; arg < argc; arg++)
 	{
-		CS_LOG_WARNING("WARNING - Argumento sin parsear: %s\n", argv[arg]);
+		CS_LOG_WARNING("Argumento sin parsear: %s", argv[arg]);
 	}
 
 	result->msg = _cons_create(result->msgtype, comida, cantidad, restaurante, pedido_id);

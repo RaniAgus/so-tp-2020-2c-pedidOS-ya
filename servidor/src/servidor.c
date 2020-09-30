@@ -28,6 +28,8 @@ void server_sigint_handler(int signal)
 
 int main(void)
 {
+	char *str_time, *ip, *port;
+
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
@@ -35,21 +37,21 @@ int main(void)
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
 
 	//Lee las direcciones desde el config interno
-	char* ip   = cs_config_get_string("IP");
-	char* port = cs_config_get_string("PUERTO");
+	ip   = cs_config_get_string("IP");
+	port = cs_config_get_string("PUERTO");
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
 	CHECK_STATUS(cs_tcp_server_create(&conn, ip, port));
 
-	cs_temporal_do(LAMBDA(void, (char* date, char* time),{
-		printf("(%s) Servidor abierto a las: %s\n", date, time);
-	}));
+	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor abierto a las: %H:%M:%S");
+	printf("%s\n[IP: %s] [PUERTO: %s]\n", str_time, ip, port);
+	free(str_time);
 
 	cs_tcp_server_accept_routine(&conn, server_recv_msg, server_error_handler);
 
-	cs_temporal_do(LAMBDA(void, (char* date, char* time),{
-		printf("(%s) Servidor cerrado a las: %s\n", date, time);
-	}));
+	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor cerrado a las: %H:%M:%S");
+	printf("%s\n", str_time);
+	free(str_time);
 
 	cs_module_close();
 
