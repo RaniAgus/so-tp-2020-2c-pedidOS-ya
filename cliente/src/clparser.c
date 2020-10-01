@@ -23,7 +23,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	CS_LOG_TRACE("Se leyó el tipo de mensaje: %s",
 					 cs_enum_msgtype_to_str(result->msgtype));
 
-	if(result->msgtype == MSGTYPE_UNKNOWN) return CL_MSGTYPE_ARG_ERROR;
+	if(result->msgtype == MSGTYPE_UNKNOWN || result->msgtype == HANDSHAKE) return CL_MSGTYPE_ARG_ERROR;
 
 	char *comida = NULL, *restaurante = NULL;
 	int cantidad = 0, pedido_id = 0;
@@ -127,7 +127,7 @@ void client_print_parser_error(cl_parser_status status, cl_parser_result result,
 		//Tipo de error: msgtype inválido.
 		case CL_MSGTYPE_ARG_ERROR:
 			string_append_with_format(&err_str, "Tipo de mensaje no válido.\n"
-												"Tipos de mensaje válidos: TIPO_DE_MENSAJE_1 | ...");
+												"Tipos de mensaje válidos: CONSULTAR_RESTAURANTES | SELECCIONAR_RESTAURANTE | OBTENER_RESTAURANTE | CONSULTAR_PLATOS | CREAR_PEDIDO | GUARDAR_PEDIDO | AÑADIR_PLATO | GUARDAR_PLATO | CONFIRMAR_PEDIDO | PLATO_LISTO | CONSULTAR_PEDIDO | OBTENER_PEDIDO | FINALIZAR_PEDIDO | TERMINAR_PEDIDO | OBTENER_RECETA");
 			break;
 		//Tipo de error: argumentos con un formato no válido.
 		default:
