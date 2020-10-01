@@ -143,9 +143,9 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 
 	msg->msgtype = msg_type;
 
-	msg->comida      = ({ comida ? string_duplicate(comida) : NULL; });
+	msg->comida      = ({ comida != NULL ? string_duplicate(comida) : NULL; });
 	msg->cantidad    = cant;
-	msg->restaurante = ({ rest ?   string_duplicate(rest)   : NULL; });
+	msg->restaurante = ({ rest != NULL ?   string_duplicate(rest)   : NULL; });
 	msg->pedido_id   = pedido_id;
 
 	return msg;
@@ -266,8 +266,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 
 static void _cons_append(char** msg_str, t_consulta* msg)
 {
-
-	if(msg->comida)
+	if(msg->comida != NULL)
 	{
 		string_append_with_format(
 				msg_str,
@@ -283,7 +282,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->cantidad
 		);
 	}
-	if(msg->restaurante)
+	if(msg->restaurante != NULL)
 	{
 		string_append_with_format(
 				msg_str,

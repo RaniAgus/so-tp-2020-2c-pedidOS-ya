@@ -164,22 +164,27 @@ static t_buffer* cs_buffer_create(int size)
 	return buffer;
 }
 
-//TODO: cs_consulta_to_buffer -- poner ifs por parámetro
 t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 {
 	t_buffer *buffer;
 	int offset = 0;
 
 	uint32_t size = 0;
-	uint32_t comida_len      = strlen(msg->comida);
-	uint32_t restaurante_len = strlen(msg->restaurante);
+	uint32_t comida_len = 0;
+	uint32_t restaurante_len = 0;
 
 	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
+	{
+		comida_len = strlen(msg->comida);
 		size += sizeof(uint32_t) + comida_len;
+	}
 	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
 		size += sizeof(uint32_t);
 	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
+	{
+		restaurante_len = strlen(msg->restaurante);
 		size += sizeof(uint32_t) + restaurante_len;
+	}
 	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
 		size += sizeof(uint32_t);
 

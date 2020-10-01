@@ -31,11 +31,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	int arg = CL_MSGTYPE_ARG + 1;
 	if(cs_cons_has_argument(result->msgtype, CONS_ARG_COMIDA, serv_module))
 	{
-		if(arg == argc)
-		{
-			free(comida), free(restaurante);
-			return CL_CANT_ARGS_ERROR;
-		}
+		if(arg == argc)	return CL_CANT_ARGS_ERROR;
 
 		CS_LOG_TRACE("<COMIDA> = %s", argv[arg]);
 
@@ -47,7 +43,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	{
 		if(arg == argc)
 		{
-			free(comida), free(restaurante);
+			if(comida) free(comida);
 			return CL_CANT_ARGS_ERROR;
 		}
 
@@ -56,7 +52,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		cantidad = cs_string_to_uint(argv[arg]);
 		if(cantidad < 0)
 		{
-			free(comida), free(restaurante);
+			if(comida) free(comida);
 			return CL_ARGS_ERROR;
 		}
 		arg++;
@@ -66,7 +62,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	{
 		if(arg == argc)
 		{
-			free(comida), free(restaurante);
+			if(comida) free(comida);
 			return CL_CANT_ARGS_ERROR;
 		}
 
@@ -80,7 +76,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	{
 		if(arg == argc)
 		{
-			free(comida), free(restaurante);
+			if(comida)      free(comida); 
+			if(restaurante) free(restaurante);
 			return CL_CANT_ARGS_ERROR;
 		}
 
@@ -89,7 +86,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 		pedido_id = cs_string_to_uint(argv[arg]);
 		if(pedido_id < 0)
 		{
-			free(comida), free(restaurante);
+			if(comida)      free(comida); 
+			if(restaurante) free(restaurante);
 			return CL_ARGS_ERROR;
 		}
 		arg++;
