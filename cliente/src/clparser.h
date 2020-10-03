@@ -5,8 +5,8 @@
 
 typedef struct
 {
-	t_header header;
-	void*	 msg;
+	int8_t msgtype;
+	void*  msg;
 }cl_parser_result;
 
 typedef enum
@@ -17,8 +17,8 @@ typedef enum
 	CL_ARGS_ERROR
 }cl_parser_status;
 
-cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[]);
-void 			 client_print_parser_error(cl_parser_status status, cl_parser_result result);
+cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[], e_module serv_module);
+void 			 client_print_parser_error(cl_parser_status status, cl_parser_result result, e_module serv_module);
 
 
 #endif

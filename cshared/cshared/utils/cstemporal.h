@@ -2,25 +2,19 @@
 #define UTILS_TEMPORAL_H_
 
 #include "cscore.h"
+#include <string.h>
 #include <time.h>
+#include <sys/timeb.h>
 
-/**
-* @NAME cs_temporal_do
-* @DESC Aplica la función 'closure', recibiendo por parámetro
-* la fecha (dd/mm/yy) y la hora (HH:MM:SS) actual.
-*/
-void  cs_temporal_do(void(*closure)(char* date_str, char* time_str));
-
-/**
-* @NAME cs_temporal_get_string_time
-* @DESC Retorna un string con la hora en formato hh:mm:ss
-*/
-char* cs_temporal_get_string_time(void);
-
-/**
-* @NAME cs_temporal_get_string_date
-* @DESC Retorna un string con la fecha en formato DD/MM/AA
-*/
-char* cs_temporal_get_string_date(void);
+	/**
+	* @NAME: cs_temporal_get_string_time
+	* @DESC: Retorna un string con la hora actual,
+	* con el formato recibido por parámetro.
+	* Ejemplos:
+	* temporal_get_string_time("%d/%m/%y") => "30/09/20"
+	* temporal_get_string_time("%H:%M:%S:%MS") => "12:51:59:331"
+	* temporal_get_string_time("%d/%m/%y %H:%M:%S") => "30/09/20 12:51:59"
+	*/
+	char* cs_temporal_get_string_time(const char* format);
 
 #endif

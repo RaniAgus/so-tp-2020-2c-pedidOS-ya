@@ -68,11 +68,14 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	} else {
 		payload->stream = NULL;
 	}
+
 	return STATUS_SUCCESS;
 }
 
-static t_consulta* 	cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
-static t_handshake* cs_buffer_to_handshake(t_buffer* buffer);
+static t_consulta* 		cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
+static t_handshake* 	cs_buffer_to_handshake(t_buffer* buffer);
+
+static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer);
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
@@ -96,6 +99,8 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
+		case HANDSHAKE:
+			return (void*)cs_buffer_to_rta_handshake(buffer);
 		case CONSULTAR_RESTAURANTES:
 			return (void*)cs_buffer_to_rta_cons_rest(buffer);
 		case OBTENER_RESTAURANTE:
@@ -119,6 +124,7 @@ void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
 	}
 }
 
+//TODO: cs_buffer_to_consulta -- poner ifs por parámetro, leer módulo desde config
 static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 {
 	t_consulta* msg;
@@ -127,27 +133,53 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	uint32_t comida_len;
 	uint32_t restaurante_len;
 
+	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+
 	//El mensaje se puede copiar directamente
 	msg = malloc(sizeof(t_consulta));
 	msg->msgtype = msg_type;
 
 	//Comida
-	cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_RECV);
-	msg->comida = malloc(comida_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_RECV);
-	msg->comida[comida_len] = '\0';
+	if(cs_cons_has_argument(msg_type, CONS_ARG_COMIDA, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_RECV);
+		msg->comida = malloc(comida_len + 1);
+		cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_RECV);
+		msg->comida[comida_len] = '\0';
+	} else
+	{
+		msg->comida = NULL;
+	}
 
 	//Cantidad
-	cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_RECV);
+	if(cs_cons_has_argument(msg_type, CONS_ARG_CANTIDAD, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_RECV);
+	} else
+	{
+		msg->cantidad = 0;
+	}
 
 	//Restaurante
-	cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_RECV);
-	msg->restaurante = malloc(restaurante_len + 1);
-	cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_RECV);
-	msg->restaurante[restaurante_len] = '\0';
+	if(cs_cons_has_argument(msg_type, CONS_ARG_RESTAURANTE, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_RECV);
+		msg->restaurante = malloc(restaurante_len + 1);
+		cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_RECV);
+		msg->restaurante[restaurante_len] = '\0';
+	} else
+	{
+		msg->restaurante = NULL;
+	}
 
 	//Pedido id
-	cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_RECV);
+	if(cs_cons_has_argument(msg_type, CONS_ARG_PEDIDO_ID, self_module))
+	{
+		cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_RECV);
+	} else
+	{
+		msg->pedido_id = 0;
+	}
 
 	return msg;
 }
@@ -299,10 +331,10 @@ static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
 
 	//Estado del pedido
 	cs_stream_copy(buffer->stream,&offset,&estado_pedido,sizeof(uint8_t),COPY_RECV);
-	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
-	comidas = malloc(comidas_len+1);
 
 	//Platos -- Comidas
+	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
+	comidas = malloc(comidas_len+1);
 	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_RECV);
 	comidas[comidas_len] = '\0';
 
@@ -335,7 +367,11 @@ static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 	int offset = 0;
 
 	char *comidas, *listos, *totales;
+	int8_t estado_pedido;
 	uint32_t comidas_len, listos_len, totales_len;
+
+	//Estado del pedido
+	cs_stream_copy(buffer->stream,&offset,&estado_pedido,sizeof(uint8_t),COPY_RECV);
 
 	//Comidas
 	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_RECV);
@@ -356,7 +392,7 @@ static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 	totales[totales_len] ='\0';
 
 	//Crea el mensaje
-	msg = cs_rta_obtener_ped_create(comidas, listos, totales);
+	msg = cs_rta_obtener_ped_create(estado_pedido, comidas, listos, totales);
 
 	free(comidas);
 	free(listos);
@@ -390,6 +426,19 @@ static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
 
 	free(pasos);
 	free(tiempos);
+
+	return msg;
+}
+
+static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer)
+{
+	t_rta_handshake* msg;
+	int offset = 0;
+
+	msg = malloc(sizeof(t_rta_handshake));
+
+	//Módulo (se copia directamente)
+	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(int8_t),COPY_RECV);
 
 	return msg;
 }
