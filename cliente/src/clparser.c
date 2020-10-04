@@ -23,7 +23,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	CS_LOG_TRACE("Se leyó el tipo de mensaje: %s",
 					 cs_enum_msgtype_to_str(result->msgtype));
 
-	if(result->msgtype == MSGTYPE_UNKNOWN || result->msgtype == HANDSHAKE) return CL_MSGTYPE_ARG_ERROR;
+	if(result->msgtype == MSGTYPE_UNKNOWN || result->msgtype == HANDSHAKE_CLIENTE || result->msgtype == HANDSHAKE_RESTAURANTE) return CL_MSGTYPE_ARG_ERROR;
 
 	char *comida = NULL, *restaurante = NULL;
 	int cantidad = 0, pedido_id = 0;

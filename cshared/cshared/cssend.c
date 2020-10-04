@@ -7,19 +7,48 @@
 #define CS_PAYLOAD_SIZE\
 	(sizeof(uint32_t) + package->payload->size)
 
+static t_buffer*  cs_consulta_to_buffer(t_consulta* msg, e_module dest);
+static t_buffer*  cs_handshake_cli_to_buffer(t_handshake_cli* msg);
+static t_buffer*  cs_handshake_res_to_buffer(t_handshake_res* msg);
+static t_buffer*  cs_respuesta_to_buffer(t_header header, void* msg);
+
 static e_status   _send_msg(t_sfd conn, t_header header, t_buffer* (*_to_buffer_func)(void));
 static t_package* _package_create(t_header header, t_buffer* payload);
 static t_buffer*  _package_to_buffer(t_package* package);
 static e_status   _send_all(t_sfd conn, t_buffer* buffer);
 
-e_status cs_send_handshake(t_sfd conn, t_handshake* msg)
+e_status cs_send_handshake_cli(t_sfd conn)
 {
-	t_header header = { OPCODE_CONSULTA, HANDSHAKE };
+	e_status status;
+	t_header header = { OPCODE_CONSULTA, HANDSHAKE_CLIENTE };
+	t_handshake_cli* msg = cs_cons_handshake_cli_create();
+
 	t_buffer* _to_buffer_func(void)
 	{
-		return cs_handshake_to_buffer(msg);
+		return cs_handshake_cli_to_buffer(msg);
 	}
-	return _send_msg(conn, header, _to_buffer_func);
+	status = _send_msg(conn, header, _to_buffer_func);
+
+	//cs_msg_destroy(msg, header.opcode, header.msgtype);
+
+	return status;
+}
+
+e_status cs_send_handshake_res(t_sfd conn, t_pos pos)
+{
+	e_status status;
+	t_header header = { OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE };
+	t_handshake_res* msg = cs_cons_handshake_res_create(pos);
+
+	t_buffer* _to_buffer_func(void)
+	{
+		return cs_handshake_res_to_buffer(msg);
+	}
+	status = _send_msg(conn, header, _to_buffer_func);
+
+	cs_msg_destroy(msg, header.opcode, header.msgtype);
+
+	return status;
 }
 
 e_status cs_send_consulta(t_sfd conn, e_msgtype msg_type, t_consulta* msg, e_module dest)
@@ -141,7 +170,7 @@ static t_buffer* _package_to_buffer(t_package* package)
 	return buffer;
 }
 
-static t_buffer* cs_rta_handshake_to_buffer(t_rta_handshake* msg);
+static t_buffer* cs_rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg);
 static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
 static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
 static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
@@ -164,7 +193,7 @@ static t_buffer* cs_buffer_create(int size)
 	return buffer;
 }
 
-t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
+static t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -212,7 +241,7 @@ t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 	return buffer;
 }
 
-t_buffer* cs_handshake_to_buffer(t_handshake* msg)
+static t_buffer* cs_handshake_cli_to_buffer(t_handshake_cli* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -229,15 +258,35 @@ t_buffer* cs_handshake_to_buffer(t_handshake* msg)
 	return buffer;
 }
 
-t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
+static t_buffer* cs_handshake_res_to_buffer(t_handshake_res* msg)
+{
+	t_buffer *buffer;
+	int offset = 0;
+
+	uint32_t nombre_len = strlen(msg->nombre);
+	uint32_t puerto_len = strlen(msg->puerto);
+
+	buffer = cs_buffer_create(4 * sizeof(uint32_t) + nombre_len + puerto_len);
+
+	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset, &puerto_len     , sizeof(uint32_t), COPY_SEND);
+	cs_stream_copy(buffer->stream, &offset,  msg->puerto    , puerto_len      , COPY_SEND);
+
+	return buffer;
+}
+
+static t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
 {
 	switch(header.opcode)
 	{
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
-		case HANDSHAKE:
-			return cs_rta_handshake_to_buffer((t_rta_handshake*)msg);
+		case HANDSHAKE_CLIENTE:
+			return cs_rta_handshake_cli_to_buffer((t_rta_handshake_cli*)msg);
 		case CONSULTAR_RESTAURANTES:
 			return cs_rta_cons_rest_to_buffer((t_rta_cons_rest*)msg);
 		case OBTENER_RESTAURANTE:
@@ -493,7 +542,7 @@ static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_handshake_to_buffer(t_rta_handshake* msg)
+static t_buffer* cs_rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;

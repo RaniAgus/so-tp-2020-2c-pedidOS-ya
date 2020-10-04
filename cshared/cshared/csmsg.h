@@ -13,6 +13,7 @@
 typedef enum
 {
 	MSGTYPE_UNKNOWN = 0,
+
 	CONSULTAR_RESTAURANTES,
 	SELECCIONAR_RESTAURANTE,
 	OBTENER_RESTAURANTE,
@@ -29,10 +30,11 @@ typedef enum
 	TERMINAR_PEDIDO,
 	OBTENER_RECETA,
 
-	HANDSHAKE
+	HANDSHAKE_CLIENTE,
+	HANDSHAKE_RESTAURANTE
 }e_msgtype;
 
-#define MSGTYPES_CANT 16+1
+#define MSGTYPES_CANT 1+15+2
 
 /**
 * @NAME cs_enum_msgtype_to_str
@@ -91,17 +93,17 @@ t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest,
 * @DESC Crean una estructura consulta o respuesta.
 */
 
-//*****************************HANDSHAKE**********************************
+//*****************************HANDSHAKE CLIENTE**********************************
 
 typedef struct
 {
 	char*	nombre;
 	t_pos 	posicion;
-}t_handshake;
+}t_handshake_cli;
 
-#define HANDSHAKE_PTR(ptr) ((t_handshake*)(ptr))
+#define HANDSHAKE_CLIENTE_PTR(ptr) ((t_handshake_cli*)(ptr))
 
-t_handshake* cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy);
+t_handshake_cli* cs_cons_handshake_cli_create(void);
 
 typedef enum
 {
@@ -118,11 +120,25 @@ const char* cs_enum_module_to_str(int value);
 typedef struct
 {
 	int8_t 	modulo;
-}t_rta_handshake;
+}t_rta_handshake_cli;
 
-#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake*)(ptr))
+#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake_cli*)(ptr))
 
-t_rta_handshake* cs_rta_handshake_create(void);
+t_rta_handshake_cli* cs_rta_handshake_cli_create(void);
+
+//*************************HANDSHAKE RESTAURANTE******************************
+
+typedef struct
+{
+	char*	nombre;
+	t_pos 	posicion;
+	char*	ip;
+	char*	puerto;
+}t_handshake_res;
+
+#define HANDSHAKE_RESTAURANTE_PTR(ptr) ((t_handshake_res*)(ptr))
+
+t_handshake_res* cs_cons_handshake_res_create(t_pos pos);
 
 //*************************CONSULTAR RESTAURANTES*************************
 

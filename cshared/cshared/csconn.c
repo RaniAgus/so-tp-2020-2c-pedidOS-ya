@@ -36,32 +36,29 @@ void cs_buffer_destroy(t_buffer* buffer)
 	return;
 }
 
-e_status cs_get_peer_info(t_sfd sfd, char** ip_str_ptr, char** port_str_ptr)
+e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 {
-	int err;
+	char *ip, *port;
 
 	struct sockaddr_storage addr;
 	socklen_t addr_size = sizeof(struct sockaddr_storage);
 
-	*ip_str_ptr   = string_new();
-	*port_str_ptr = string_new();
+	ip   = strdup("0000:0000:0000:0000:0000:0000:0000:0000");
+	port = strdup("65535");
 
-	char* ip_str   = string_duplicate("0000:0000:0000:0000:0000:0000:0000:0000");
-	char* port_str = string_duplicate("65535");
-
-	err = getpeername(sfd, (struct sockaddr *)&addr, &addr_size);
-	if(err == -1)
+	if(getpeername(sfd, (struct sockaddr *)&addr, &addr_size) == -1)
 	{
 		cs_set_local_err(errno);
 		return STATUS_GETPEERNAME_ERROR;
 	}
 
-	err = getnameinfo((struct sockaddr *)&addr, addr_size,
-			ip_str, strlen(ip_str) + 1,
-			port_str, strlen(port_str) + 1, 0);
+	int err = getnameinfo(
+			(struct sockaddr *)&addr, addr_size,
+			ip, strlen(ip) + 1,
+			port, strlen(port) + 1, 0
+	);
 	if(err != 0)
 	{
-		printf("ERROR: %d\n", err);
 		if(err == EAI_SYSTEM)
 		{
 			cs_set_local_err(errno);
@@ -73,11 +70,11 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_str_ptr, char** port_str_ptr)
 		}
 	}
 
-	if(ip_str_ptr)   string_append(ip_str_ptr, ip_str);
-	if(port_str_ptr) string_append(port_str_ptr, port_str);
+	if(ip_ptr)   *ip_ptr   = strdup(ip);
+	if(port_ptr) *port_ptr = strdup(port);
 
-	free(ip_str);
-	free(port_str);
+	free(ip);
+	free(port);
 
 	return STATUS_SUCCESS;
 }

@@ -1,9 +1,10 @@
 #include "csmsg.h"
 
 static void _cons_append(char** msg_str, t_consulta* msg);
-static void _hs_append(char** msg_str, t_handshake* msg);
+static void _hs_cli_append(char** msg_str, t_handshake_cli* msg);
+static void _hs_res_append(char** msg_str, t_handshake_res* msg);
 
-static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg);
+static void _rta_handshake_cli_append(char** msg_str, t_rta_handshake_cli* msg);
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
 static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg);
@@ -30,7 +31,8 @@ static const char* _MSGTYPE_STR[] =
 	"FINALIZAR_PEDIDO",
 	"TERMINAR_PEDIDO",
 	"OBTENER_RECETA",
-	"HANDSHAKE",
+	"HANDSHAKE_CLIENTE",
+	"HANDSHAKE_RESTAURANTE",
 	NULL
 };
 
@@ -60,13 +62,20 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	switch(op_code)
 	{
 	case OPCODE_CONSULTA:
-		if(msg_type != HANDSHAKE)
+		switch (msg_type)
 		{
+		case HANDSHAKE_CLIENTE:
+			free(HANDSHAKE_CLIENTE_PTR(msg)->nombre);
+			break;
+		case HANDSHAKE_RESTAURANTE:
+			free(HANDSHAKE_RESTAURANTE_PTR(msg)->nombre);
+			if(HANDSHAKE_RESTAURANTE_PTR(msg)->ip) free(HANDSHAKE_RESTAURANTE_PTR(msg)->ip);
+			free(HANDSHAKE_RESTAURANTE_PTR(msg)->puerto);
+			break;
+		default:
 			if(CONSULTA_PTR(msg)->comida)      free(CONSULTA_PTR(msg)->comida);
 			if(CONSULTA_PTR(msg)->restaurante) free(CONSULTA_PTR(msg)->restaurante);
-		} else
-		{
-			free(HANDSHAKE_PTR(msg)->nombre);
+			break;
 		}
 		free(msg);
 		break;
@@ -87,12 +96,17 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	switch(op_code)
 	{
 	case OPCODE_CONSULTA:
-		if(msg_type != HANDSHAKE)
+		switch(msg_type)
 		{
+		case HANDSHAKE_CLIENTE:
+			_hs_cli_append(&msg_str, (t_handshake_cli*)msg);
+			break;
+		case HANDSHAKE_RESTAURANTE:
+			_hs_res_append(&msg_str, (t_handshake_res*)msg);
+			break;
+		default:
 			_cons_append(&msg_str, (t_consulta*)msg);
-		} else
-		{
-			_hs_append(&msg_str, (t_handshake*)msg);
+			break;
 		}
 		break;
 	case OPCODE_RESPUESTA_FAIL:
@@ -101,8 +115,8 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	case OPCODE_RESPUESTA_OK:
 		switch(msg_type)
 		{
-		case HANDSHAKE:
-			_rta_handshake_append(&msg_str, (t_rta_handshake*)msg);
+		case HANDSHAKE_CLIENTE:
+			_rta_handshake_cli_append(&msg_str, (t_rta_handshake_cli*)msg);
 			break;
 		case CONSULTAR_RESTAURANTES:
 			_rta_cons_rest_append(&msg_str, (t_rta_cons_rest*)msg);
@@ -151,22 +165,37 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 	return msg;
 }
 
-t_handshake* 	cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy)
+t_handshake_cli* 	cs_cons_handshake_cli_create(void)
 {
-	t_handshake* msg;
-	msg = malloc(sizeof(t_handshake));
+	t_handshake_cli* msg;
+	msg = malloc(sizeof(t_handshake_cli));
 
-	msg->nombre = string_duplicate(nombre);
-	msg->posicion.x = posx;
-	msg->posicion.y = posy;
+	msg->nombre     = cs_config_get_string("ID_CLIENTE");
+	msg->posicion.x = (uint32_t)cs_config_get_int("POSICION_X");
+	msg->posicion.y = (uint32_t)cs_config_get_int("POSICION_Y");
 
 	return msg;
 }
 
-t_rta_handshake* cs_rta_handshake_create(void)
+t_handshake_res* cs_cons_handshake_res_create(t_pos pos)
 {
-	t_rta_handshake* rta;
-	rta = malloc(sizeof(t_rta_handshake));
+	t_handshake_res* msg;
+	msg = malloc(sizeof(t_handshake_res));
+
+	msg->nombre     = cs_config_get_string("NOMBRE_RESTAURANTE");
+	msg->posicion.x = pos.x;
+	msg->posicion.y = pos.y;
+
+	msg->ip     = NULL;
+	msg->puerto = cs_config_get_string("PUERTO_ESCUCHA");
+
+	return msg;
+}
+
+t_rta_handshake_cli* cs_rta_handshake_cli_create(void)
+{
+	t_rta_handshake_cli* rta;
+	rta = malloc(sizeof(t_rta_handshake_cli));
 
 	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
 
@@ -300,7 +329,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 	}
 }
 
-static void _hs_append(char** msg_str, t_handshake* msg)
+static void _hs_cli_append(char** msg_str, t_handshake_cli* msg)
 {
 	string_append_with_format(
 			msg_str,
@@ -311,7 +340,21 @@ static void _hs_append(char** msg_str, t_handshake* msg)
 	);
 }
 
-static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg)
+static void _hs_res_append(char** msg_str, t_handshake_res* msg)
+{
+	string_append_with_format(
+			msg_str,
+			" {NOMBRE: %s} {POSX: %d} {POSY: %d}",
+			msg->nombre,
+			msg->posicion.x,
+			msg->posicion.y
+	);
+
+	if(msg->ip)	string_append_with_format(msg_str, " {IP_ESCUCHA: %s}", msg->ip);
+	string_append_with_format(msg_str, " {PUERTO_ESCUCHA: %s}", msg->puerto);
+}
+
+static void _rta_handshake_cli_append(char** msg_str, t_rta_handshake_cli* msg)
 {
 	string_append_with_format(
 			msg_str,
@@ -496,7 +539,8 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*FIN_PED  */{  0  ,  0  ,  1  ,  1  },
 /*TERM_PED */{  0  ,  0  ,  1  ,  1  },
 /*OBT_REC  */{  1  ,  0  ,  0  ,  0  },
-/*HANDSHAKE*/{  0  ,  0  ,  0  ,  0  }
+/*HNDSH_CLI*/{  0  ,  0  ,  0  ,  0  },
+/*HNDSH_RES*/{  0  ,  0  ,  0  ,  0  }
 };
 
 bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)

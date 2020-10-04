@@ -105,22 +105,13 @@ int main(int argc, char* argv[])
 e_status client_send_handshake(t_sfd serv_conn, int8_t* module)
 {
 	e_status status;
-	//Envia el hs
-	t_header header = { OPCODE_CONSULTA, HANDSHAKE };
 
-	t_handshake* msg = cs_cons_handshake_create(
-			cs_config_get_string("ID_CLIENTE"),
-			(uint32_t) cs_config_get_int("POSICION_X"),
-			(uint32_t) cs_config_get_int("POSICION_Y"));
-
-	status = cs_send_handshake(serv_conn, msg);
+	status = cs_send_handshake_cli(serv_conn);
 	if (status == STATUS_SUCCESS)
 	{
 		status = client_recv_msg(serv_conn, NULL, module);
 	}
-
-	cs_msg_destroy(msg, header.opcode, header.msgtype);
-
+	
 	return status;
 }
 
@@ -194,7 +185,7 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 
 		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 
-		if(header.msgtype != HANDSHAKE || module != NULL) {
+		if(header.msgtype != HANDSHAKE_CLIENTE || module != NULL) {
 			CS_LOG_INFO("Mensaje recibido: %s", msg_str);
 		} else {
 			CS_LOG_TRACE("Mensaje recibido: %s", msg_str);
