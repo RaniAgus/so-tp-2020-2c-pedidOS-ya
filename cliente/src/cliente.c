@@ -169,7 +169,6 @@ e_status client_send_msg(cl_parser_result* result)
 	}
 	if(status != STATUS_SUCCESS) PRINT_ERROR(status);
 
-
 	close(conn);
 	cs_msg_destroy(result->msg, OPCODE_CONSULTA, result->msgtype);
 	free(result);

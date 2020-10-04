@@ -170,7 +170,7 @@ t_handshake_cli* 	cs_cons_handshake_cli_create(void)
 	t_handshake_cli* msg;
 	msg = malloc(sizeof(t_handshake_cli));
 
-	msg->nombre     = cs_config_get_string("ID_CLIENTE");
+	msg->nombre     = string_duplicate(cs_config_get_string("ID_CLIENTE"));
 	msg->posicion.x = (uint32_t)cs_config_get_int("POSICION_X");
 	msg->posicion.y = (uint32_t)cs_config_get_int("POSICION_Y");
 
@@ -182,7 +182,7 @@ t_handshake_res* cs_cons_handshake_res_create(t_pos pos)
 	t_handshake_res* msg;
 	msg = malloc(sizeof(t_handshake_res));
 
-	msg->nombre     = cs_config_get_string("NOMBRE_RESTAURANTE");
+	msg->nombre     = string_duplicate(cs_config_get_string("NOMBRE_RESTAURANTE"));
 	msg->posicion.x = pos.x;
 	msg->posicion.y = pos.y;
 

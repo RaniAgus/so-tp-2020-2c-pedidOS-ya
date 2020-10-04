@@ -29,7 +29,7 @@ e_status cs_send_handshake_cli(t_sfd conn)
 	}
 	status = _send_msg(conn, header, _to_buffer_func);
 
-	//cs_msg_destroy(msg, header.opcode, header.msgtype);
+	cs_msg_destroy(msg, header.opcode, header.msgtype);
 
 	return status;
 }
