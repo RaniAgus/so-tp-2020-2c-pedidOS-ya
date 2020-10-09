@@ -197,7 +197,7 @@ t_rta_handshake_cli* cs_rta_handshake_cli_create(void)
 	t_rta_handshake_cli* rta;
 	rta = malloc(sizeof(t_rta_handshake_cli));
 
-	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str);
 
 	return rta;
 }
@@ -359,7 +359,7 @@ static void _rta_handshake_cli_append(char** msg_str, t_rta_handshake_cli* msg)
 	string_append_with_format(
 			msg_str,
 			" {MODULO: %s}",
-			cs_enum_module_to_str(msg->modulo + 3)
+			cs_enum_module_to_str(msg->modulo)
 	);
 }
 
@@ -547,7 +547,7 @@ bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
 {
 	int result = _MSG_ARGS[(int)msgtype][(int)arg];
 
-	if(result < 0) result = ({ module < 0 ? 1 : 0; });
+	if(result < 0) result = ({ module < 3 ? 1 : 0; });
 
 	return result;
 }

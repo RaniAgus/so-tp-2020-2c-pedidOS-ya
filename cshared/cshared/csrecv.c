@@ -137,7 +137,7 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	uint32_t comida_len;
 	uint32_t restaurante_len;
 
-	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str);
 
 	//El mensaje se puede copiar directamente
 	msg = malloc(sizeof(t_consulta));

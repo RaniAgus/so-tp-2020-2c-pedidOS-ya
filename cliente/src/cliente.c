@@ -180,19 +180,24 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 {
 	void _recv_and_print_msg(t_sfd conn, t_header header, void* msg)
 	{
-		char* msg_str;
+		char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 
-		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-
-		if(header.msgtype != HANDSHAKE_CLIENTE || module != NULL) {
+		if(header.msgtype != HANDSHAKE_CLIENTE) {
 			CS_LOG_INFO("Mensaje recibido: %s", msg_str);
 		} else {
 			CS_LOG_TRACE("Mensaje recibido: %s", msg_str);
 		}
+		if(module) {
+			CS_LOG_INFO("Conectado con un: %s(#%d)", 
+				cs_enum_module_to_str(RTA_HANDSHAKE_PTR(msg)->modulo), 
+				RTA_HANDSHAKE_PTR(msg)->modulo
+			);
+			*module = RTA_HANDSHAKE_PTR(msg)->modulo;
+		}
+		if(msg_type) {
+			*msg_type = header.msgtype;
+		}
 
-		if(msg_type) *msg_type = header.msgtype;
-		if(module)   *module   = RTA_HANDSHAKE_PTR(msg)->modulo;
-	
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
 	}

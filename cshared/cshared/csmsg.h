@@ -107,12 +107,12 @@ t_handshake_cli* cs_cons_handshake_cli_create(void);
 
 typedef enum
 {
-	MODULO_DESCONOCIDO = -3,
-	MODULO_COMANDA = -2,
-	MODULO_SINDICATO = -1,
-	MODULO_CLIENTE = 0,
-	MODULO_APP = 1,
-	MODULO_RESTAURANTE = 2
+	MODULO_DESCONOCIDO = 0,
+	MODULO_COMANDA = 1,
+	MODULO_SINDICATO = 2,
+	MODULO_CLIENTE = 3,
+	MODULO_APP = 4,
+	MODULO_RESTAURANTE = 5
 }e_module;
 
 const char* cs_enum_module_to_str(int value);
