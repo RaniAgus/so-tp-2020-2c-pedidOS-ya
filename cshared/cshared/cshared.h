@@ -11,6 +11,7 @@
 #include "utils/cssignal.h"
 #include "csstructs.h"
 #include "csmsg.h"
+#include "csmsgtostring.h"
 #include "csconn.h"
 #include "csconncreate.h"
 #include "cssend.h"

@@ -3,6 +3,12 @@
 
 #include "cscore.h"
 
+/**
+* @NAME PRINT_ERROR
+* @DESC Loguea un mensaje en stderr con el siguiente formato
+*
+* ERROR_CODE (file:func:line) -- STRING_ERROR
+*/
 #define PRINT_ERROR(err)\
 ({  pthread_mutex_lock(cs_logger_get_mutex());\
 	console_save_line();\

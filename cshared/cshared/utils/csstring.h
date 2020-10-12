@@ -14,8 +14,7 @@
 *
 * 1 => 'stream' es destino (COPY_SEND) -- 0 => 'value' es destino (COPY_RECV)
 */
-void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size,
-					int buffer_is_dest);
+void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size, bool buffer_is_dest);
 
 #define COPY_SEND 1
 #define COPY_RECV 0

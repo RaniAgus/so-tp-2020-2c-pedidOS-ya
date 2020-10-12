@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <commons/string.h>
 #include "utils/cscore.h"
-#include "utils/cserror.h"
 #include "utils/csstring.h"
 #include "csconn.h"
 #include "csstructs.h"
@@ -37,17 +36,11 @@ typedef enum
 #define MSGTYPES_CANT 1+15+2
 
 /**
-* @NAME cs_enum_msgtype_to_str
-* @DESC Devuelve el string correspondiente al enum value de e_msgtype
+* @NAME cs_cons_has_argument
+* @DESC Devuelve un boolean indicando si el tipo de consulta
+* tiene ese argumento.
 */
-const char*	cs_enum_msgtype_to_str(int value);
-
-/**
-* @NAME cs_msg_to_str
-* @DESC Recibe un mensaje y devuelve un string con su contenido
-* (normalmente para luego mostrarlo por pantalla en un log).
-*/
-char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
 
 /**
 * @NAME cs_msg_destroy
@@ -55,7 +48,7 @@ char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
 */
 void 	cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type);
 
-//*************************MENSAJES************************
+//*************************CONSULTAS************************
 
 typedef struct
 {
@@ -79,19 +72,7 @@ typedef enum
 
 #define CONS_ARGS_CANT 4
 
-/**
-* @NAME cs_cons_has_argument
-* @DESC Devuelve un boolean indicando si el tipo de consulta
-* tiene ese argumento.
-*/
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
-
 t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
-
-/**
-* @NAME cs_cons/rta_create
-* @DESC Crean una estructura consulta o respuesta.
-*/
 
 //*****************************HANDSHAKE CLIENTE**********************************
 
