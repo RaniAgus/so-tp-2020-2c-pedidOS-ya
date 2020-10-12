@@ -20,8 +20,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	result->msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
 											   			cs_enum_msgtype_to_str);
 
-	CS_LOG_TRACE("Se leyó el tipo de mensaje: %s",
-					 cs_enum_msgtype_to_str(result->msgtype));
+	CS_LOG_TRACE(__FILE__":%s:%d -- Se leyó el tipo de mensaje: %s",
+					  __func__, __LINE__, cs_enum_msgtype_to_str(result->msgtype));
 
 	if(result->msgtype == MSGTYPE_UNKNOWN || result->msgtype == HANDSHAKE_CLIENTE || result->msgtype == HANDSHAKE_RESTAURANTE) return CL_MSGTYPE_ARG_ERROR;
 
@@ -33,7 +33,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	{
 		if(arg == argc)	return CL_CANT_ARGS_ERROR;
 
-		CS_LOG_TRACE("<COMIDA> = %s", argv[arg]);
+		CS_LOG_TRACE(__FILE__":%s:%d -- <COMIDA> = %s",  __func__, __LINE__, argv[arg]);
 
 		comida = string_duplicate(argv[arg]);
 		arg++;
@@ -47,7 +47,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 			return CL_CANT_ARGS_ERROR;
 		}
 
-		CS_LOG_TRACE("<#CANT> = %s", argv[arg]);
+		CS_LOG_TRACE(__FILE__":%s:%d -- <#CANT> = %s", __func__, __LINE__, argv[arg]);
 
 		cantidad = cs_string_to_uint(argv[arg]);
 		if(cantidad < 0)
@@ -66,7 +66,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 			return CL_CANT_ARGS_ERROR;
 		}
 
-		CS_LOG_TRACE("<RESTAURANTE> = %s", argv[arg]);
+		CS_LOG_TRACE(__FILE__":%s:%d -- <RESTAURANTE> = %s", __func__, __LINE__, argv[arg]);
 
 		restaurante = string_duplicate(argv[arg]);
 		arg++;
@@ -81,7 +81,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 			return CL_CANT_ARGS_ERROR;
 		}
 
-		CS_LOG_TRACE("<#ID_PEDIDO> = %s", argv[arg]);
+		CS_LOG_TRACE(__FILE__":%s:%d -- <#ID_PEDIDO> = %s", __func__, __LINE__, argv[arg]);
 
 		pedido_id = cs_string_to_uint(argv[arg]);
 		if(pedido_id < 0)
@@ -133,7 +133,7 @@ void client_print_parser_error(cl_parser_status status, cl_parser_result result,
 												"Se esperaba: ");
 			client_append_msg_to_error(&err_str, result.msgtype, serv_module);
 	}
-	fprintf(stderr, "PARSER_ERROR (" __FILE__ ":%s:%d) -- %s\n", __func__ ,__LINE__, err_str);
+	fprintf(stderr, "[PARSER_ERROR]: %s\n", err_str);
 	free(err_str);
 }
 
