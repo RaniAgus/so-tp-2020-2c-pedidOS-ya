@@ -3,6 +3,7 @@
 static void _cons_append(char** msg_str, t_consulta* msg);
 static void _hs_append(char** msg_str, t_handshake* msg);
 
+static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg);
 static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
 static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
 static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg);
@@ -38,6 +39,20 @@ const char* cs_enum_msgtype_to_str(int value)
 	return _MSGTYPE_STR[value];
 }
 
+static const char* _MODULES_STR[] = {
+		"Desconocido",
+		"Comanda",
+		"Sindicato",
+		"Cliente",
+		"App",
+		"Restaurante",
+		NULL
+};
+
+const char* cs_enum_module_to_str(int value) {
+	return _MODULES_STR[value];
+}
+
 static void _rta_destroy(void* msg, int8_t msg_type);
 
 void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
@@ -47,8 +62,8 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	case OPCODE_CONSULTA:
 		if(msg_type != HANDSHAKE)
 		{
-			free(CONSULTA_PTR(msg)->comida);
-			free(CONSULTA_PTR(msg)->restaurante);
+			if(CONSULTA_PTR(msg)->comida)      free(CONSULTA_PTR(msg)->comida);
+			if(CONSULTA_PTR(msg)->restaurante) free(CONSULTA_PTR(msg)->restaurante);
 		} else
 		{
 			free(HANDSHAKE_PTR(msg)->nombre);
@@ -86,6 +101,9 @@ char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
 	case OPCODE_RESPUESTA_OK:
 		switch(msg_type)
 		{
+		case HANDSHAKE:
+			_rta_handshake_append(&msg_str, (t_rta_handshake*)msg);
+			break;
 		case CONSULTAR_RESTAURANTES:
 			_rta_cons_rest_append(&msg_str, (t_rta_cons_rest*)msg);
 		    break;
@@ -125,9 +143,9 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 
 	msg->msgtype = msg_type;
 
-	msg->comida      = string_duplicate(comida);
+	msg->comida      = ({ comida != NULL ? string_duplicate(comida) : NULL; });
 	msg->cantidad    = cant;
-	msg->restaurante = string_duplicate(rest);
+	msg->restaurante = ({ rest != NULL ?   string_duplicate(rest)   : NULL; });
 	msg->pedido_id   = pedido_id;
 
 	return msg;
@@ -143,6 +161,16 @@ t_handshake* 	cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t pos
 	msg->posicion.y = posy;
 
 	return msg;
+}
+
+t_rta_handshake* cs_rta_handshake_create(void)
+{
+	t_rta_handshake* rta;
+	rta = malloc(sizeof(t_rta_handshake));
+
+	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+
+	return rta;
 }
 
 t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
@@ -213,11 +241,12 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
 	return rta;
 }
 
-t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales)
+t_rta_obt_ped* cs_rta_obtener_ped_create(e_estado_ped estado_ped, char* platos, char* listos, char* totales)
 {
 	t_rta_obt_ped* rta;
 	rta = malloc(sizeof(t_rta_obt_ped));
 
+	rta->estado_pedido    = estado_ped;
 	rta->platos_y_estados = cs_platos_create(platos, listos, totales);
 
 	return rta;
@@ -237,8 +266,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 
 static void _cons_append(char** msg_str, t_consulta* msg)
 {
-
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_COMIDA))
+	if(msg->comida != NULL)
 	{
 		string_append_with_format(
 				msg_str,
@@ -246,7 +274,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->comida
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_CANTIDAD))
+	if(msg->cantidad)
 	{
 		string_append_with_format(
 				msg_str,
@@ -254,7 +282,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->cantidad
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_RESTAURANTE))
+	if(msg->restaurante != NULL)
 	{
 		string_append_with_format(
 				msg_str,
@@ -262,7 +290,7 @@ static void _cons_append(char** msg_str, t_consulta* msg)
 				msg->restaurante
 		);
 	}
-	if(cs_cons_has_argument(msg->msgtype, (int8_t)CONS_ARG_PEDIDO_ID))
+	if(msg->pedido_id)
 	{
 		string_append_with_format(
 				msg_str,
@@ -280,6 +308,15 @@ static void _hs_append(char** msg_str, t_handshake* msg)
 			msg->nombre,
 			msg->posicion.x,
 			msg->posicion.y
+	);
+}
+
+static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg)
+{
+	string_append_with_format(
+			msg_str,
+			" {MODULO: %s}",
+			cs_enum_module_to_str(msg->modulo + 3)
 	);
 }
 
@@ -380,6 +417,9 @@ static void _rta_cons_ped_append(char** msg_str, t_rta_cons_ped* msg)
 
 static void _rta_obt_ped_append(char** msg_str, t_rta_obt_ped* msg)
 {
+	string_append_with_format(msg_str, " {ESTADO_PEDIDO: %s}",
+			cs_enum_estado_pedido_to_str(msg->estado_pedido));
+
 	_platos_append(msg_str, msg->platos_y_estados);
 }
 
@@ -442,14 +482,14 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*           {comid, cant, rest, p_id}*/
 /*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
 /*CONS_RES */{  0  ,  0  ,  0  ,  0  },
-/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },//todo: _MSG_ARGS - ¿¿qué es el cliente??
+/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },
 /*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
-/*CONS_PL  */{  0  ,  0  ,  1  ,  0  },
+/*CONS_PL  */{  0  ,  0  , -1  ,  0  },
 /*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
 /*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
 /*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
-/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },//todo: _MSG_ARGS - ¿¿para qué cantidad??
-/*CONF_PED */{  0  ,  0  ,  0  ,  1  },
+/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },
+/*CONF_PED */{  0  ,  0  , -1  ,  1  },
 /*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
 /*CONS_PED */{  0  ,  0  ,  0  ,  1  },
 /*OBT_PED  */{  0  ,  0  ,  1  ,  1  },
@@ -459,7 +499,11 @@ static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 /*HANDSHAKE*/{  0  ,  0  ,  0  ,  0  }
 };
 
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg)
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
 {
-	return _MSG_ARGS[(int)msgtype][(int)arg];
+	int result = _MSG_ARGS[(int)msgtype][(int)arg];
+
+	if(result < 0) result = ({ module < 0 ? 1 : 0; });
+
+	return result;
 }

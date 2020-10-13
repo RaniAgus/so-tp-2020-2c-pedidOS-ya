@@ -3,6 +3,7 @@
 
 #include "cserror.h"
 #include "csconfig.h"
+#include "csconsole.h"
 #include <commons/log.h>
 
 /**
@@ -44,7 +45,9 @@ t_log*           cs_logger_get(void);
 */
 #define CS_LOG_TRACE(...) do {\
 	pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
 	log_trace(cs_logger_get(), __VA_ARGS__);\
+	console_restore_line();\
 	pthread_mutex_unlock(cs_logger_get_mutex()); } while(0)
 
 /**
@@ -55,7 +58,9 @@ t_log*           cs_logger_get(void);
 */
 #define CS_LOG_DEBUG(...) do {\
 	pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
 	log_debug(cs_logger_get(), __VA_ARGS__);\
+	console_restore_line();\
 	pthread_mutex_unlock(cs_logger_get_mutex()); }while(0)
 
 /**
@@ -66,7 +71,9 @@ t_log*           cs_logger_get(void);
 */
 #define CS_LOG_INFO(...) do {\
 	pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
 	log_info(cs_logger_get(), __VA_ARGS__);\
+	console_restore_line();\
 	pthread_mutex_unlock(cs_logger_get_mutex()); } while(0)
 
 /**
@@ -77,7 +84,9 @@ t_log*           cs_logger_get(void);
 */
 #define CS_LOG_WARNING(...) do {\
 	pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
 	log_warning(cs_logger_get(), __VA_ARGS__);\
+	console_restore_line();\
 	pthread_mutex_unlock(cs_logger_get_mutex()); } while(0)
 
 /**
@@ -88,7 +97,9 @@ t_log*           cs_logger_get(void);
 */
 #define CS_LOG_ERROR(...) do {\
 	pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
 	log_error(cs_logger_get(), __VA_ARGS__);\
+	console_restore_line();\
 	pthread_mutex_unlock(cs_logger_get_mutex()); } while(0)
 
 #endif /* UTILS_LOG_H_ */
