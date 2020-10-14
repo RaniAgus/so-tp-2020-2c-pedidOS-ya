@@ -45,15 +45,18 @@ void ap_cliente_add(ap_cliente_t* cliente)
 {
 	pthread_mutex_lock(&mutex_clientes);
 	list_add(lista_clientes, (void*) cliente);
+	CS_LOG_TRACE("Se agregó el Cliente: { %s, (%d:%d) } ", cliente->nombre, cliente->pos.x, cliente->pos.y);
 	pthread_mutex_unlock(&mutex_clientes);
 
-	CS_LOG_TRACE("Se agregó el Cliente: { %s; (%d,%d) } ", cliente->nombre, cliente->pos.x, cliente->pos.y);
 }
 
 void ap_restaurante_add(ap_restaurante_t* restaurante)
 {
 	pthread_mutex_lock(&mutex_restaurantes);
 	list_add(lista_restaurantes, (void*) restaurante);
+	CS_LOG_TRACE("Se agregó el Restaurante: { %s, (%d:%d), %s:%s } ",
+			restaurante->nombre, restaurante->posicion.x, restaurante->posicion.y,
+			restaurante->ip_escucha, restaurante->puerto_escucha);
 	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
@@ -94,4 +97,11 @@ int ap_restaurante_find_index(char* restaurante)
 	pthread_mutex_unlock(&mutex_restaurantes);
 
 	return index;
+}
+
+void ap_restaurantes_iterate(void(*closure)(ap_restaurante_t*))
+{
+	pthread_mutex_lock(&mutex_restaurantes);
+	list_iterate(lista_restaurantes, (void*) closure);
+	pthread_mutex_unlock(&mutex_restaurantes);
 }
