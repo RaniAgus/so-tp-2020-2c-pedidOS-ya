@@ -8,7 +8,8 @@ typedef enum
 {
 	PEDIDO_PENDIENTE = 1,
 	PEDIDO_CONFIRMADO,
-	PEDIDO_TERMINADO
+	PEDIDO_TERMINADO,
+	PEDIDO_INVALIDO
 }e_estado_ped;
 
 typedef struct

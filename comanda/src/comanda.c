@@ -110,7 +110,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	t_consulta* elMensaje = (t_consulta*)msg;
 	//Loguea el mensaje
 	CS_LOG_INFO("%s", msg_str);
-
+	//TODO: los free
 	switch(header.msgtype)
 	{
 	case HANDSHAKE:
@@ -129,17 +129,40 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	   	break;
 	case OBTENER_PEDIDO:
 		puts("obtener pedido");
+		t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
+		t_rta_obt_ped* respuestaObtener = obtenerPedido(elMensaje);
+
+		if(!respuestaObtener){
+			server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
+		} else{
+			char* rta_to_str = cs_msg_to_str(respuestaObtener, headerResp.opcode, headerResp.msgtype);
+			if( cs_send_respuesta(client_conn, headerResp, respuestaObtener) == STATUS_SUCCESS )
+			{
+				CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
+			} else
+			{
+				CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
+			}
+		}
+
+
 		//server_send_rta_consultar_platos(client_conn);
 	    break;
 	case CONFIRMAR_PEDIDO:
 		puts("confirmar pedido");
-		//server_send_rta_crear_pedido(client_conn);
+		e_opcode ok_fail3 = confirmarPedido(elMensaje);
+		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail3);
 		break;
 	case PLATO_LISTO:
 		puts("plato listo");
+		e_opcode ok_fail4 = platoListo(elMensaje);
+		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
+
 	    break;
 	case FINALIZAR_PEDIDO:
 		puts("finalizar pedido");
+		e_opcode ok_fail5 = finalizarPedido(elMensaje);
+		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
 	    break;
 	default:
 		puts("algo anda mal xdxd");
