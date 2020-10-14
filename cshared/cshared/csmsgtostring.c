@@ -211,7 +211,7 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 	for(int i=0; i < msg->cant_cocineros; i++)
 	{
 		string_append_with_format(msg_str, "(%d;%s),",
-				i, ({ i < cs_string_array_lines_count(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
+				i, ({ i < string_array_size(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
 	}
 
 	(*msg_str)[strlen(*msg_str)-1] = ']';
