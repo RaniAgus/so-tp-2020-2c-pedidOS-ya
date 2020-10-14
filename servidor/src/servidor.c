@@ -28,7 +28,7 @@ void server_sigint_handler(int signal)
 
 int main(void)
 {
-	char *str_time, *ip, *port;
+	char *str_time, *port;
 
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
@@ -37,14 +37,13 @@ int main(void)
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
 
 	//Lee las direcciones desde el config interno
-	ip   = cs_config_get_string("IP");
 	port = cs_config_get_string("PUERTO");
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
-	CHECK_STATUS(cs_tcp_server_create(&conn, ip, port));
+	CHECK_STATUS(cs_tcp_server_create(&conn, port));
 
 	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor abierto a las: %H:%M:%S");
-	printf("%s\n[IP: %s] [PUERTO: %s]\n", str_time, ip, port);
+	printf("%s\n[PUERTO: %s]\n", str_time, port);
 	free(str_time);
 
 	cs_tcp_server_accept_routine(&conn, server_recv_msg, server_error_handler);
@@ -84,8 +83,8 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 
 	switch(header.msgtype)
 	{
-	case HANDSHAKE:
-		server_send_rta_handshake(client_conn);
+	case HANDSHAKE_CLIENTE:
+		server_send_rta_handshake_cli(client_conn);
 		break;
 	case CONSULTAR_RESTAURANTES:
 		server_send_rta_consultar_restaurantes(client_conn);

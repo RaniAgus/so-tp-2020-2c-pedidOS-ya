@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <commons/string.h>
 #include "utils/cscore.h"
-#include "utils/cserror.h"
 #include "utils/csstring.h"
 #include "csconn.h"
 #include "csstructs.h"
@@ -13,6 +12,7 @@
 typedef enum
 {
 	MSGTYPE_UNKNOWN = 0,
+
 	CONSULTAR_RESTAURANTES,
 	SELECCIONAR_RESTAURANTE,
 	OBTENER_RESTAURANTE,
@@ -29,23 +29,18 @@ typedef enum
 	TERMINAR_PEDIDO,
 	OBTENER_RECETA,
 
-	HANDSHAKE
+	HANDSHAKE_CLIENTE,
+	HANDSHAKE_RESTAURANTE
 }e_msgtype;
 
-#define MSGTYPES_CANT 16+1
+#define MSGTYPES_CANT 1+15+2
 
 /**
-* @NAME cs_enum_msgtype_to_str
-* @DESC Devuelve el string correspondiente al enum value de e_msgtype
+* @NAME cs_cons_has_argument
+* @DESC Devuelve un boolean indicando si el tipo de consulta
+* tiene ese argumento.
 */
-const char*	cs_enum_msgtype_to_str(int value);
-
-/**
-* @NAME cs_msg_to_str
-* @DESC Recibe un mensaje y devuelve un string con su contenido
-* (normalmente para luego mostrarlo por pantalla en un log).
-*/
-char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
 
 /**
 * @NAME cs_msg_destroy
@@ -53,7 +48,7 @@ char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
 */
 void 	cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type);
 
-//*************************MENSAJES************************
+//*************************CONSULTAS************************
 
 typedef struct
 {
@@ -77,40 +72,28 @@ typedef enum
 
 #define CONS_ARGS_CANT 4
 
-/**
-* @NAME cs_cons_has_argument
-* @DESC Devuelve un boolean indicando si el tipo de consulta
-* tiene ese argumento.
-*/
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
-
 t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
 
-/**
-* @NAME cs_cons/rta_create
-* @DESC Crean una estructura consulta o respuesta.
-*/
-
-//*****************************HANDSHAKE**********************************
+//*****************************HANDSHAKE CLIENTE**********************************
 
 typedef struct
 {
 	char*	nombre;
 	t_pos 	posicion;
-}t_handshake;
+}t_handshake_cli;
 
-#define HANDSHAKE_PTR(ptr) ((t_handshake*)(ptr))
+#define HANDSHAKE_CLIENTE_PTR(ptr) ((t_handshake_cli*)(ptr))
 
-t_handshake* cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy);
+t_handshake_cli* cs_cons_handshake_cli_create(void);
 
 typedef enum
 {
-	MODULO_DESCONOCIDO = -3,
-	MODULO_COMANDA = -2,
-	MODULO_SINDICATO = -1,
-	MODULO_CLIENTE = 0,
-	MODULO_APP = 1,
-	MODULO_RESTAURANTE = 2
+	MODULO_DESCONOCIDO = 0,
+	MODULO_COMANDA = 1,
+	MODULO_SINDICATO = 2,
+	MODULO_CLIENTE = 3,
+	MODULO_APP = 4,
+	MODULO_RESTAURANTE = 5
 }e_module;
 
 const char* cs_enum_module_to_str(int value);
@@ -118,11 +101,25 @@ const char* cs_enum_module_to_str(int value);
 typedef struct
 {
 	int8_t 	modulo;
-}t_rta_handshake;
+}t_rta_handshake_cli;
 
-#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake*)(ptr))
+#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake_cli*)(ptr))
 
-t_rta_handshake* cs_rta_handshake_create(void);
+t_rta_handshake_cli* cs_rta_handshake_cli_create(void);
+
+//*************************HANDSHAKE RESTAURANTE******************************
+
+typedef struct
+{
+	char*	nombre;
+	t_pos 	posicion;
+	char*	ip;
+	char*	puerto;
+}t_handshake_res;
+
+#define HANDSHAKE_RESTAURANTE_PTR(ptr) ((t_handshake_res*)(ptr))
+
+t_handshake_res* cs_cons_handshake_res_create(t_pos pos);
 
 //*************************CONSULTAR RESTAURANTES*************************
 

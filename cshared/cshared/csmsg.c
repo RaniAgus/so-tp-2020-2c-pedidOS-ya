@@ -1,72 +1,59 @@
 #include "csmsg.h"
 
-static void _cons_append(char** msg_str, t_consulta* msg);
-static void _hs_append(char** msg_str, t_handshake* msg);
-
-static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg);
-static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg);
-static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg);
-static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg);
-static void _rta_crear_ped_append(char** msg_str, t_rta_crear_ped* msg);
-static void _rta_cons_ped_append(char** msg_str, t_rta_cons_ped* msg);
-static void _rta_obt_ped_append(char** msg_str, t_rta_obt_ped* msg);
-static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg);
-
-static const char* _MSGTYPE_STR[] =
-{
-	"UNKNOWN",
-	"CONSULTAR_RESTAURANTES",
-	"SELECCIONAR_RESTAURANTE",
-	"OBTENER_RESTAURANTE",
-	"CONSULTAR_PLATOS",
-	"CREAR_PEDIDO",
-	"GUARDAR_PEDIDO",
-	"AÑADIR_PLATO",
-	"GUARDAR_PLATO",
-	"CONFIRMAR_PEDIDO",
-	"PLATO_LISTO",
-	"CONSULTAR_PEDIDO",
-	"OBTENER_PEDIDO",
-	"FINALIZAR_PEDIDO",
-	"TERMINAR_PEDIDO",
-	"OBTENER_RECETA",
-	"HANDSHAKE",
-	NULL
-};
-
-const char* cs_enum_msgtype_to_str(int value)
-{
-	return _MSGTYPE_STR[value];
-}
-
-static const char* _MODULES_STR[] = {
-		"Desconocido",
-		"Comanda",
-		"Sindicato",
-		"Cliente",
-		"App",
-		"Restaurante",
-		NULL
-};
-
-const char* cs_enum_module_to_str(int value) {
-	return _MODULES_STR[value];
-}
-
 static void _rta_destroy(void* msg, int8_t msg_type);
+
+static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
+{
+/*           {comid, cant, rest, p_id}*/
+/*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
+/*CONS_RES */{  0  ,  0  ,  0  ,  0  },
+/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },
+/*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
+/*CONS_PL  */{  0  ,  0  , -1  ,  0  },
+/*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
+/*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
+/*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
+/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },
+/*CONF_PED */{  0  ,  0  , -1  ,  1  },
+/*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
+/*CONS_PED */{  0  ,  0  ,  0  ,  1  },
+/*OBT_PED  */{  0  ,  0  ,  1  ,  1  },
+/*FIN_PED  */{  0  ,  0  ,  1  ,  1  },
+/*TERM_PED */{  0  ,  0  ,  1  ,  1  },
+/*OBT_REC  */{  1  ,  0  ,  0  ,  0  },
+/*HNDSH_CLI*/{  0  ,  0  ,  0  ,  0  },
+/*HNDSH_RES*/{  0  ,  0  ,  0  ,  0  }
+};
+
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
+{
+	int result = _MSG_ARGS[(int)msgtype][(int)arg];
+
+	if(result < 0) result = ({ module < 3 ? 1 : 0; });
+
+	return result;
+}
+
 
 void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 {
 	switch(op_code)
 	{
 	case OPCODE_CONSULTA:
-		if(msg_type != HANDSHAKE)
+		switch (msg_type)
 		{
+		case HANDSHAKE_CLIENTE:
+			free(HANDSHAKE_CLIENTE_PTR(msg)->nombre);
+			break;
+		case HANDSHAKE_RESTAURANTE:
+			free(HANDSHAKE_RESTAURANTE_PTR(msg)->nombre);
+			if(HANDSHAKE_RESTAURANTE_PTR(msg)->ip) free(HANDSHAKE_RESTAURANTE_PTR(msg)->ip);
+			free(HANDSHAKE_RESTAURANTE_PTR(msg)->puerto);
+			break;
+		default:
 			if(CONSULTA_PTR(msg)->comida)      free(CONSULTA_PTR(msg)->comida);
 			if(CONSULTA_PTR(msg)->restaurante) free(CONSULTA_PTR(msg)->restaurante);
-		} else
-		{
-			free(HANDSHAKE_PTR(msg)->nombre);
+			break;
 		}
 		free(msg);
 		break;
@@ -76,64 +63,6 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	default:
 		break;
 	}
-}
-
-char* cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type)
-{
-	char* msg_str = string_duplicate(
-			(char*)cs_enum_msgtype_to_str((int)msg_type)
-	);
-
-	switch(op_code)
-	{
-	case OPCODE_CONSULTA:
-		if(msg_type != HANDSHAKE)
-		{
-			_cons_append(&msg_str, (t_consulta*)msg);
-		} else
-		{
-			_hs_append(&msg_str, (t_handshake*)msg);
-		}
-		break;
-	case OPCODE_RESPUESTA_FAIL:
-		string_append(&msg_str, " {RESULTADO: FAIL}");
-		break;
-	case OPCODE_RESPUESTA_OK:
-		switch(msg_type)
-		{
-		case HANDSHAKE:
-			_rta_handshake_append(&msg_str, (t_rta_handshake*)msg);
-			break;
-		case CONSULTAR_RESTAURANTES:
-			_rta_cons_rest_append(&msg_str, (t_rta_cons_rest*)msg);
-		    break;
-		case OBTENER_RESTAURANTE:
-			_rta_obt_rest_append(&msg_str, (t_rta_obt_rest*)msg);
-		   	break;
-		case CONSULTAR_PLATOS:
-			_rta_cons_pl_append(&msg_str, (t_rta_cons_pl*)msg);
-		    break;
-		case CREAR_PEDIDO:
-			_rta_crear_ped_append(&msg_str, (t_rta_crear_ped*)msg);
-			break;
-		case CONSULTAR_PEDIDO:
-			_rta_cons_ped_append(&msg_str, (t_rta_cons_ped*)msg);
-		    break;
-		case OBTENER_PEDIDO:
-			_rta_obt_ped_append(&msg_str, (t_rta_obt_ped*)msg);
-		    break;
-		case OBTENER_RECETA:
-			_rta_obt_rec_append(&msg_str, (t_rta_obt_rec*)msg);
-		    break;
-		default:
-			string_append(&msg_str, " {RESULTADO: OK}");
-		  	break;
-		}
-		break;
-	default:
-		break;
-	}
-	return msg_str;
 }
 
 t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
@@ -151,24 +80,39 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 	return msg;
 }
 
-t_handshake* 	cs_cons_handshake_create(char* nombre, uint32_t posx, uint32_t posy)
+t_handshake_cli* 	cs_cons_handshake_cli_create(void)
 {
-	t_handshake* msg;
-	msg = malloc(sizeof(t_handshake));
+	t_handshake_cli* msg;
+	msg = malloc(sizeof(t_handshake_cli));
 
-	msg->nombre = string_duplicate(nombre);
-	msg->posicion.x = posx;
-	msg->posicion.y = posy;
+	msg->nombre     = string_duplicate(cs_config_get_string("ID_CLIENTE"));
+	msg->posicion.x = (uint32_t)cs_config_get_int("POSICION_X");
+	msg->posicion.y = (uint32_t)cs_config_get_int("POSICION_Y");
 
 	return msg;
 }
 
-t_rta_handshake* cs_rta_handshake_create(void)
+t_handshake_res* cs_cons_handshake_res_create(t_pos pos)
 {
-	t_rta_handshake* rta;
-	rta = malloc(sizeof(t_rta_handshake));
+	t_handshake_res* msg;
+	msg = malloc(sizeof(t_handshake_res));
 
-	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+	msg->nombre     = string_duplicate(cs_config_get_string("NOMBRE_RESTAURANTE"));
+	msg->posicion.x = pos.x;
+	msg->posicion.y = pos.y;
+
+	msg->ip     = NULL;
+	msg->puerto = cs_config_get_string("PUERTO_ESCUCHA");
+
+	return msg;
+}
+
+t_rta_handshake_cli* cs_rta_handshake_cli_create(void)
+{
+	t_rta_handshake_cli* rta;
+	rta = malloc(sizeof(t_rta_handshake_cli));
+
+	rta->modulo = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str);
 
 	return rta;
 }
@@ -262,184 +206,7 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 	return rta;
 }
 
-/**********************TO STRING**********************/
-
-static void _cons_append(char** msg_str, t_consulta* msg)
-{
-	if(msg->comida != NULL)
-	{
-		string_append_with_format(
-				msg_str,
-				" {COMIDA: %s}",
-				msg->comida
-		);
-	}
-	if(msg->cantidad)
-	{
-		string_append_with_format(
-				msg_str,
-				" {CANT: %d}",
-				msg->cantidad
-		);
-	}
-	if(msg->restaurante != NULL)
-	{
-		string_append_with_format(
-				msg_str,
-				" {RESTAURANTE: %s}",
-				msg->restaurante
-		);
-	}
-	if(msg->pedido_id)
-	{
-		string_append_with_format(
-				msg_str,
-				" {ID_PEDIDO: %d}",
-				msg->pedido_id
-		);
-	}
-}
-
-static void _hs_append(char** msg_str, t_handshake* msg)
-{
-	string_append_with_format(
-			msg_str,
-			" {NOMBRE: %s} {POSX: %d} {POSY: %d}",
-			msg->nombre,
-			msg->posicion.x,
-			msg->posicion.y
-	);
-}
-
-static void _rta_handshake_append(char** msg_str, t_rta_handshake* msg)
-{
-	string_append_with_format(
-			msg_str,
-			" {MODULO: %s}",
-			cs_enum_module_to_str(msg->modulo + 3)
-	);
-}
-
-static void _rta_cons_rest_append(char** msg_str, t_rta_cons_rest* msg)
-{
-	string_append(msg_str, " {RESTAURANTES: [");
-
-	void _restaurantes_append(char* restaurante)
-	{
-		string_append_with_format(msg_str, "%s,", restaurante);
-	}
-	string_iterate_lines(msg->restaurantes, _restaurantes_append);
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-}
-
-static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
-{
-	string_append(msg_str, " {COCINEROS: [");
-
-	for(int i=0; i < msg->cant_cocineros; i++)
-	{
-		string_append_with_format(msg_str, "(%d;%s),",
-				i, ({ i < cs_string_array_lines_count(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
-	}
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-
-	string_append_with_format(msg_str, " {POSX: %d} {POSY: %d}",
-			msg->pos_restaurante.x, msg->pos_restaurante.y);
-
-	string_append(msg_str, " {MENÚ: [");
-
-	void _pasos_receta_append(t_comida_menu* comida_menu)
-	{
-		string_append_with_format(msg_str, "%s($%d),",
-				comida_menu->comida,
-				comida_menu->precio);
-	}
-	list_iterate(msg->menu, (void*) _pasos_receta_append);
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-
-	string_append_with_format(msg_str,
-			" {CANT_HORNOS: %d} {CANT_PEDIDOS: %d}",
-			msg->cant_hornos,
-			msg->cant_pedidos
-	);
-}
-
-static void _rta_cons_pl_append(char** msg_str, t_rta_cons_pl* msg)
-{
-	string_append(msg_str, " {PLATOS: [");
-
-	void _platos_append(char* plato)
-	{
-		string_append_with_format(msg_str, "%s,", plato);
-	}
-	string_iterate_lines(msg->comidas, _platos_append);
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-}
-
-static void _rta_crear_ped_append(char** msg_str, t_rta_crear_ped* msg)
-{
-	string_append_with_format(msg_str, " {ID_PEDIDO: %d}",
-			msg->pedido_id);
-}
-
-static void _platos_append(char** msg_str, t_list* platos_y_estados)
-{
-	string_append(msg_str, " {ESTADO_PLATOS: [");
-
-	void _plato_y_estado_append(t_plato* plato_y_estado)
-	{
-		string_append_with_format(msg_str, "%s (%d/%d),",
-				plato_y_estado->comida,
-				plato_y_estado->cant_lista,
-				plato_y_estado->cant_total);
-	}
-	list_iterate(platos_y_estados, (void*) _plato_y_estado_append);
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-}
-
-static void _rta_cons_ped_append(char** msg_str, t_rta_cons_ped* msg)
-{
-	string_append_with_format(msg_str, " {RESTAURANTE: %s} {ESTADO_PEDIDO: %s}",
-			msg->restaurante, cs_enum_estado_pedido_to_str(msg->estado_pedido));
-
-	_platos_append(msg_str, msg->platos_y_estados);
-}
-
-static void _rta_obt_ped_append(char** msg_str, t_rta_obt_ped* msg)
-{
-	string_append_with_format(msg_str, " {ESTADO_PEDIDO: %s}",
-			cs_enum_estado_pedido_to_str(msg->estado_pedido));
-
-	_platos_append(msg_str, msg->platos_y_estados);
-}
-
-static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg)
-{
-	string_append(msg_str, " {PASOS_RECETA: [");
-
-	void _pasos_receta_append(t_paso_receta* plato_y_estado)
-	{
-		string_append_with_format(msg_str, "%s (%d),",
-				plato_y_estado->paso,
-				plato_y_estado->tiempo);
-	}
-	list_iterate(msg->pasos_receta, (void*) _pasos_receta_append);
-
-	(*msg_str)[strlen(*msg_str)-1] = ']';
-	string_append(msg_str, "}");
-}
-
-/******************ELEMENT DESTROYERS**********************/
+// Private functions
 
 static void _rta_destroy(void* msg, int8_t msg_type)
 {
@@ -473,37 +240,4 @@ static void _rta_destroy(void* msg, int8_t msg_type)
     }
 
 	if(msg) free(msg);
-}
-
-/***********ELEMENTOS DE CADA TIPO DE CONSULTA*********/
-
-static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
-{
-/*           {comid, cant, rest, p_id}*/
-/*UNKNOWN  */{  0  ,  0  ,  0  ,  0  },
-/*CONS_RES */{  0  ,  0  ,  0  ,  0  },
-/*SEL_RES  */{  0  ,  0  ,  1  ,  0  },
-/*OBT_RES  */{  0  ,  0  ,  1  ,  0  },
-/*CONS_PL  */{  0  ,  0  , -1  ,  0  },
-/*CREAR_PED*/{  0  ,  0  ,  0  ,  0  },
-/*GUARD_PED*/{  0  ,  0  ,  1  ,  1  },
-/*AÑAD_PL  */{  1  ,  0  ,  0  ,  1  },
-/*GUARD_PL */{  1  ,  1  ,  1  ,  1  },
-/*CONF_PED */{  0  ,  0  , -1  ,  1  },
-/*PL_LISTO */{  1  ,  0  ,  1  ,  1  },
-/*CONS_PED */{  0  ,  0  ,  0  ,  1  },
-/*OBT_PED  */{  0  ,  0  ,  1  ,  1  },
-/*FIN_PED  */{  0  ,  0  ,  1  ,  1  },
-/*TERM_PED */{  0  ,  0  ,  1  ,  1  },
-/*OBT_REC  */{  1  ,  0  ,  0  ,  0  },
-/*HANDSHAKE*/{  0  ,  0  ,  0  ,  0  }
-};
-
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
-{
-	int result = _MSG_ARGS[(int)msgtype][(int)arg];
-
-	if(result < 0) result = ({ module < 0 ? 1 : 0; });
-
-	return result;
 }

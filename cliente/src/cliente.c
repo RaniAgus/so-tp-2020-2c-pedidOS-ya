@@ -35,7 +35,7 @@ e_status client_init(pthread_t* thread_recv_msg)
 	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
 	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
 
-	CS_LOG_TRACE("Iniciado correctamente.");
+	CS_LOG_TRACE(__FILE__":%s:%d -- Iniciado correctamente.", __func__, __LINE__);
 
 	return STATUS_SUCCESS;
 }
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 		arg_values = cs_console_readline("PedidOS Ya!> ", &arg_cant);
 		if(arg_values == NULL)
 		{
-			CS_LOG_TRACE("Se recibió un salto de línea.");
+			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió un salto de línea.", __func__, __LINE__);
 			free(result);
 			break;
 		}
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 		if(parser_status == CL_SUCCESS)
 		{
 			char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
-			CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
+			CS_LOG_TRACE(__FILE__":%s:%d -- Se parseó el mensaje: %s",  __func__, __LINE__, msg_to_str);
 			free(msg_to_str);
 
 			//Envía el mensaje
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 		free(arg_values);
 	}
 
-	CS_LOG_INFO("Finalizando...");
+	CS_LOG_TRACE(__FILE__":%s:%d -- Finalizando...", __func__, __LINE__);
 
 	pthread_cancel(thread_recv_msg);
 	pthread_join(thread_recv_msg, NULL);
@@ -105,22 +105,13 @@ int main(int argc, char* argv[])
 e_status client_send_handshake(t_sfd serv_conn, int8_t* module)
 {
 	e_status status;
-	//Envia el hs
-	t_header header = { OPCODE_CONSULTA, HANDSHAKE };
 
-	t_handshake* msg = cs_cons_handshake_create(
-			cs_config_get_string("ID_CLIENTE"),
-			(uint32_t) cs_config_get_int("POSICION_X"),
-			(uint32_t) cs_config_get_int("POSICION_Y"));
-
-	status = cs_send_handshake(serv_conn, msg);
+	status = cs_send_handshake_cli(serv_conn);
 	if (status == STATUS_SUCCESS)
 	{
 		status = client_recv_msg(serv_conn, NULL, module);
 	}
-
-	cs_msg_destroy(msg, header.opcode, header.msgtype);
-
+	
 	return status;
 }
 
@@ -178,7 +169,6 @@ e_status client_send_msg(cl_parser_result* result)
 	}
 	if(status != STATUS_SUCCESS) PRINT_ERROR(status);
 
-
 	close(conn);
 	cs_msg_destroy(result->msg, OPCODE_CONSULTA, result->msgtype);
 	free(result);
@@ -190,19 +180,24 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 {
 	void _recv_and_print_msg(t_sfd conn, t_header header, void* msg)
 	{
-		char* msg_str;
+		char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 
-		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-
-		if(header.msgtype != HANDSHAKE || module != NULL) {
+		if(header.msgtype != HANDSHAKE_CLIENTE) {
 			CS_LOG_INFO("Mensaje recibido: %s", msg_str);
 		} else {
-			CS_LOG_TRACE("Mensaje recibido: %s", msg_str);
+			CS_LOG_TRACE(__FILE__":%s:%d -- Mensaje recibido: %s",  __func__, __LINE__, msg_str);
+		}
+		if(module) {
+			CS_LOG_INFO("Conectado con un(a) %s(#%d)",  
+				cs_enum_module_to_str(RTA_HANDSHAKE_PTR(msg)->modulo), 
+				RTA_HANDSHAKE_PTR(msg)->modulo
+			);
+			*module = RTA_HANDSHAKE_PTR(msg)->modulo;
+		}
+		if(msg_type) {
+			*msg_type = header.msgtype;
 		}
 
-		if(msg_type) *msg_type = header.msgtype;
-		if(module)   *module   = RTA_HANDSHAKE_PTR(msg)->modulo;
-	
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
 	}

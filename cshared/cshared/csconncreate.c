@@ -1,10 +1,5 @@
 #include "csconncreate.h"
 
-#define CS_ADDRESS_FAMILY	AF_UNSPEC
-#define CS_SOCKET_TYPE		SOCK_STREAM
-#define CS_AI_FLAGS			AI_PASSIVE
-#define CS_BACKLOG 			SOMAXCONN
-
 void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), void(*err_handler)(e_status))
 {
 	t_sfd* client_conn;
@@ -29,7 +24,7 @@ void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), vo
 	}
 }
 
-e_status cs_tcp_server_create(t_sfd* conn, char* ip, char* port)
+e_status cs_tcp_server_create(t_sfd* conn, char* port)
 {
 	int err;
 
@@ -38,11 +33,11 @@ e_status cs_tcp_server_create(t_sfd* conn, char* ip, char* port)
 	struct addrinfo* serverInfo;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family   = CS_ADDRESS_FAMILY;
-	hints.ai_socktype = CS_SOCKET_TYPE;
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags    = AI_PASSIVE;
 
-	err = getaddrinfo(ip, port, &hints, &serverInfo);
+	err = getaddrinfo("localhost", port, &hints, &serverInfo);
 	if(err)
 	{
 		freeaddrinfo(serverInfo);
@@ -87,7 +82,7 @@ e_status cs_tcp_server_create(t_sfd* conn, char* ip, char* port)
 	}
 
 	//Define el máximo de conexiones pendientes
-	err = listen(*conn, CS_BACKLOG);
+	err = listen(*conn, SOMAXCONN);
 	if(err == -1)
 	{
 		freeaddrinfo(serverInfo);
@@ -108,8 +103,8 @@ e_status cs_tcp_client_create(t_sfd* conn, char* ip, char* port)
 	struct addrinfo *clientInfo;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family   = CS_ADDRESS_FAMILY;
-	hints.ai_socktype = CS_SOCKET_TYPE;
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
 	err = getaddrinfo(ip, port, &hints, &clientInfo);
 	if(err)

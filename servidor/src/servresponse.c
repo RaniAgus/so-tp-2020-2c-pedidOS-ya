@@ -1,11 +1,11 @@
 #include "servresponse.h"
 
-void server_send_rta_handshake(t_sfd client_conn)
+void server_send_rta_handshake_cli(t_sfd client_conn)
 {
-	t_rta_handshake* respuesta;
+	t_rta_handshake_cli* respuesta;
 	char* rta_to_str;
-	t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE};
-	respuesta = cs_rta_handshake_create();
+	t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE_CLIENTE};
+	respuesta = cs_rta_handshake_cli_create();
 	rta_to_str = cs_msg_to_str(respuesta, header.opcode, header.msgtype);
 
 	if( cs_send_respuesta(client_conn, header, respuesta) == STATUS_SUCCESS )

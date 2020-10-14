@@ -3,6 +3,7 @@
 
 static e_status cs_recv_header(t_sfd sfd_cliente, t_header* header) NON_NULL(2);
 static e_status cs_recv_payload(t_sfd sfd_cliente, t_buffer* payload) NON_NULL(2);
+static void* cs_buffer_to_msg(t_header header, t_buffer* payload, t_sfd conn);
 
 e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 {
@@ -21,7 +22,7 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 		if(status == STATUS_SUCCESS)
 		{
 			//Se pasa el payload a mensaje
-			msg = cs_buffer_to_msg(package.header, package.payload);
+			msg = cs_buffer_to_msg(package.header, package.payload, conn);
 
 			//Se invoca a la función 'closure' que lo utiliza
 			closure(conn, package.header, msg);
@@ -57,14 +58,13 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	if(bytes <= 0) return (bytes == 0) ?
 	STATUS_CONN_LOST : ({cs_set_local_err(errno); STATUS_RECV_ERROR;});
 
-	//Reserva la memoria necesaria
-	if(payload->size){
+	//Recibe el payload
+	if(payload->size) {
 		payload->stream = malloc(payload->size);
-
-		//Recibe el payload
 		bytes = recv(conn, payload->stream, payload->size, MSG_WAITALL);
-		if(bytes <= 0) return (bytes == 0) ?
-			STATUS_CONN_LOST : ({cs_set_local_err(errno); STATUS_RECV_ERROR;});
+		if(bytes <= 0) {
+			return (bytes == 0) ? STATUS_CONN_LOST : ({cs_set_local_err(errno); STATUS_RECV_ERROR;});
+		}
 	} else {
 		payload->stream = NULL;
 	}
@@ -73,9 +73,10 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 }
 
 static t_consulta* 		cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
-static t_handshake* 	cs_buffer_to_handshake(t_buffer* buffer);
+static t_handshake_cli* cs_buffer_to_handshake_cli(t_buffer* buffer);
+static t_handshake_res* cs_buffer_to_handshake_res(t_buffer* buffer, t_sfd conn);
 
-static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer);
+static t_rta_handshake_cli*	cs_buffer_to_rta_handshake_cli(t_buffer* buffer);
 static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
 static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
 static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
@@ -84,23 +85,26 @@ static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped (t_buffer* buffer);
 static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped  (t_buffer* buffer);
 static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec  (t_buffer* buffer);
 
-void* cs_buffer_to_msg(t_header header, t_buffer* buffer)
+static void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
 {
 	switch(header.opcode)
 	{
 	case OPCODE_CONSULTA:
-		if(header.msgtype != HANDSHAKE)
+		switch(header.msgtype)
 		{
+		case HANDSHAKE_CLIENTE:
+			return (void*)cs_buffer_to_handshake_cli(buffer);
+		case HANDSHAKE_RESTAURANTE:
+			return (void*)cs_buffer_to_handshake_res(buffer, conn);
+		default:
 			return (void*)cs_buffer_to_consulta(header.msgtype, buffer);
-		} else
-		{
-			return (void*)cs_buffer_to_handshake(buffer);
 		}
+		break;
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
-		case HANDSHAKE:
-			return (void*)cs_buffer_to_rta_handshake(buffer);
+		case HANDSHAKE_CLIENTE:
+			return (void*)cs_buffer_to_rta_handshake_cli(buffer);
 		case CONSULTAR_RESTAURANTES:
 			return (void*)cs_buffer_to_rta_cons_rest(buffer);
 		case OBTENER_RESTAURANTE:
@@ -133,7 +137,7 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	uint32_t comida_len;
 	uint32_t restaurante_len;
 
-	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str) - 3;
+	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str);
 
 	//El mensaje se puede copiar directamente
 	msg = malloc(sizeof(t_consulta));
@@ -184,15 +188,15 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	return msg;
 }
 
-static t_handshake* cs_buffer_to_handshake(t_buffer* buffer)
+static t_handshake_cli* cs_buffer_to_handshake_cli(t_buffer* buffer)
 {
-	t_handshake* msg;
+	t_handshake_cli* msg;
 	int offset = 0;
 
 	uint32_t nombre_len;
 
 	//El mensaje se puede copiar directamente
-	msg = malloc(sizeof(t_handshake));
+	msg = malloc(sizeof(t_handshake_cli));
 
 	//Nombre
 	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_RECV);
@@ -203,6 +207,38 @@ static t_handshake* cs_buffer_to_handshake(t_buffer* buffer)
 	//Posicion
 	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_RECV);
 	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_RECV);
+
+	return msg;
+}
+
+static t_handshake_res* cs_buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
+{
+	t_handshake_res* msg;
+	int offset = 0;
+
+	uint32_t nombre_len, puerto_len;
+
+	//El mensaje se puede copiar directamente
+	msg = malloc(sizeof(t_handshake_res));
+
+	//Nombre
+	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_RECV);
+	msg->nombre = malloc(nombre_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_RECV);
+	msg->nombre[nombre_len] = '\0';
+
+	//Posicion
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_RECV);
+	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_RECV);
+
+	//IP
+	cs_get_peer_info(conn, &msg->ip, NULL);
+
+	//Puerto
+	cs_stream_copy(buffer->stream, &offset, &puerto_len     , sizeof(uint32_t), COPY_RECV);
+	msg->puerto = malloc(puerto_len + 1);
+	cs_stream_copy(buffer->stream, &offset,  msg->puerto    , puerto_len      , COPY_RECV);
+	msg->puerto[puerto_len] = '\0';
 
 	return msg;
 }
@@ -430,12 +466,12 @@ static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_handshake*	cs_buffer_to_rta_handshake(t_buffer* buffer)
+static t_rta_handshake_cli*	cs_buffer_to_rta_handshake_cli(t_buffer* buffer)
 {
-	t_rta_handshake* msg;
+	t_rta_handshake_cli* msg;
 	int offset = 0;
 
-	msg = malloc(sizeof(t_rta_handshake));
+	msg = malloc(sizeof(t_rta_handshake_cli));
 
 	//Módulo (se copia directamente)
 	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(int8_t),COPY_RECV);
