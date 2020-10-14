@@ -133,7 +133,7 @@ typedef struct
 
 #define RTA_CONS_REST(ptr) ((t_rta_cons_rest*)(ptr))
 
-t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
+t_rta_cons_rest* cs_rta_consultar_rest_create(char** restaurantes);
 
 //*************************SELECCIONAR RESTAURANTE*************************
 

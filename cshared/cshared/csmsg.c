@@ -117,12 +117,12 @@ t_rta_handshake_cli* cs_rta_handshake_cli_create(void)
 	return rta;
 }
 
-t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
+t_rta_cons_rest* cs_rta_consultar_rest_create(char** restaurantes)
 {
 	t_rta_cons_rest* rta;
 	rta = malloc(sizeof(t_rta_cons_rest));
 
-	rta->restaurantes = string_get_string_as_array(restaurantes);
+	rta->restaurantes = restaurantes;
 
 	return rta;
 }
