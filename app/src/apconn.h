@@ -9,6 +9,7 @@ typedef struct
 	t_pos pos;
 	int restaurante_seleccionado;
 	t_sfd conexion;
+	pthread_mutex_t mutex_conexion;
 }ap_cliente_t;
 
 typedef struct

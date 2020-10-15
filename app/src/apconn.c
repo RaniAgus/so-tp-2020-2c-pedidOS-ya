@@ -32,6 +32,7 @@ ap_cliente_t* ap_cliente_create(char* nombre, t_pos posicion, t_sfd conexion)
 	cliente->pos.y = posicion.y;
 	cliente->conexion = conexion;
 	cliente->restaurante_seleccionado = -1;
+	pthread_mutex_init(&cliente->mutex_conexion, NULL);
 
 	return cliente;
 }
