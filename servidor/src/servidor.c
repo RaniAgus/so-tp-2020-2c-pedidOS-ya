@@ -28,6 +28,8 @@ void server_sigint_handler(int signal)
 
 int main(void)
 {
+	char *str_time, *port;
+
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 
@@ -35,21 +37,20 @@ int main(void)
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
 
 	//Lee las direcciones desde el config interno
-	char* ip   = cs_config_get_string("IP");
-	char* port = cs_config_get_string("PUERTO");
+	port = cs_config_get_string("PUERTO");
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
-	CHECK_STATUS(cs_tcp_server_create(&conn, ip, port));
+	CHECK_STATUS(cs_tcp_server_create(&conn, port));
 
-	cs_temporal_do(LAMBDA(void, (char* date, char* time),{
-		printf("(%s) Servidor abierto a las: %s\n", date, time);
-	}));
+	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor abierto a las: %H:%M:%S");
+	printf("%s\n[PUERTO: %s]\n", str_time, port);
+	free(str_time);
 
 	cs_tcp_server_accept_routine(&conn, server_recv_msg, server_error_handler);
 
-	cs_temporal_do(LAMBDA(void, (char* date, char* time),{
-		printf("(%s) Servidor cerrado a las: %s\n", date, time);
-	}));
+	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor cerrado a las: %H:%M:%S");
+	printf("%s\n", str_time);
+	free(str_time);
 
 	cs_module_close();
 
@@ -60,21 +61,13 @@ int main(void)
 void server_recv_msg(t_sfd* client_conn)
 {
 	e_status status;
-	char *ip_str, *port_str;
-
-	//Averigua la IP y puerto del cliente, y los muestra por pantalla
-	status = cs_get_peer_info(*client_conn, &ip_str, &port_str);
-	if (status == STATUS_SUCCESS)
+	
+//Recibe el mensaje del cliente y llama a la función que lo muestra
+	do
 	{
-		CS_LOG_INFO("Conectado con un nuevo cliente. [IP: %s] [PUERTO: %s]", ip_str, port_str);
-	} else server_error_handler(status);
-
-	//Recibe el mensaje del cliente y llama a la función que lo muestra
-	status = cs_recv_msg(*client_conn, server_log_and_send_reply);
-	if( status != STATUS_SUCCESS )	server_error_handler(status);
-
-	free(ip_str);
-	free(port_str);
+		status = cs_recv_msg(*client_conn, server_log_and_send_reply);
+		if( status != STATUS_SUCCESS )	server_error_handler(status);
+	} while(status == STATUS_SUCCESS);
 
 	close(*client_conn);
 	free((void*)client_conn);
@@ -90,6 +83,9 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 
 	switch(header.msgtype)
 	{
+	case HANDSHAKE_CLIENTE:
+		server_send_rta_handshake_cli(client_conn);
+		break;
 	case CONSULTAR_RESTAURANTES:
 		server_send_rta_consultar_restaurantes(client_conn);
 	    break;

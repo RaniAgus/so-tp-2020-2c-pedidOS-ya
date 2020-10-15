@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <commons/string.h>
 #include "utils/cscore.h"
-#include "utils/cserror.h"
 #include "utils/csstring.h"
 #include "csconn.h"
 #include "csstructs.h"
@@ -13,6 +12,7 @@
 typedef enum
 {
 	MSGTYPE_UNKNOWN = 0,
+
 	CONSULTAR_RESTAURANTES,
 	SELECCIONAR_RESTAURANTE,
 	OBTENER_RESTAURANTE,
@@ -27,23 +27,20 @@ typedef enum
 	OBTENER_PEDIDO,
 	FINALIZAR_PEDIDO,
 	TERMINAR_PEDIDO,
-	OBTENER_RECETA
+	OBTENER_RECETA,
+
+	HANDSHAKE_CLIENTE,
+	HANDSHAKE_RESTAURANTE
 }e_msgtype;
 
-#define MSGTYPES_CANT 15+1
+#define MSGTYPES_CANT 1+15+2
 
 /**
-* @NAME cs_enum_msgtype_to_str
-* @DESC Devuelve el string correspondiente al enum value de e_msgtype
+* @NAME cs_cons_has_argument
+* @DESC Devuelve un boolean indicando si el tipo de consulta
+* tiene ese argumento.
 */
-const char*	cs_enum_msgtype_to_str(int value);
-
-/**
-* @NAME cs_msg_to_str
-* @DESC Recibe un mensaje y devuelve un string con su contenido
-* (normalmente para luego mostrarlo por pantalla en un log).
-*/
-char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
+bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module);
 
 /**
 * @NAME cs_msg_destroy
@@ -51,7 +48,7 @@ char* 	cs_msg_to_str(void* msg, int8_t op_code, int8_t msg_type);
 */
 void 	cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type);
 
-//*************************MENSAJES************************
+//*************************CONSULTAS************************
 
 typedef struct
 {
@@ -75,24 +72,59 @@ typedef enum
 
 #define CONS_ARGS_CANT 4
 
-/**
-* @NAME cs_cons_has_argument
-* @DESC Devuelve un boolean indicando si el tipo de consulta
-* tiene ese argumento.
-*/
-bool cs_cons_has_argument(int8_t msgtype, int8_t arg);
-
 t_consulta* _cons_create(int8_t msgtype, char* plato, uint32_t cant, char* rest, uint32_t pedido_id);
 
-/**
-* @NAME cs_cons/rta_create
-* @DESC Crean una estructura consulta o respuesta.
-*/
+//*****************************HANDSHAKE CLIENTE**********************************
+
+typedef struct
+{
+	char*	nombre;
+	t_pos 	posicion;
+}t_handshake_cli;
+
+#define HANDSHAKE_CLIENTE_PTR(ptr) ((t_handshake_cli*)(ptr))
+
+t_handshake_cli* cs_cons_handshake_cli_create(void);
+
+typedef enum
+{
+	MODULO_DESCONOCIDO = 0,
+	MODULO_COMANDA = 1,
+	MODULO_SINDICATO = 2,
+	MODULO_CLIENTE = 3,
+	MODULO_APP = 4,
+	MODULO_RESTAURANTE = 5
+}e_module;
+
+const char* cs_enum_module_to_str(int value);
+
+typedef struct
+{
+	int8_t 	modulo;
+}t_rta_handshake_cli;
+
+#define RTA_HANDSHAKE_PTR(ptr) ((t_rta_handshake_cli*)(ptr))
+
+t_rta_handshake_cli* cs_rta_handshake_cli_create(void);
+
+//*************************HANDSHAKE RESTAURANTE******************************
+
+typedef struct
+{
+	char*	nombre;
+	t_pos 	posicion;
+	char*	ip;
+	char*	puerto;
+}t_handshake_res;
+
+#define HANDSHAKE_RESTAURANTE_PTR(ptr) ((t_handshake_res*)(ptr))
+
+t_handshake_res* cs_cons_handshake_res_create(t_pos pos);
 
 //*************************CONSULTAR RESTAURANTES*************************
 
 #define cs_msg_consultar_rest_create()\
-	_cons_create((int8_t)CONSULTAR_RESTAURANTES, "", 0, "", 0)
+	_cons_create((int8_t)CONSULTAR_RESTAURANTES, NULL, 0, NULL, 0)
 
 typedef struct
 {
@@ -106,12 +138,12 @@ t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
 //*************************SELECCIONAR RESTAURANTE*************************
 
 #define cs_msg_seleccionar_rest_create(rest)\
-		_cons_create((int8_t)SELECCIONAR_RESTAURANTE, "", 0, rest, 0)
+		_cons_create((int8_t)SELECCIONAR_RESTAURANTE, NULL, 0, rest, 0)
 
 //*************************OBTENER RESTAURANTE*************************
 
 #define cs_msg_obtener_rest_create(rest)\
-		_cons_create((int8_t)OBTENER_RESTAURANTE, "", 0, rest, 0)
+		_cons_create((int8_t)OBTENER_RESTAURANTE, NULL, 0, rest, 0)
 
 typedef struct
 {
@@ -120,6 +152,7 @@ typedef struct
 	t_list*  menu;
 	t_pos 	 pos_restaurante;
 	uint32_t cant_hornos;
+	uint32_t cant_pedidos;
 }t_rta_obt_rest;
 
 #define RTA_OBT_REST(ptr) ((t_rta_obt_rest*)(ptr))
@@ -129,12 +162,16 @@ t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
 										   char*	comidas,
 										   char*	precios,
 										   t_pos 	pos_restaurante,
-										   uint32_t cant_hornos);
+										   uint32_t cant_hornos,
+										   uint32_t cant_pedidos);
 
 //*************************CONSULTAR PLATOS*************************
 
-#define cs_msg_consultar_pl_create(rest)\
-		_cons_create((int8_t)CONSULTAR_PLATOS, "", 0, rest, 0)
+#define cs_msg_consultar_pl_create()\
+		_cons_create((int8_t)CONSULTAR_PLATOS, NULL, 0, NULL, 0)
+
+#define cs_msg_consultar_pl_rest_create(rest)\
+		_cons_create((int8_t)CONSULTAR_PLATOS, NULL, 0, rest, 0)
 
 typedef struct
 {
@@ -148,7 +185,7 @@ t_rta_cons_pl* cs_rta_consultar_pl_create(char* platos);
 //*************************CREAR PEDIDO*************************
 
 #define cs_msg_crear_ped_create()\
-		_cons_create((int8_t)CREAR_PEDIDO, "", 0, "", 0)
+		_cons_create((int8_t)CREAR_PEDIDO, NULL, 0, NULL, 0)
 
 typedef struct
 {
@@ -162,12 +199,12 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 //*************************GUARDAR PEDIDO*************************
 
 #define cs_msg_guardar_ped_create(rest, pedido_id)\
-		_cons_create((int8_t)GUARDAR_PEDIDO, "", 0, rest, pedido_id)
+		_cons_create((int8_t)GUARDAR_PEDIDO, NULL, 0, rest, pedido_id)
 
 //*************************AÑADIR PLATO*************************
 
 #define cs_msg_aniadir_pl_create(plato, pedido_id)\
-		_cons_create((int8_t)ANIADIR_PLATO, plato, 0, "", pedido_id)
+		_cons_create((int8_t)ANIADIR_PLATO, plato, 0, NULL, pedido_id)
 
 //*************************GUARDAR PLATO*************************
 
@@ -177,7 +214,10 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 //*************************CONFIRMAR PEDIDO*************************
 
 #define cs_msg_confirmar_ped_create(pedido_id)\
-		_cons_create((int8_t)CONFIRMAR_PEDIDO, "", 0, "", pedido_id)
+		_cons_create((int8_t)CONFIRMAR_PEDIDO, NULL, 0, NULL, pedido_id)
+
+#define cs_msg_confirmar_ped_rest_create(rest, pedido_id)\
+		_cons_create((int8_t)CONFIRMAR_PEDIDO, NULL, 0, rest, pedido_id)
 
 //*************************PLATO LISTO*************************
 
@@ -187,7 +227,7 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id);
 //*************************CONSULTAR PEDIDO*************************
 
 #define cs_msg_consultar_ped_create(pedido_id)\
-		_cons_create((int8_t)CONSULTAR_PEDIDO, "", 0, "", pedido_id)
+		_cons_create((int8_t)CONSULTAR_PEDIDO, NULL, 0, NULL, pedido_id)
 
 typedef struct
 {
@@ -207,31 +247,32 @@ t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest,
 //*************************OBTENER PEDIDO*************************
 
 #define cs_msg_obtener_ped_create(rest, pedido_id)\
-		_cons_create((int8_t)OBTENER_PEDIDO, "", 0, rest, pedido_id)
+		_cons_create((int8_t)OBTENER_PEDIDO, NULL, 0, rest, pedido_id)
 
 typedef struct
 {
-	t_list*	 platos_y_estados;
+	int8_t 	estado_pedido;
+	t_list*	platos_y_estados;
 }t_rta_obt_ped;
 
 #define RTA_OBTENER_PED(ptr)	((t_rta_obt_ped*)(ptr))
 
-t_rta_obt_ped* cs_rta_obtener_ped_create(char* platos, char* listos, char* totales);
+t_rta_obt_ped* cs_rta_obtener_ped_create(e_estado_ped estado_ped, char* platos, char* listos, char* totales);
 
 //*************************FINALIZAR PEDIDO*************************
 
 #define cs_msg_fin_ped_create(rest, pedido_id)\
-		_cons_create((int8_t)FINALIZAR_PEDIDO, "", 0, rest, pedido_id)
+		_cons_create((int8_t)FINALIZAR_PEDIDO, NULL, 0, rest, pedido_id)
 
 //*************************TERMINAR PEDIDO*************************
 
 #define cs_msg_term_ped_create(rest, pedido_id)\
-		_cons_create((int8_t)TERMINAR_PEDIDO, "", 0, rest, pedido_id)
+		_cons_create((int8_t)TERMINAR_PEDIDO, NULL, 0, rest, pedido_id)
 
 //*************************OBTENER RECETA*************************
 
 #define cs_msg_rta_obtener_receta_create(plato)\
-		_cons_create((int8_t)OBTENER_RECETA, plato, 0, "", 0)
+		_cons_create((int8_t)OBTENER_RECETA, plato, 0, NULL, 0)
 
 typedef struct
 {

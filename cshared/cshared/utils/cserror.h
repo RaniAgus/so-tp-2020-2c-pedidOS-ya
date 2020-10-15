@@ -3,9 +3,19 @@
 
 #include "cscore.h"
 
+/**
+* @NAME PRINT_ERROR
+* @DESC Loguea un mensaje en stderr con el siguiente formato
+*
+* ERROR_CODE (file:func:line) -- STRING_ERROR
+*/
 #define PRINT_ERROR(err)\
-({  fprintf( stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",\
-	cs_enum_status_to_str(err), err, __func__ ,__LINE__, cs_string_error(err) ); })
+({  pthread_mutex_lock(cs_logger_get_mutex());\
+	console_save_line();\
+	fprintf( stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",\
+			cs_enum_status_to_str(err), err, __func__ ,__LINE__, cs_string_error(err) );\
+	console_restore_line();\
+	pthread_mutex_unlock(cs_logger_get_mutex()); })
 
 #define CHECK_STATUS(func) \
 ({	e_status __val = (func);\

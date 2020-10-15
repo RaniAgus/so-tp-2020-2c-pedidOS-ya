@@ -2,15 +2,15 @@
 
 static bool _string_is_in_num_array_format(char* str, bool _signed);
 
-void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size,
-					int buffer_is_dest)
+void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size, bool buffer_is_dest)
 {
 	if(buffer_is_dest)
 	{
 		//Si el buffer es destino, se copia el contenido del 'value' al 'buffer'
 		memcpy(stream + *offset_ptr, value, value_size);
 		*offset_ptr += value_size;
-	}else
+	}
+	else
 	{
 		//Sino, se copia el contenido del 'buffer' al 'value'
 		memcpy(value, stream + *offset_ptr, value_size);

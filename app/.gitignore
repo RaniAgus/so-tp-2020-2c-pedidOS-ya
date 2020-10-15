@@ -1,0 +1,7 @@
+/Debug/
+/.settings/
+/obj/
+/.idea/
+/.vscode/
+app
+makefile

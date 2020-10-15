@@ -13,11 +13,4 @@
 */
 e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*));
 
-/**
-* @NAME cs_buffer_to_msg
-* @DESC Recibe un puntero a una estructura buffer y retorna la estructura de
-* mensaje correspondiente.
-*/
-void* cs_buffer_to_msg(t_header header, t_buffer* payload);
-
 #endif /* CONNRECV_H_ */

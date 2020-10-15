@@ -3,6 +3,7 @@
 
 #include <cshared/cshared.h>
 
+void server_send_rta_handshake_cli(t_sfd client_conn);
 void server_send_rta_consultar_restaurantes(t_sfd client_conn);
 void server_send_rta_obtener_restaurante(t_sfd client_conn);
 void server_send_rta_consultar_platos(t_sfd client_conn);

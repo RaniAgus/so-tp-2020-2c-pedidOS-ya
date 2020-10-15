@@ -21,7 +21,7 @@ void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), vo
 * puerto) y devuelve el socket file descriptor correspondiente. Si no logra crearlo,
 * retorna el tipo de error.
 */
-e_status cs_tcp_server_create(t_sfd* conn, char* ip, char* port);
+e_status cs_tcp_server_create(t_sfd* conn, char* port);
 
 /**
 * @NAME cs_tcp_client_create

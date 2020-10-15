@@ -3,16 +3,42 @@
 #define MODULE_NAME		 "CLIENTE"
 #define CONFIG_FILE_PATH "cliente.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
+#define IP_SERVER 		 "IP"
+#define PORT_SERVER 	 "PUERTO"
 
-char* serv_ip;
-char* serv_port;
-t_sfd serv_conn;
+char*  serv_ip;
+char*  serv_port;
+t_sfd  serv_conn;
+int8_t serv_module;
 
-e_status client_init(pthread_t* thread_recv_msg);
-
+e_status client_send_handshake(t_sfd serv_conn, int8_t* module);
 void client_recv_msg_routine(void);
 e_status client_send_msg(cl_parser_result* result);
-e_status client_recv_msg(t_sfd conn, int8_t* msg_type);
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module);
+
+e_status client_init(pthread_t* thread_recv_msg)
+{
+	//Inicia los config y logger
+	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+
+	//serv_ip y serv_port almacenan la info del servidor a conectarse
+	serv_ip   = cs_config_get_string(IP_SERVER);
+	serv_port = cs_config_get_string(PORT_SERVER);
+
+	if(serv_ip == NULL || serv_port == NULL)
+	{
+		PRINT_ERROR(STATUS_CONFIG_ERROR);
+		exit(STATUS_CONFIG_ERROR);
+	}
+
+	//Crea el primer socket para recibir mensajes ahí
+	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
+	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
+
+	CS_LOG_TRACE(__FILE__":%s:%d -- Iniciado correctamente.", __func__, __LINE__);
+
+	return STATUS_SUCCESS;
+}
 
 int main(int argc, char* argv[])
 {
@@ -34,20 +60,20 @@ int main(int argc, char* argv[])
 		cl_parser_status  parser_status;
 		cl_parser_result *result = malloc(sizeof(cl_parser_result));
 
-		arg_values = cs_console_readline("Ingrese mensaje a enviar (ENTER para finalizar):\n> ", &arg_cant);
+		arg_values = cs_console_readline("PedidOS Ya!> ", &arg_cant);
 		if(arg_values == NULL)
 		{
-			CS_LOG_TRACE("Se recibió un salto de línea.");
+			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió un salto de línea.", __func__, __LINE__);
 			free(result);
 			break;
 		}
 
 		//Parsea los argumentos
-		parser_status = client_parse_arguments(result, arg_cant, arg_values);
+		parser_status = client_parse_arguments(result, arg_cant, arg_values, serv_module);
 		if(parser_status == CL_SUCCESS)
 		{
-			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
-			CS_LOG_TRACE("Se parseó el mensaje: %s", msg_to_str);
+			char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
+			CS_LOG_TRACE(__FILE__":%s:%d -- Se parseó el mensaje: %s",  __func__, __LINE__, msg_to_str);
 			free(msg_to_str);
 
 			//Envía el mensaje
@@ -57,7 +83,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			client_print_parser_error(parser_status, *result);
+			client_print_parser_error(parser_status, *result, serv_module);
 			free(result);
 		}
 
@@ -65,7 +91,7 @@ int main(int argc, char* argv[])
 		free(arg_values);
 	}
 
-	CS_LOG_TRACE("Finalizando...");
+	CS_LOG_TRACE(__FILE__":%s:%d -- Finalizando...", __func__, __LINE__);
 
 	pthread_cancel(thread_recv_msg);
 	pthread_join(thread_recv_msg, NULL);
@@ -76,54 +102,28 @@ int main(int argc, char* argv[])
 	return status;
 }
 
-e_status client_init(pthread_t* thread_recv_msg)
+e_status client_send_handshake(t_sfd serv_conn, int8_t* module)
 {
-	char *modulo, *serv_ip_key, *serv_port_key;
+	e_status status;
 
-	//Inicia los config y logger
-	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
-
-	//Se conecta al módulo y crea el thread
-	modulo = readline("Ingrese a qué módulo quiere conectarse:\n> ");
-
-	serv_ip_key   = string_from_format("IP_%s", modulo);
-	serv_port_key = string_from_format("PUERTO_%s", modulo);
-
-	//serv_ip y serv_port almacenan la info del servidor a conectarse
-	serv_ip   = cs_config_get_string(serv_ip_key);
-	serv_port = cs_config_get_string(serv_port_key);
-
-	if(serv_ip == NULL || serv_port == NULL)
+	status = cs_send_handshake_cli(serv_conn);
+	if (status == STATUS_SUCCESS)
 	{
-		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- Error al encontrar los keys para conectarse a %s\n",
-				 cs_enum_status_to_str(STATUS_CONFIG_ERROR), STATUS_CONFIG_ERROR, __func__ ,__LINE__, modulo);
-		exit(STATUS_CONFIG_ERROR);
+		status = client_recv_msg(serv_conn, NULL, module);
 	}
-
-	//Crea el primer socket para recibir mensajes ahí
-	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
-	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
-
-	CS_LOG_TRACE("Iniciado correctamente.");
-
-	//Libera los strings
-	free(serv_ip_key);
-	free(serv_port_key);
-	free(modulo);
-
-	return STATUS_SUCCESS;
+	
+	return status;
 }
 
 void client_recv_msg_routine(void)
 {
-	e_status status;
-
-	do
+	e_status status = client_send_handshake(serv_conn, &serv_module);
+	while(status == STATUS_SUCCESS)
 	{
 		t_header header;
 
 		//Recibe la consulta
-		status = client_recv_msg(serv_conn, &header.msgtype);
+		status = client_recv_msg(serv_conn, &header.msgtype, NULL);
 		if(status == STATUS_SUCCESS)
 		{
 			//Cliente solo recibe "Terminar Pedido"
@@ -135,12 +135,10 @@ void client_recv_msg_routine(void)
 				header.opcode = (int8_t)OPCODE_RESPUESTA_FAIL;
 			}
 			//Envía la respuesta
-			status = cs_send_msg(serv_conn, header, NULL);
+			status = cs_send_respuesta(serv_conn, header, NULL);
 		}
-	} while(status == STATUS_SUCCESS);
-
-	fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
-			 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
+	}
+	PRINT_ERROR(status);
 }
 
 e_status client_send_msg(cl_parser_result* result)
@@ -152,48 +150,56 @@ e_status client_send_msg(cl_parser_result* result)
 	status = cs_tcp_client_create(&conn, serv_ip, serv_port);
 	if(status == STATUS_SUCCESS)
 	{
-		//Envía el mensaje
-		status = cs_send_msg(conn, result->header, result->msg);
+		//Envía el hs
+		status = client_send_handshake(conn, NULL);
 		if(status == STATUS_SUCCESS)
 		{
-			char* msg_to_str = cs_msg_to_str(result->msg, result->header.opcode, result->header.msgtype);
-			CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
-			free(msg_to_str);
+			//Envía el mensaje
+			status = cs_send_consulta(conn, result->msgtype, result->msg, serv_module);
+			if(status == STATUS_SUCCESS)
+			{
+				char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
+				CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
+				free(msg_to_str);
 
-			//Espera la respuesta
-			status = client_recv_msg(conn, NULL);
+				//Espera la respuesta
+				status = client_recv_msg(conn, NULL, NULL);
+			}
 		}
 	}
-	if(status != STATUS_SUCCESS)
-	{
-		printf("\n");
-		fprintf(stderr, "%s#%d (" __FILE__ ":%s:%d) -- %s\n",
-				 cs_enum_status_to_str(status), status, __func__ ,__LINE__, cs_string_error(status) );
-		printf("> ");
-	}
+	if(status != STATUS_SUCCESS) PRINT_ERROR(status);
 
-	//Libera recursos
-	cs_msg_destroy(result->msg, result->header.opcode, result->header.msgtype);
+	close(conn);
+	cs_msg_destroy(result->msg, OPCODE_CONSULTA, result->msgtype);
 	free(result);
 
 	return status;
 }
 
-e_status client_recv_msg(t_sfd conn, int8_t* msg_type)
+e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 {
 	void _recv_and_print_msg(t_sfd conn, t_header header, void* msg)
 	{
-		char* msg_str;
+		char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 
-		msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-		printf("\n");
-		CS_LOG_INFO("Mensaje recibido: %s", msg_str);
-		printf("> ");
+		if(header.msgtype != HANDSHAKE_CLIENTE) {
+			CS_LOG_INFO("Mensaje recibido: %s", msg_str);
+		} else {
+			CS_LOG_TRACE(__FILE__":%s:%d -- Mensaje recibido: %s",  __func__, __LINE__, msg_str);
+		}
+		if(module) {
+			CS_LOG_INFO("Conectado con un(a) %s(#%d)",  
+				cs_enum_module_to_str(RTA_HANDSHAKE_PTR(msg)->modulo), 
+				RTA_HANDSHAKE_PTR(msg)->modulo
+			);
+			*module = RTA_HANDSHAKE_PTR(msg)->modulo;
+		}
+		if(msg_type) {
+			*msg_type = header.msgtype;
+		}
 
 		free(msg_str);
 		cs_msg_destroy(msg, header.opcode, header.msgtype);
-
-		if(msg_type) *msg_type = header.msgtype;
 	}
 
 	return cs_recv_msg(conn, _recv_and_print_msg);
