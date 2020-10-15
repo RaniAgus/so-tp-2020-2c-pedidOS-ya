@@ -6,6 +6,8 @@ static pthread_mutex_t mutex_clientes;
 static t_list* lista_restaurantes;
 static pthread_mutex_t mutex_restaurantes;
 
+static ap_restaurante_t* restaurante_default;
+
 void ap_core_init(void)
 {
 	lista_clientes = list_create();
@@ -13,6 +15,12 @@ void ap_core_init(void)
 
 	pthread_mutex_init(&mutex_clientes, NULL);
 	pthread_mutex_init(&mutex_restaurantes, NULL);
+
+	t_pos posicion_default = {
+			(uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_X"),
+			(uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_Y")
+	};
+	restaurante_default = ap_restaurante_create("Default", posicion_default, NULL, NULL);
 }
 
 ap_cliente_t* ap_cliente_create(char* nombre, t_pos posicion, t_sfd conexion)
@@ -35,8 +43,8 @@ ap_restaurante_t* ap_restaurante_create(char* nombre, t_pos posicion, char* ip, 
 	restaurante->nombre = strdup(nombre);
 	restaurante->posicion.x = posicion.x;
 	restaurante->posicion.y = posicion.y;
-	restaurante->ip_escucha = strdup(ip);
-	restaurante->puerto_escucha = strdup(puerto);
+	restaurante->ip_escucha = ({ ip ? strdup(ip) : NULL; });
+	restaurante->puerto_escucha = ({ puerto ? strdup(puerto) : NULL; });
 
 	return restaurante;
 }
@@ -53,10 +61,11 @@ void ap_cliente_add(ap_cliente_t* cliente)
 void ap_restaurante_add(ap_restaurante_t* restaurante)
 {
 	pthread_mutex_lock(&mutex_restaurantes);
-	list_add(lista_restaurantes, (void*) restaurante);
-	CS_LOG_TRACE("Se agregó el Restaurante: { %s, (%d:%d), %s:%s } ",
+	int index = list_add(lista_restaurantes, (void*) restaurante);
+	CS_LOG_TRACE("Se agregó el Restaurante nro.%d: { %s, (%d:%d), %s:%s } ", index,
 			restaurante->nombre, restaurante->posicion.x, restaurante->posicion.y,
-			restaurante->ip_escucha, restaurante->puerto_escucha);
+			restaurante->ip_escucha, restaurante->puerto_escucha
+	);
 	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
@@ -97,6 +106,31 @@ int ap_restaurante_find_index(char* restaurante)
 	pthread_mutex_unlock(&mutex_restaurantes);
 
 	return index;
+}
+
+void ap_restaurante_get_from_client(char* cliente, void(*closure)(ap_restaurante_t*))
+{
+	ap_restaurante_t* seleccionado;
+
+	//Para no entrar en un doble mutex, primero obtiene el index
+	int index_restaurante;
+	void _get_restaurante_index(ap_cliente_t* element) {
+		index_restaurante = element->restaurante_seleccionado;
+	}
+	ap_cliente_find(cliente, _get_restaurante_index);
+
+	//Y después evalúa la lista de restaurantes
+	pthread_mutex_lock(&mutex_restaurantes);
+	if(!list_is_empty(lista_restaurantes)) {
+		//Si hay restaurantes conectados, lo busca con el index obtenido
+		seleccionado = list_get(lista_restaurantes, index_restaurante);
+	} else
+	{
+		//Si no hay restaurantes conectados, elige el default
+		seleccionado = restaurante_default;
+	}
+	closure(seleccionado);
+	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
 void ap_restaurantes_iterate(void(*closure)(ap_restaurante_t*))
