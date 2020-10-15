@@ -1,5 +1,6 @@
-#include "apcore.h"
 #include "apconn.h"
+#include "apsend.h"
+#include "aprecv.h"
 
 #define MODULE_NAME		 "APP"
 #define CONFIG_FILE_PATH "app.config"
