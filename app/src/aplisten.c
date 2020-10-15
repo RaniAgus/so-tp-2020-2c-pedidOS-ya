@@ -273,7 +273,7 @@ static void ap_recibir_cons_pl(t_sfd conn, t_consulta* msg, char* cliente)
 				rta = ap_consultar_restaurante(
 						restaurante->ip_escucha,
 						restaurante->puerto_escucha,
-						CREAR_PEDIDO, msg, &result
+						CONSULTAR_PLATOS, msg, &result
 				);
 			}
 			else //...y es Default
@@ -405,7 +405,7 @@ static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 				ap_consultar_restaurante(
 						restaurante->ip_escucha,
 						restaurante->puerto_escucha,
-						CREAR_PEDIDO, msg, &result
+						ANIADIR_PLATO, msg, &result
 				);
 			}
 			else //...y es Default
@@ -481,7 +481,7 @@ static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 					ap_consultar_restaurante(
 							restaurante->ip_escucha,
 							restaurante->puerto_escucha,
-							CREAR_PEDIDO, msg, &result
+							CONFIRMAR_PEDIDO, msg, &result
 					);
 				}
 				else //Si es Default, omite este paso
@@ -495,8 +495,9 @@ static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 				//Si el Restaurante no retornó ningún error...
 				if(result == OPCODE_RESPUESTA_OK)
 				{
-					/* TODO: Se genera el PCB (Pedido Control Block) del Pedido en cuestión y se deja
+					/* Se genera el PCB (Pedido Control Block) del Pedido en cuestión y se deja
 					 * en el ciclo de planificación. */
+					ap_crear_pcb(cliente, restaurante->nombre, msg->pedido_id);
 
 					//Se informa a Comanda
 					ap_confirmar_pedido(restaurante->nombre, msg->pedido_id, &result);

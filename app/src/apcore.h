@@ -3,4 +3,6 @@
 
 #include <cshared/cshared.h>
 
+void ap_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id);
+
 #endif /* APCORE_H_ */
