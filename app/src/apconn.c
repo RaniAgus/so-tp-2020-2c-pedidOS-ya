@@ -8,7 +8,7 @@ static pthread_mutex_t mutex_restaurantes;
 
 static ap_restaurante_t* restaurante_default;
 
-void ap_core_init(void)
+void ap_conn_init(void)
 {
 	lista_clientes = list_create();
 	lista_restaurantes = list_create();
@@ -47,6 +47,18 @@ ap_restaurante_t* ap_restaurante_create(char* nombre, t_pos posicion, char* ip, 
 	restaurante->puerto_escucha = ({ puerto ? strdup(puerto) : NULL; });
 
 	return restaurante;
+}
+
+void ap_restaurante_destroy(ap_restaurante_t* restaurante)
+{
+	if(restaurante) {
+		free(restaurante->nombre);
+		if(restaurante->ip_escucha)
+			free(restaurante->ip_escucha);
+		if(restaurante->puerto_escucha)
+			free(restaurante->puerto_escucha);
+		free(restaurante);
+	}
 }
 
 void ap_cliente_add(ap_cliente_t* cliente)

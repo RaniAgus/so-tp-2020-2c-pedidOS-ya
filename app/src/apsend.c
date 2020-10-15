@@ -36,29 +36,6 @@ void ap_confirmar_pedido(char* restaurante, uint32_t pedido_id, int8_t* result)
 	cs_msg_destroy(consulta, OPCODE_CONSULTA, CONFIRMAR_PEDIDO);
 }
 
-void* ap_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t* result)
-{
-	e_status status;
-	t_sfd conexion_comanda;
-
-	//Se conecta como cliente
-	status = cs_tcp_client_create(
-			&conexion_comanda,
-			cs_config_get_string("IP_COMANDA"),
-			cs_config_get_string("PUERTO_COMANDA")
-	);
-	if(status != STATUS_SUCCESS)
-	{
-		CS_LOG_ERROR("%s -- No se pudo conectar con Comanda. Finalizando.",
-				cs_enum_status_to_str(status)
-		);
-		exit(-1);
-	}
-	CS_LOG_TRACE("Conectado exitosamente con Comanda.");
-
-	return ap_enviar_consulta(MODULO_COMANDA, conexion_comanda, msg_type, consulta, result);
-}
-
 void* ap_consultar_restaurante(char* ip, char* puerto, int8_t msg_type, t_consulta* consulta, int8_t* result)
 {
 	e_status status;
@@ -80,8 +57,30 @@ void* ap_consultar_restaurante(char* ip, char* puerto, int8_t msg_type, t_consul
 	return ap_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result);
 }
 
-
 // Funciones locales
+
+static void* ap_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t* result)
+{
+	e_status status;
+	t_sfd conexion_comanda;
+
+	//Se conecta como cliente
+	status = cs_tcp_client_create(
+			&conexion_comanda,
+			cs_config_get_string("IP_COMANDA"),
+			cs_config_get_string("PUERTO_COMANDA")
+	);
+	if(status != STATUS_SUCCESS)
+	{
+		CS_LOG_ERROR("%s -- No se pudo conectar con Comanda. Finalizando.",
+				cs_enum_status_to_str(status)
+		);
+		exit(-1);
+	}
+	CS_LOG_TRACE("Conectado exitosamente con Comanda.");
+
+	return ap_enviar_consulta(MODULO_COMANDA, conexion_comanda, msg_type, consulta, result);
+}
 
 static void* ap_enviar_consulta(e_module dest, t_sfd conexion_comanda, int8_t msg_type, t_consulta* consulta, int8_t* result)
 {

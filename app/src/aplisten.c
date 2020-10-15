@@ -1,4 +1,4 @@
-#include "aprecv.h"
+#include "aplisten.h"
 
 static pthread_t hilo_escucha;
 static t_sfd	 conexion_escucha;
@@ -23,7 +23,7 @@ static void ap_recibir_pl_listo(t_sfd conn, t_consulta* msg);
 
 static e_status ap_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype msg_type, void* rta);
 
-void ap_conn_init(void)
+void ap_listen_init(void)
 {
 	t_sfd conexion_comanda;
 	e_status status;
@@ -130,7 +130,6 @@ static void ap_recibir_hs_cli(t_sfd conn, t_handshake_cli* msg)
 	if(ap_cliente_find_index(msg->nombre) < 0)
 	{
 		CS_LOG_TRACE("(%d)No se encontró a %s entre la lista de Clientes, se agregará a la misma.", conn, msg->nombre);
-
 		ap_cliente_add( ap_cliente_create(msg->nombre, msg->posicion, conn) );
 
 		//Después de agregar, se envía la RESPUESTA_OK
@@ -241,50 +240,60 @@ static void ap_recibir_sel_rest(t_sfd conn, t_consulta* msg, char* cliente)
 
 static void ap_recibir_cons_pl(t_sfd conn, t_consulta* msg, char* cliente)
 {
-	t_rta_cons_pl* rta = NULL;
 	int8_t result;
+	t_rta_cons_pl* rta = NULL;
+	ap_restaurante_t* restaurante = NULL;
 
 	if(cliente != NULL)
 	{
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		void _consultar_platos(ap_restaurante_t* restaurante)
+		void _consultar_platos(ap_restaurante_t* obtenido)
 		{
-			if(restaurante) //Si se encontró el Restaurante...
-			{
-				//... y no es Default
-				if(strcmp(restaurante->nombre, "Default"))
-				{
-					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
-
-					//Se envía el mensaje al Restaurante, recibiendo la respuesta
-					rta = ap_consultar_restaurante(
-							restaurante->ip_escucha,
-							restaurante->puerto_escucha,
-							CREAR_PEDIDO, msg, &result
-					);
-				}
-				else //...y es Default
-				{
-					CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
-
-					//Obtiene los platos default
-					rta = cs_rta_consultar_pl_create(cs_config_get_string("PLATOS_DEFAULT"));
-					result = OPCODE_RESPUESTA_OK;
-				}
-
-				//Retorna la respuesta al cliente
-				ap_enviar_respuesta(conn, result, CONSULTAR_PLATOS, rta);
-				cs_msg_destroy(rta, OPCODE_RESPUESTA_OK, CONSULTAR_PLATOS);
-			}
-			else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
-			{
-				CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
-				ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PLATOS, NULL);
+			if(obtenido) {
+				restaurante = ap_restaurante_create(
+						obtenido->nombre,
+						obtenido->posicion,
+						obtenido->ip_escucha,
+						obtenido->puerto_escucha
+				);
 			}
 		}
 		ap_restaurante_get_from_client(cliente, _consultar_platos);
+
+		if(restaurante) //Si se encontró el Restaurante...
+		{
+			//... y no es Default
+			if(strcmp(restaurante->nombre, "Default"))
+			{
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
+
+				//Se envía el mensaje al Restaurante, recibiendo la respuesta
+				rta = ap_consultar_restaurante(
+						restaurante->ip_escucha,
+						restaurante->puerto_escucha,
+						CREAR_PEDIDO, msg, &result
+				);
+			}
+			else //...y es Default
+			{
+				CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
+
+				//Obtiene los platos default
+				rta = cs_rta_consultar_pl_create(cs_config_get_string("PLATOS_DEFAULT"));
+				result = OPCODE_RESPUESTA_OK;
+			}
+
+			//Retorna la respuesta al cliente
+			ap_enviar_respuesta(conn, result, CONSULTAR_PLATOS, rta);
+			cs_msg_destroy(rta, OPCODE_RESPUESTA_OK, CONSULTAR_PLATOS);
+		}
+		else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
+		{
+			CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
+			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PLATOS, NULL);
+		}
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PLATOS, se cerrará la conexión.", conn);
 
@@ -292,58 +301,67 @@ static void ap_recibir_cons_pl(t_sfd conn, t_consulta* msg, char* cliente)
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PLATOS);
+	ap_restaurante_destroy(restaurante);
 }
 
 static void ap_recibir_crear_ped(t_sfd conn, t_consulta* msg, char* cliente)
 {
-	printf("Recibí CREAR PEDIDO\n");
-
-	t_rta_crear_ped* rta = NULL;
 	int8_t result;
+	t_rta_crear_ped* rta = NULL;
+	ap_restaurante_t* restaurante = NULL;
 
 	if(cliente != NULL)
 	{
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		void _crear_pedido(ap_restaurante_t* restaurante)
+		void _crear_pedido(ap_restaurante_t* obtenido)
 		{
-			if(restaurante) //Si se encontró el Restaurante...
-			{
-				if(strcmp(restaurante->nombre, "Default")) //... y no es Default
-				{
-					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
-
-					//Se envía el mensaje al Restaurante, recibiendo el ID
-					rta = ap_consultar_restaurante(
-							restaurante->ip_escucha,
-							restaurante->puerto_escucha,
-							CREAR_PEDIDO, msg, &result
-					);
-				}
-				else //...y es Default
-				{
-					CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
-
-					//Se genera un ID único
-					pthread_mutex_lock(&mutex_id_default);
-					rta = cs_rta_crear_ped_create(++id_default);
-					pthread_mutex_unlock(&mutex_id_default);
-				}
-				//Envía GUARDAR_PEDIDO a la Comanda
-				ap_guardar_pedido(restaurante->nombre, msg->pedido_id, &result);
-
-				//Retorna la respuesta al cliente
-				ap_enviar_respuesta(conn, result, CREAR_PEDIDO, rta);
-				cs_msg_destroy(rta, OPCODE_RESPUESTA_OK, CREAR_PEDIDO);
-			}
-			else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
-			{
-				CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
-				ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CREAR_PEDIDO, NULL);
+			if(obtenido) {
+				restaurante = ap_restaurante_create(
+						obtenido->nombre,
+						obtenido->posicion,
+						obtenido->ip_escucha,
+						obtenido->puerto_escucha
+				);
 			}
 		}
 		ap_restaurante_get_from_client(cliente, _crear_pedido);
+
+		if(restaurante) //Si se encontró el Restaurante...
+		{
+			if(strcmp(restaurante->nombre, "Default")) //... y no es Default
+			{
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
+
+				//Se envía el mensaje al Restaurante, recibiendo el ID
+				rta = ap_consultar_restaurante(
+						restaurante->ip_escucha,
+						restaurante->puerto_escucha,
+						CREAR_PEDIDO, msg, &result
+				);
+			}
+			else //...y es Default
+			{
+				CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
+
+				//Se genera un ID único
+				pthread_mutex_lock(&mutex_id_default);
+				rta = cs_rta_crear_ped_create(++id_default);
+				pthread_mutex_unlock(&mutex_id_default);
+			}
+			//Envía GUARDAR_PEDIDO a la Comanda
+			ap_guardar_pedido(restaurante->nombre, msg->pedido_id, &result);
+
+			//Retorna la respuesta al cliente
+			ap_enviar_respuesta(conn, result, CREAR_PEDIDO, rta);
+			cs_msg_destroy(rta, OPCODE_RESPUESTA_OK, CREAR_PEDIDO);
+		}
+		else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
+		{
+			CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
+			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CREAR_PEDIDO, NULL);
+		}
 
 		CS_LOG_TRACE("(%d)Se atendió CREAR PEDIDO, se cerrará la conexión.", conn);
 
@@ -351,23 +369,111 @@ static void ap_recibir_crear_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CREAR_PEDIDO);
-
+	ap_restaurante_destroy(restaurante);
 }
 
 static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 {
 	int8_t result;
+	ap_restaurante_t* restaurante = NULL;
 
 	if(cliente != NULL)
 	{
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		void _aniadir_plato(ap_restaurante_t* restaurante)
+		void _aniadir_plato(ap_restaurante_t* obtenido)
 		{
-			if(restaurante) //Si se encontró el Restaurante...
+			if(obtenido) {
+				restaurante = ap_restaurante_create(
+						obtenido->nombre,
+						obtenido->posicion,
+						obtenido->ip_escucha,
+						obtenido->puerto_escucha
+				);
+			}
+		}
+		ap_restaurante_get_from_client(cliente, _aniadir_plato);
+
+		if(restaurante) //Si se encontró el Restaurante...
+		{
+			if(strcmp(restaurante->nombre, "Default")) //... y no es Default
 			{
-				if(strcmp(restaurante->nombre, "Default")) //... y no es Default
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
+
+				//Se envía el mensaje al Restaurante, recibiendo solo OK/FAIL
+				ap_consultar_restaurante(
+						restaurante->ip_escucha,
+						restaurante->puerto_escucha,
+						CREAR_PEDIDO, msg, &result
+				);
+			}
+			else //...y es Default
+			{
+				CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
+
+				//Se omite este paso
+				result = OPCODE_RESPUESTA_OK;
+			}
+
+			//Si el Restaurante no retornó ningún error, informa a Comanda, guardando el resultado
+			if(result == OPCODE_RESPUESTA_OK)
+			{
+				ap_guardar_plato(msg->comida, restaurante->nombre, msg->pedido_id, &result);
+			}
+
+			//Retorna la respuesta al cliente (informando si hubo error o no)
+			ap_enviar_respuesta(conn, result, ANIADIR_PLATO, NULL);
+		}
+		else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
+		{
+			CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
+			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, ANIADIR_PLATO, NULL);
+		}
+
+		CS_LOG_TRACE("(%d)Se atendió AÑADIR PLATO, se cerrará la conexión.", conn);
+
+	} else CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
+
+	close(conn);
+	cs_msg_destroy(msg, OPCODE_CONSULTA, ANIADIR_PLATO);
+	ap_restaurante_destroy(restaurante);
+}
+
+static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
+{
+	int8_t result;
+	ap_restaurante_t* restaurante;
+
+	if(cliente != NULL)
+	{
+		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
+
+		//Busca el restaurante a partir del cliente
+		void _confirmar_pedido(ap_restaurante_t* obtenido)
+		{
+			if(obtenido) {
+				restaurante = ap_restaurante_create(
+						obtenido->nombre,
+						obtenido->posicion,
+						obtenido->ip_escucha,
+						obtenido->puerto_escucha
+				);
+			}
+		}
+		ap_restaurante_get_from_client(cliente, _confirmar_pedido);
+
+		if(restaurante) //Si se encontró el Restaurante...
+					{
+			//Obtiene el pedido desde Comanda, para saber si existe y no se borró de la memoria
+			t_rta_obt_ped* pedido = ap_obtener_pedido(restaurante->nombre, msg->pedido_id, &result);
+			cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+
+			//En caso de existir, evalúa según el Restaurante:
+			if(result == OPCODE_RESPUESTA_OK)
+			{
+				//Si no es Default, reenvía la consulta al Restaurante
+				if(strcmp(restaurante->nombre, "Default"))
 				{
 					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
 
@@ -378,7 +484,7 @@ static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 							CREAR_PEDIDO, msg, &result
 					);
 				}
-				else //...y es Default
+				else //Si es Default, omite este paso
 				{
 					CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
 
@@ -386,93 +492,25 @@ static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 					result = OPCODE_RESPUESTA_OK;
 				}
 
-				//Si el Restaurante no retornó ningún error, informa a Comanda, guardando el resultado
+				//Si el Restaurante no retornó ningún error...
 				if(result == OPCODE_RESPUESTA_OK)
 				{
-					ap_guardar_plato(msg->comida, restaurante->nombre, msg->pedido_id, &result);
+					/* TODO: Se genera el PCB (Pedido Control Block) del Pedido en cuestión y se deja
+					 * en el ciclo de planificación. */
+
+					//Se informa a Comanda
+					ap_confirmar_pedido(restaurante->nombre, msg->pedido_id, &result);
 				}
+			}
 
-				//Retorna la respuesta al cliente (informando si hubo error o no)
-				ap_enviar_respuesta(conn, result, ANIADIR_PLATO, NULL);
-			}
-			else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
-			{
-				CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
-				ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, ANIADIR_PLATO, NULL);
-			}
+			//Retorna la respuesta al cliente
+			ap_enviar_respuesta(conn, result, CONFIRMAR_PEDIDO, NULL);
 		}
-		ap_restaurante_get_from_client(cliente, _aniadir_plato);
-
-		CS_LOG_TRACE("(%d)Se atendió AÑADIR PLATO, se cerrará la conexión.", conn);
-
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
-
-	close(conn);
-	cs_msg_destroy(msg, OPCODE_CONSULTA, ANIADIR_PLATO);
-
-}
-
-static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
-{
-	int8_t result;
-
-	if(cliente != NULL)
-	{
-		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
-
-		//Busca el restaurante a partir del cliente
-		void _confirmar_pedido(ap_restaurante_t* restaurante)
+		else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
 		{
-			if(restaurante) //Si se encontró el Restaurante...
-			{
-				//Obtiene el pedido desde Comanda, para saber si existe y no se borró de la memoria
-				t_rta_obt_ped* pedido = ap_obtener_pedido(restaurante->nombre, msg->pedido_id, &result);
-				cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
-
-				//En caso de existir, evalúa según el Restaurante:
-				if(result == OPCODE_RESPUESTA_OK)
-				{
-					//Si no es Default, reenvía la consulta al Restaurante
-					if(strcmp(restaurante->nombre, "Default"))
-					{
-						CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
-
-						//Se envía el mensaje al Restaurante, recibiendo solo OK/FAIL
-						ap_consultar_restaurante(
-								restaurante->ip_escucha,
-								restaurante->puerto_escucha,
-								CREAR_PEDIDO, msg, &result
-						);
-					}
-					else //Si es Default, omite este paso
-					{
-						CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
-
-						//Se omite este paso
-						result = OPCODE_RESPUESTA_OK;
-					}
-
-					//Si el Restaurante no retornó ningún error...
-					if(result == OPCODE_RESPUESTA_OK)
-					{
-						/* TODO: Se genera el PCB (Pedido Control Block) del Pedido en cuestión y se deja
-						 * en el ciclo de planificación. */
-
-						//Se informa a Comanda
-						ap_confirmar_pedido(restaurante->nombre, msg->pedido_id, &result);
-					}
-				}
-
-				//Retorna la respuesta al cliente
-				ap_enviar_respuesta(conn, result, CONFIRMAR_PEDIDO, NULL);
-			}
-			else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
-			{
-				CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
-				ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONFIRMAR_PEDIDO, NULL);
-			}
+			CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
+			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONFIRMAR_PEDIDO, NULL);
 		}
-		ap_restaurante_get_from_client(cliente, _confirmar_pedido);
 
 		CS_LOG_TRACE("(%d)Se atendió CONFIRMAR PEDIDO, se cerrará la conexión.", conn);
 
@@ -480,52 +518,63 @@ static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONFIRMAR_PEDIDO);
+	ap_restaurante_destroy(restaurante);
 }
 
 static void ap_recibir_cons_ped(t_sfd conn, t_consulta* msg, char* cliente)
 {
-	t_rta_cons_ped* rta = NULL;
 	int8_t result;
+	t_rta_cons_ped* rta = NULL;
+	ap_restaurante_t* restaurante;
 
 	if(cliente != NULL)
 	{
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		void _crear_pedido(ap_restaurante_t* restaurante)
+		void _crear_pedido(ap_restaurante_t* obtenido)
 		{
-			if(restaurante) //Si se encontró el Restaurante
-			{
-				if(strcmp(restaurante->nombre, "Default")) {
-					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
-				} else {
-					CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
-				}
-				//Obtiene el pedido desde Comanda
-				t_rta_obt_ped* pedido = ap_obtener_pedido(restaurante->nombre, msg->pedido_id, &result);
-
-				if(result == OPCODE_RESPUESTA_OK)
-				{
-					//Crea la respuesta Consultar Pedido
-					rta = malloc(sizeof(t_rta_cons_ped));
-					rta->restaurante = restaurante->nombre;
-					rta->estado_pedido = pedido->estado_pedido;
-					rta->platos_y_estados = pedido->platos_y_estados;
-				}
-
-				//Retorna la respuesta al cliente
-				ap_enviar_respuesta(conn, result, CONSULTAR_PEDIDO, rta);
-
-				cs_msg_destroy(pedido, result, OBTENER_PEDIDO);
-				if(result == OPCODE_RESPUESTA_OK) free(rta);
-			}
-			else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
-			{
-				CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
-				ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PEDIDO, NULL);
+			if(obtenido) {
+				restaurante = ap_restaurante_create(
+						obtenido->nombre,
+						obtenido->posicion,
+						obtenido->ip_escucha,
+						obtenido->puerto_escucha
+				);
 			}
 		}
 		ap_restaurante_get_from_client(cliente, _crear_pedido);
+
+		if(restaurante) //Si se encontró el Restaurante
+		{
+			if(strcmp(restaurante->nombre, "Default")) {
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante->nombre);
+			} else {
+				CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
+			}
+			//Obtiene el pedido desde Comanda
+			t_rta_obt_ped* pedido = ap_obtener_pedido(restaurante->nombre, msg->pedido_id, &result);
+
+			if(result == OPCODE_RESPUESTA_OK)
+			{
+				//Crea la respuesta Consultar Pedido
+				rta = malloc(sizeof(t_rta_cons_ped));
+				rta->restaurante = restaurante->nombre;
+				rta->estado_pedido = pedido->estado_pedido;
+				rta->platos_y_estados = pedido->platos_y_estados;
+			}
+
+			//Retorna la respuesta al cliente
+			ap_enviar_respuesta(conn, result, CONSULTAR_PEDIDO, rta);
+
+			cs_msg_destroy(pedido, result, OBTENER_PEDIDO);
+			if(result == OPCODE_RESPUESTA_OK) free(rta);
+		}
+		else //Si NO se encontró el Restaurante retorna RESPUESTA_FAIL
+		{
+			CS_LOG_TRACE("No se encontró ningún Restaurante para: %s", cliente);
+			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PEDIDO, NULL);
+		}
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PEDIDO, se cerrará la conexión.", conn);
 
@@ -533,6 +582,7 @@ static void ap_recibir_cons_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PEDIDO);
+	ap_restaurante_destroy(restaurante);
 }
 
 static void ap_recibir_pl_listo(t_sfd conn, t_consulta* msg)

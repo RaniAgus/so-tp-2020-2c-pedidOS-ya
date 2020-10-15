@@ -1,6 +1,7 @@
+#include "apcore.h"
 #include "apconn.h"
+#include "aplisten.h"
 #include "apsend.h"
-#include "aprecv.h"
 
 #define MODULE_NAME		 "APP"
 #define CONFIG_FILE_PATH "app.config"
@@ -20,8 +21,8 @@ int main(int argc, char* argv[])
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	CS_LOG_TRACE("Iniciado correctamente");
 
-	ap_core_init();
 	ap_conn_init();
+	ap_listen_init();
 	wait();
 
 	cs_module_close();
