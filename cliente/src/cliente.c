@@ -127,7 +127,7 @@ void client_recv_msg_routine(void)
 		if(status == STATUS_SUCCESS)
 		{
 			//Cliente solo recibe "Terminar Pedido"
-			if(header.msgtype == TERMINAR_PEDIDO || header.msgtype == PLATO_LISTO)
+			if(header.msgtype == FINALIZAR_PEDIDO || header.msgtype == PLATO_LISTO)
 			{
 				header.opcode = (int8_t)OPCODE_RESPUESTA_OK;
 			} else
@@ -136,6 +136,15 @@ void client_recv_msg_routine(void)
 			}
 			//Envía la respuesta
 			status = cs_send_respuesta(serv_conn, header, NULL);
+			
+			char* rta_str = cs_msg_to_str(NULL, header.opcode, header.msgtype);
+			if(status == STATUS_SUCCESS) {
+				CS_LOG_INFO("Se envió la respuesta: %s", rta_str);
+			} else {
+				CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_str);
+			}
+			free(rta_str);
+			
 		}
 	}
 	PRINT_ERROR(status);

@@ -1,17 +1,31 @@
-/*
- ============================================================================
- Name        : app.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
+#include "apconn.h"
+#include "apsend.h"
+#include "applanificador.h"
+#include "aplisten.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#define MODULE_NAME		 "APP"
+#define CONFIG_FILE_PATH "app.config"
+#define LOG_FILE_KEY	 "ARCHIVO_LOG"
 
-int main(void) {
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
+void wait(void)
+{
+	sem_t aux;
+	sem_init(&aux, 0, 0);
+	sem_wait(&aux);
+}
+
+int main(int argc, char* argv[])
+{
+	for(int i = 1; i < argc; i++) if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
+
+	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+	CS_LOG_TRACE("Iniciado correctamente");
+
+	ap_conn_init();
+	ap_listen_init();
+	wait();
+
+	cs_module_close();
+
 	return EXIT_SUCCESS;
 }
