@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <commons/collections/list.h>
 
-int list_find_index(t_list*, bool(*condition)(void*));
+int 	list_find_index(t_list*, bool(*condition)(void*));
+double 	list_sum(t_list* self, double(*element_value)(void*));
 
 #endif /* CSHARED_UTILS_CSLIST_H_ */
