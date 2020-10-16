@@ -23,11 +23,6 @@ int main(int argc, char* argv[])
 
 	ap_conn_init();
 	ap_listen_init();
-	while(1) {
-		sleep(30);
-		ap_finalizar_pedido("Default", 1, "Cliente1");
-	}
-
 	wait();
 
 	cs_module_close();

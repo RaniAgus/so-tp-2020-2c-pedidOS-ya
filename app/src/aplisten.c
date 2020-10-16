@@ -626,24 +626,18 @@ static void ap_recibir_pl_listo(t_sfd conn, t_consulta* msg)
 		//Obtiene el pedido desde Comanda
 		t_rta_obt_ped* pedido = ap_obtener_pedido(msg->restaurante, msg->pedido_id, &result);
 
-		//Compara la cantidad total con la cantidad lista
-		int listos  = cs_platos_sumar_listos(pedido->platos_y_estados);
-		int totales = cs_platos_sumar_totales(pedido->platos_y_estados);
-		if(listos == totales)
-		{
-			//En el caso de que sean iguales, avisa que el repartidor ya puede retirar el pedido
+		//Se fija si está TERMINADO
+		if(pedido->estado_pedido == PEDIDO_TERMINADO) {
 			ap_avisar_pedido_terminado(msg->restaurante, msg->pedido_id);
+		} else {
+			CS_LOG_TRACE("El pedido NO está terminado, no se dará ningún aviso al repartidor.");
 		}
-		else if(listos < totales)
-		{
-			CS_LOG_TRACE("La cantidad lista del pedido (%d) es menor a la total(%d). No se hará ningún aviso al repartidor.");
-		}
-		else
-		{
-			CS_LOG_ERROR("eso si que no me lo esperaba");
-			result = OPCODE_RESPUESTA_FAIL;
-		}
+
+		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	}
+
+	//Retorna la respuesta
+	ap_enviar_respuesta(conn, result, PLATO_LISTO, NULL);
 
 	CS_LOG_TRACE("(%d)Se atendió PLATO LISTO.", conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PEDIDO);
