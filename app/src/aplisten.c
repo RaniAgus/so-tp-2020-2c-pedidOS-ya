@@ -105,8 +105,6 @@ static void ap_recibir_mensaje(t_sfd conn, t_header header, void* msg, char* cli
 			 * GUARDAR/OBTENER/TERMINAR/FINALIZAR PEDIDO
 			 * GUARDAR PLATO
 			 * OBTENER RECETA */
-			//respuesta = NULL;
-			//header.opcode = OPCODE_RESPUESTA_FAIL;
 			ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, header.msgtype, NULL);
 			break;
 		}
@@ -232,7 +230,11 @@ static void ap_recibir_sel_rest(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió SELECCIONAR RESTAURANTE, se cerrará la conexión.", conn);
 	}
-	else CS_LOG_ERROR("Falta identificar al cliente antes de SELECCIONAR RESTAURANTE!!");
+	else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de SELECCIONAR RESTAURANTE!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, SELECCIONAR_RESTAURANTE, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_RESTAURANTES);
@@ -297,7 +299,11 @@ static void ap_recibir_cons_pl(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PLATOS, se cerrará la conexión.", conn);
 
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PLATOS!!");
+	} else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PLATOS!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PLATOS, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PLATOS);
@@ -365,7 +371,11 @@ static void ap_recibir_crear_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió CREAR PEDIDO, se cerrará la conexión.", conn);
 
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de CREAR PEDIDO!!");
+	} else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de CREAR PEDIDO!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CREAR_PEDIDO, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CREAR_PEDIDO);
@@ -433,7 +443,11 @@ static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió AÑADIR PLATO, se cerrará la conexión.", conn);
 
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
+	} else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, ANIADIR_PLATO, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, ANIADIR_PLATO);
@@ -515,7 +529,11 @@ static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió CONFIRMAR PEDIDO, se cerrará la conexión.", conn);
 
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de CREAR PEDIDO!!");
+	} else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de CONFIRMAR PEDIDO!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONFIRMAR_PEDIDO, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONFIRMAR_PEDIDO);
@@ -579,7 +597,11 @@ static void ap_recibir_cons_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PEDIDO, se cerrará la conexión.", conn);
 
-	} else CS_LOG_ERROR("Falta identificar al cliente antes de CREAR PEDIDO!!");
+	} else
+	{
+		CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PEDIDO!!");
+		ap_enviar_respuesta(conn, OPCODE_RESPUESTA_FAIL, CONSULTAR_PEDIDO, NULL);
+	}
 
 	close(conn);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PEDIDO);
