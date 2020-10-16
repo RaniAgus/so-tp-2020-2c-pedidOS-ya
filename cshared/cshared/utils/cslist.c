@@ -21,6 +21,7 @@ double list_sum(t_list* self, double(*element_value)(void*)) {
 
 	while(element != NULL) {
 		sumatory += element_value(element->data);
+		element = element->next;
 	}
 
 	return sumatory;
