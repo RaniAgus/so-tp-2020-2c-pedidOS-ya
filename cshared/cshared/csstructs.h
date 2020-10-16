@@ -3,6 +3,7 @@
 
 #include "utils/cscore.h"
 #include "utils/cserror.h"
+#include "utils/cslist.h"
 
 typedef enum
 {
