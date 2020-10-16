@@ -139,14 +139,15 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 			if( cs_send_respuesta(client_conn, headerResp, respuestaObtener) == STATUS_SUCCESS )
 			{
 				CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
+				free(rta_to_str);
 			} else
 			{
 				CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
+				free(rta_to_str);
 			}
 		}
+		liberarRespuestaObtener(respuestaObtener);
 
-
-		//server_send_rta_consultar_platos(client_conn);
 	    break;
 	case CONFIRMAR_PEDIDO:
 		puts("confirmar pedido");
@@ -162,7 +163,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	case FINALIZAR_PEDIDO:
 		puts("finalizar pedido");
 		e_opcode ok_fail5 = finalizarPedido(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
+		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail5);
 	    break;
 	default:
 		puts("algo anda mal xdxd");
