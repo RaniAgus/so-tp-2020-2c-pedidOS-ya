@@ -2,6 +2,20 @@
 
 static void _rta_destroy(void* msg, int8_t msg_type);
 
+static const char* _MODULES_STR[] = {
+		"Desconocido",
+		"Comanda",
+		"Sindicato",
+		"Cliente",
+		"App",
+		"Restaurante",
+		NULL
+};
+
+const char* cs_enum_module_to_str(int value) {
+	return _MODULES_STR[value];
+}
+
 static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 {
 /*           {comid, cant, rest, p_id}*/

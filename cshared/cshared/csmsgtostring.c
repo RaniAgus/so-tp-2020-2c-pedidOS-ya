@@ -28,20 +28,6 @@ const char* cs_enum_msgtype_to_str(int value)
 	return _MSGTYPE_STR[value];
 }
 
-static const char* _MODULES_STR[] = {
-		"Desconocido",
-		"Comanda",
-		"Sindicato",
-		"Cliente",
-		"App",
-		"Restaurante",
-		NULL
-};
-
-const char* cs_enum_module_to_str(int value) {
-	return _MODULES_STR[value];
-}
-
 static void _cons_append(char** msg_str, t_consulta* msg);
 static void _hs_cli_append(char** msg_str, t_handshake_cli* msg);
 static void _hs_res_append(char** msg_str, t_handshake_res* msg);
