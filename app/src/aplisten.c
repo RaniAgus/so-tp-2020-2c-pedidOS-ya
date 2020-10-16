@@ -154,12 +154,18 @@ static void ap_recibir_hs_cli(t_sfd conn, t_handshake_cli* msg)
 
 static void ap_recibir_hs_rest(t_sfd conn, t_handshake_res* msg)
 {
-	e_status status;
+	//e_status status;
 
 	//Se agrega a la lista de restaurantes y se envía RESPUESTA_OK
-	ap_restaurante_add(ap_restaurante_create(msg->nombre, msg->posicion, msg->ip, msg->puerto));
-	status = ap_enviar_respuesta(conn, OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE, NULL);
+	int index = ap_restaurante_add(ap_restaurante_create(msg->nombre, msg->posicion, msg->ip, msg->puerto));
+	CS_LOG_TRACE("Se agregó el Restaurante nro.%d: { %s, (%d:%d), %s:%s } ",
+			index, msg->nombre, msg->posicion.x, msg->posicion.y, msg->ip, msg->puerto
+	);
+
+/*	status = */ap_enviar_respuesta(conn, OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE, NULL);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE);
+
+/* TODO: Ver si el Restaurante necesita enviar PLATO_LISTO por este socket
 
 	//Si se envió correctamente, recibe mensajes del Restaurante por este socket
 	CS_LOG_TRACE("(%d)Inició la conexión con el Restaurante.", conn);
@@ -173,8 +179,9 @@ static void ap_recibir_hs_rest(t_sfd conn, t_handshake_res* msg)
 			PRINT_ERROR(status);
 		}
 	}
-	CS_LOG_TRACE("(%d)Se cerró la conexión con el Restaurante.", conn);
+	CS_LOG_TRACE("(%d)Se cerró la conexión con el Restaurante.", conn); */
 
+	CS_LOG_TRACE("(%d)Se atendió HANDSHAKE RESTAURANTE, se cerrará la conexión.", conn);
 	close(conn);
 }
 
@@ -610,16 +617,37 @@ static void ap_recibir_cons_ped(t_sfd conn, t_consulta* msg, char* cliente)
 
 static void ap_recibir_pl_listo(t_sfd conn, t_consulta* msg)
 {
-	printf("Recibí PLATO LISTO\n");
+	int8_t result;
 
-	/* TODO: [APP] Recibir plato listo
-	 *
-	 * 1. Enviar el mensaje Plato Listo a la Comanda.
-	 * 2. Se deberá ejecutar el mensaje Obtener Pedido a la Comanda con el fin de comparar la
-	 * cantidad con la cantidad lista. En el caso de que sean iguales, significará que el repartidor
-	 * ya puede retirar el pedido del Restaurante, desencadenando los eventos necesarios en la
-	 * planificación. */
+	//Envía el mensaje Plato Listo a la Comanda
+	ap_plato_listo(msg, &result);
+	if(result == OPCODE_RESPUESTA_OK)
+	{
+		//Obtiene el pedido desde Comanda
+		t_rta_obt_ped* pedido = ap_obtener_pedido(msg->restaurante, msg->pedido_id, &result);
 
+		//Compara la cantidad total con la cantidad lista
+		int listos  = cs_platos_sumar_listos(pedido->platos_y_estados);
+		int totales = cs_platos_sumar_totales(pedido->platos_y_estados);
+		if(listos == totales)
+		{
+			//En el caso de que sean iguales, avisa que el repartidor ya puede retirar el pedido
+			ap_avisar_pedido_terminado(msg->restaurante, msg->pedido_id);
+		}
+		else if(listos < totales)
+		{
+			CS_LOG_TRACE("La cantidad lista del pedido (%d) es menor a la total(%d). No se hará ningún aviso al repartidor.");
+		}
+		else
+		{
+			CS_LOG_ERROR("eso si que no me lo esperaba");
+			result = OPCODE_RESPUESTA_FAIL;
+		}
+	}
+
+	CS_LOG_TRACE("(%d)Se atendió PLATO LISTO.", conn);
+	cs_msg_destroy(msg, OPCODE_CONSULTA, CONSULTAR_PEDIDO);
+	close(conn);
 }
 
 static e_status ap_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype msg_type, void* rta)

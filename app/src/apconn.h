@@ -1,7 +1,7 @@
 #ifndef APCONN_H_
 #define APCONN_H_
 
-#include "apcore.h"
+#include <cshared/cshared.h>
 
 typedef struct
 {
@@ -31,7 +31,7 @@ void ap_cliente_add(ap_cliente_t* cliente);
 void ap_cliente_find(char* cliente, void(*closure)(ap_cliente_t*));
 int  ap_cliente_find_index(char* cliente);
 
-void ap_restaurante_add(ap_restaurante_t* restaurante);
+int  ap_restaurante_add(ap_restaurante_t* restaurante);
 void ap_restaurante_get_from_client(char* cliente, void(*closure)(ap_restaurante_t*));
 int  ap_restaurante_find_index(char* restaurante);
 void ap_restaurantes_iterate(void(*closure)(ap_restaurante_t*));
