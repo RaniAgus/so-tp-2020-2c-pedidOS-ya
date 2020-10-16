@@ -3,6 +3,11 @@
 static void* ap_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t* result);
 static void* ap_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result);
 
+void ap_plato_listo(t_consulta* consulta, int8_t* result)
+{
+	ap_consultar_comanda(PLATO_LISTO, consulta, result);
+}
+
 int8_t ap_finalizar_pedido(char* restaurante, uint32_t pedido_id, char* cliente)
 {
 	int8_t result;
@@ -29,7 +34,6 @@ int8_t ap_finalizar_pedido(char* restaurante, uint32_t pedido_id, char* cliente)
 	cs_msg_destroy(finalizar_pedido, OPCODE_CONSULTA, FINALIZAR_PEDIDO);
 	return result;
 }
-
 
 //Consultar Pedido --> OBTENER_PEDIDO
 t_rta_obt_ped* ap_obtener_pedido(char* restaurante, uint32_t pedido_id, int8_t* result)
@@ -139,7 +143,7 @@ static void* ap_enviar_consulta(e_module dest, t_sfd conexion_comanda, int8_t ms
 			{
 				*result = OPCODE_RESPUESTA_FAIL;
 				rta = NULL;
-				CS_LOG_ERROR("A ver a ver, ¿qué pasó?");
+				CS_LOG_ERROR("a ver a ver, qué pasó?");
 			}
 		}
 		status = cs_recv_msg(conexion_comanda, _recibir_respuesta);
