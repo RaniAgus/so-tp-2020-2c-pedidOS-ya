@@ -2,6 +2,20 @@
 
 static void _rta_destroy(void* msg, int8_t msg_type);
 
+static const char* _MODULES_STR[] = {
+		"Desconocido",
+		"Comanda",
+		"Sindicato",
+		"Cliente",
+		"App",
+		"Restaurante",
+		NULL
+};
+
+const char* cs_enum_module_to_str(int value) {
+	return _MODULES_STR[value];
+}
+
 static const int _MSG_ARGS[MSGTYPES_CANT][CONS_ARGS_CANT] =
 {
 /*           {comid, cant, rest, p_id}*/
@@ -117,12 +131,12 @@ t_rta_handshake_cli* cs_rta_handshake_cli_create(void)
 	return rta;
 }
 
-t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes)
+t_rta_cons_rest* cs_rta_consultar_rest_create(char** restaurantes)
 {
 	t_rta_cons_rest* rta;
 	rta = malloc(sizeof(t_rta_cons_rest));
 
-	rta->restaurantes = string_get_string_as_array(restaurantes);
+	rta->restaurantes = restaurantes;
 
 	return rta;
 }

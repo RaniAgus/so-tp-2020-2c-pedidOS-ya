@@ -25,7 +25,7 @@ void server_send_rta_consultar_restaurantes(t_sfd client_conn)
 	t_rta_cons_rest* respuesta;
 	char* rta_to_str;
 	t_header header = {OPCODE_RESPUESTA_OK, CONSULTAR_RESTAURANTES};
-	respuesta = cs_rta_consultar_rest_create("[resto1,resto2,resto3]");
+	respuesta = cs_rta_consultar_rest_create(string_get_string_as_array("[resto1,resto2,resto3]"));
 	rta_to_str = cs_msg_to_str(respuesta, header.opcode, header.msgtype);
 
 	if( cs_send_respuesta(client_conn, header, respuesta) == STATUS_SUCCESS )

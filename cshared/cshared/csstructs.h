@@ -3,6 +3,7 @@
 
 #include "utils/cscore.h"
 #include "utils/cserror.h"
+#include "utils/cslist.h"
 
 typedef enum
 {
@@ -117,5 +118,22 @@ void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
 *
 */
 void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
+
+/**
+* @NAME cs_platos_sumar_listos
+* @DESC Devuelve la sumatoria de la cantidad lista de platos de un
+* pedido.
+*
+*/
+int cs_platos_sumar_listos(t_list* platos);
+
+/**
+* @NAME cs_platos_sumar_totales
+* @DESC Devuelve la sumatoria de la cantidad total de platos de un
+* pedido.
+*
+*/
+int cs_platos_sumar_totales(t_list* platos);
+
 
 #endif /* CSHARED_CSSTRUCTS_H_ */

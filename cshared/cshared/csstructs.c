@@ -200,3 +200,21 @@ void cs_menu_to_string(t_list* menu, char** comidas, char** precios)
 	(*comidas)[strlen(*comidas) - 1] = ']';
 	(*precios)[strlen(*precios) - 1] = ']';
 }
+
+int cs_platos_sumar_listos(t_list* platos)
+{
+	double _sumar_listos(t_plato* plato){
+		return (double)plato->cant_lista;
+	}
+
+	return (int)list_sum(platos, (void*) _sumar_listos);
+}
+
+int cs_platos_sumar_totales(t_list* platos)
+{
+	double _sumar_totales(t_plato* plato){
+		return (double)plato->cant_total;
+	}
+
+	return (int)list_sum(platos, (void*) _sumar_totales);
+}

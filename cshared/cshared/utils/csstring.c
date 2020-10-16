@@ -1,5 +1,6 @@
 #include "csstring.h"
 
+static void _string_array_push(char*** array, char* text, int size);
 static bool _string_is_in_num_array_format(char* str, bool _signed);
 
 void cs_stream_copy(void* stream, int* offset_ptr, void* value, uint32_t value_size, bool buffer_is_dest)
@@ -65,20 +66,6 @@ int cs_string_to_uint(const char* str)
 	return atoi(str);
 }
 
-int	cs_string_array_lines_count(char** str_arr)
-{
-	int lines = 0;
-	if(!str_arr) return -1;
-
-	void _accumulate_lines(char* element)
-	{
-		lines++;
-	}
-	string_iterate_lines(str_arr,_accumulate_lines);
-
-	return lines;
-}
-
 bool cs_string_is_in_string_array_format(char* str)
 {
 	return string_starts_with(str, "[") && string_ends_with(str, "]") &&
@@ -121,6 +108,39 @@ bool cs_string_is_in_uint_array_format(char* str)
 bool cs_string_is_in_int_array_format(char* str)
 {
 	return _string_is_in_num_array_format(str, true);
+}
+
+char** string_array_new() {
+	char** array = malloc(sizeof(char*));
+	array[0] = NULL;
+
+	return array;
+}
+
+int	string_array_size(char** str_arr) {
+	int lines = 0;
+	if(!str_arr) return -1;
+
+	void _accumulate_lines(char* element) {
+		lines++;
+	}
+	string_iterate_lines(str_arr,_accumulate_lines);
+
+	return lines;
+}
+
+bool string_array_is_empty(char** array) {
+	return array[0] == NULL;
+}
+
+void string_array_push(char*** array, char* text) {
+	_string_array_push(array, text, string_array_size(*array));
+}
+
+static void _string_array_push(char*** array, char* text, int size) {
+	*array = realloc(*array, sizeof(char*) * (size + 2));
+	(*array)[size] = text;
+	(*array)[size + 1] = NULL;
 }
 
 static bool _string_is_in_num_array_format(char* str, bool _signed)

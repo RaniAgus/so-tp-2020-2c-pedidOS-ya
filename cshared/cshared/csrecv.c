@@ -128,7 +128,6 @@ static void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
 	}
 }
 
-//TODO: cs_buffer_to_consulta -- poner ifs por parámetro, leer módulo desde config
 static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 {
 	t_consulta* msg;
@@ -258,7 +257,7 @@ static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 	restaurantes[restaurantes_len] = '\0';
 
 	//Crea el mensaje
-	msg = cs_rta_consultar_rest_create(restaurantes);
+	msg = cs_rta_consultar_rest_create(string_get_string_as_array(restaurantes));
 
 	free(restaurantes);
 

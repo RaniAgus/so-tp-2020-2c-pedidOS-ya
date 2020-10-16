@@ -1,5 +1,5 @@
 #include "sindicato.h"
-#include "funcionesAuxiliares.h"
+//#include "funcionesAuxiliares.h"
 
 int main(void) {
 	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
@@ -7,7 +7,7 @@ int main(void) {
 }
 
 void leerConfig(){
-	config = config_create("gamecard.config");
-	ip = config_get_string_value(config,"IP_BROKER");
+//	config = config_create("gamecard.config");
+//	ip = config_get_string_value(config,"IP_BROKER");
 
 }
