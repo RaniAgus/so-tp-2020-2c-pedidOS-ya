@@ -14,6 +14,8 @@ void* memoriaPrincipal;
 t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
 
+pthread_mutex_t mutexMemoriaInterna;
+
 typedef struct
 {
 	void* inicioMemoria;

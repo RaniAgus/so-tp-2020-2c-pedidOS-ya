@@ -59,20 +59,24 @@ t_pagina* buscarPlato(t_segmentoPedido* unPedido,char* comida){
 	return NULL;
 }
 
-void buscarYTerminarPedido(t_segmentoPedido* pedido){
+e_opcode buscarYTerminarPedido(t_segmentoPedido* pedido){
 	int tamanioComidas = list_size(pedido->tablaPaginas);
 	t_pagina* plato;
-	int total;
-	int listos;
+	uint32_t total;
+	uint32_t listos;
 	for (int i=0;i<tamanioComidas;i++){
 		plato = list_get(pedido->tablaPaginas,i);
 		memcpy(&total,plato->inicioMemoria,sizeof(uint32_t));
 		memcpy(&listos,(plato->inicioMemoria) +4,sizeof(uint32_t));
 		if(listos<total){
-			return;
+			return OPCODE_RESPUESTA_OK;
+		}
+		if(listos>total){
+			return OPCODE_RESPUESTA_FAIL;
 		}
 	}
 	pedido->estadoPedido = PEDIDO_TERMINADO;
+	return OPCODE_RESPUESTA_OK;
 }
 
 void borrarPedidoDeRestaurante(uint32_t pedido_id, t_restaurante* unRest){
@@ -182,9 +186,10 @@ e_opcode guardarPlato(t_consulta* msg){
 	if(pedido->estadoPedido != PEDIDO_PENDIENTE){
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	pthread_mutex_lock(&mutexMemoriaInterna);
 	t_pagina* plato = buscarPlato(pedido,msg->comida);
 	if(plato){
-		int dondeDepositoLaLectura;
+		uint32_t dondeDepositoLaLectura;
 		memcpy(&dondeDepositoLaLectura,plato->inicioMemoria,sizeof(uint32_t));
 		dondeDepositoLaLectura+= msg->cantidad;
 		memcpy(plato->inicioMemoria,&dondeDepositoLaLectura,sizeof(uint32_t));
@@ -205,6 +210,7 @@ e_opcode guardarPlato(t_consulta* msg){
 		list_add(pedido->tablaPaginas,pagina);
 
 	}
+	pthread_mutex_unlock(&mutexMemoriaInterna);
 	//TODO: cosas de swap //4
 	return OPCODE_RESPUESTA_OK;
 
@@ -225,14 +231,15 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 	t_list* listaPlatos = list_create();
 	t_pagina* pagina;
 	int tamanioListaPaginas = list_size(pedido->tablaPaginas);
-	puts("aca");
 	for(int i=0;i<tamanioListaPaginas;i++){
 		pagina = list_get(pedido->tablaPaginas,i);
 		t_plato* unPlato = malloc(sizeof(t_plato));
+		pthread_mutex_lock(&mutexMemoriaInterna);
 		memcpy(&unPlato->cant_total,(pagina->inicioMemoria),sizeof(uint32_t));
 		memcpy(&unPlato->cant_lista,(pagina->inicioMemoria)+4,sizeof(uint32_t));
 		char* temp = malloc(24);
 		memcpy(temp,(pagina->inicioMemoria) + 8,24);
+		pthread_mutex_unlock(&mutexMemoriaInterna);
 		unPlato->comida = string_duplicate(temp);
 		free(temp);
 		list_add(listaPlatos,unPlato);
@@ -293,16 +300,15 @@ e_opcode platoListo(t_consulta* msg){
 	if(pedido->estadoPedido != PEDIDO_CONFIRMADO){
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	pthread_mutex_lock(&mutexMemoriaInterna);
 	int dondeDepositoLaLectura;
 	memcpy(&dondeDepositoLaLectura,(plato->inicioMemoria) +4,sizeof(uint32_t));
 	dondeDepositoLaLectura++;
 	memcpy((plato->inicioMemoria) + 4,&dondeDepositoLaLectura,sizeof(uint32_t));
-	buscarYTerminarPedido(pedido);
-
-	return OPCODE_RESPUESTA_OK;
-
+	e_opcode retorno = buscarYTerminarPedido(pedido);
+	pthread_mutex_unlock(&mutexMemoriaInterna);
+	return retorno;
 }
-
 
 
 e_opcode finalizarPedido(t_consulta* msg){
@@ -322,7 +328,9 @@ e_opcode finalizarPedido(t_consulta* msg){
 	for(int i=0;i<tamanioPaginas;i++){
 		t_pagina* unaPagina = list_get(pedido->tablaPaginas,i);
 		if(unaPagina->presente){
+			pthread_mutex_lock(&mutexMemoriaInterna);
 			liberarFrame(unaPagina->inicioMemoria);
+			pthread_mutex_unlock(&mutexMemoriaInterna);
 		}
 		free(unaPagina);
 	}

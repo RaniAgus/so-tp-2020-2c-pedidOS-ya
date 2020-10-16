@@ -50,9 +50,15 @@ void server_send_rta_handshake(t_sfd client_conn)
 
 int main(void)
 {
+	printf("tamanio de long long %i", sizeof(long long));
 	char* str_time;
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+
+	//inicializo mutex
+	pthread_mutex_init(&mutexMemoriaInterna,NULL);
+	//pthread_mutex_lock(&suscriptoresLocalized);
+	//pthread_mutex_unlock(&suscriptoresLocalized);
 
 	//Modifica la acción de SIGINT para cortar el programa con Ctrl+C
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
@@ -110,7 +116,6 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	t_consulta* elMensaje = (t_consulta*)msg;
 	//Loguea el mensaje
 	CS_LOG_INFO("%s", msg_str);
-	//TODO: los free
 	switch(header.msgtype)
 	{
 	case HANDSHAKE:
