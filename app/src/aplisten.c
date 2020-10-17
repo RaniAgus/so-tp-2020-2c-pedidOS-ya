@@ -216,7 +216,7 @@ static void ap_recibir_sel_rest(t_sfd conn, t_consulta* msg, char* cliente)
 	{
 		//Busca el restaurante en la lista
 		int restaurante_index = ap_restaurante_find_index(msg->restaurante);
-		if(restaurante_index > 0)
+		if(restaurante_index >= 0)
 		{
 			//Si se encontró, se vincula al cliente
 			void _vincular_restaurante(ap_cliente_t* cliente) {
@@ -485,7 +485,7 @@ static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 		ap_restaurante_get_from_client(cliente, _confirmar_pedido);
 
 		if(restaurante) //Si se encontró el Restaurante...
-					{
+		{
 			//Obtiene el pedido desde Comanda, para saber si existe y no se borró de la memoria
 			t_rta_obt_ped* pedido = ap_obtener_pedido(restaurante->nombre, msg->pedido_id, &result);
 			cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);

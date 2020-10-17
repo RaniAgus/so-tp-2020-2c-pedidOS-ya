@@ -94,7 +94,7 @@ void ap_cliente_find(char* cliente, void(*closure)(ap_cliente_t*))
 int ap_cliente_find_index(char* cliente)
 {
 	int index;
-	bool _find_cliente_by_name(ap_restaurante_t* element) {
+	bool _find_cliente_by_name(ap_cliente_t* element) {
 		return !strcmp(element->nombre, cliente);
 	}
 
