@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
 
 	rest_core_init(rest_obtener_metadata());
 	rest_listen_init();
+	rest_enviar_handshake();
 
 	CS_LOG_TRACE("Iniciado correctamente");
 

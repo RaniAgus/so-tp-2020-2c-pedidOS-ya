@@ -20,6 +20,39 @@ t_rta_obt_rest* rest_obtener_metadata(void)
 	return metadata;
 }
 
+void rest_enviar_handshake(void)
+{
+	e_status status;
+	t_sfd conexion_app;
+
+	status = cs_tcp_client_create(
+			&conexion_app,
+			cs_config_get_string("IP_APP"),
+			cs_config_get_string("PUERTO_APP")
+	);
+	if(status == STATUS_SUCCESS)
+	{
+		status = cs_send_handshake_res(conexion_app, mi_posicion);
+		if(status == STATUS_SUCCESS)
+		{
+			void _recibir_handshake(t_sfd conn, t_header header, void* msg) {
+				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE) {
+					CS_LOG_INFO("Se estableció conexión con Comanda.");
+				} else {
+					CS_LOG_ERROR("a veces cuando planeas una cosa, te sale otra completamente diferente");
+				}
+			}
+			status = cs_recv_msg(conexion_app, _recibir_handshake);
+		}
+	}
+
+	if(status != STATUS_SUCCESS) {
+		CS_LOG_WARNING("%s -- No se pudo establecer conexión con App.", cs_enum_status_to_str(status));
+	}
+
+	close(conexion_app);
+}
+
 t_rta_obt_ped* rest_obtener_pedido(uint32_t pedido_id, int8_t* result)
 {
 	t_consulta* cons = cs_msg_obtener_ped_create(mi_nombre, pedido_id);
@@ -27,6 +60,20 @@ t_rta_obt_ped* rest_obtener_pedido(uint32_t pedido_id, int8_t* result)
 	cs_msg_destroy(cons, OPCODE_CONSULTA, OBTENER_PEDIDO);
 
 	return pedido;
+}
+
+//TODO: Plato Listo
+void rest_plato_listo(char* comida, uint32_t pedido_id)
+{
+//	t_consulta* cons = cs_msg_plato_listo_create(comida, mi_nombre, pedido_id);
+
+}
+
+//TODO: Terminar Pedido
+void rest_terminar_pedido(uint32_t pedido_id)
+{
+//	t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
+
 }
 
 void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* result)

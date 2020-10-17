@@ -162,11 +162,11 @@ static void rest_recibir_aniadir_pl(t_sfd conn, t_consulta* msg)
 	int8_t resultado_cons;
 	t_consulta* cons;
 
-	//Envía GUARDAR_PLATO generando un ID único para el Restaurante
+	//Envía GUARDAR_PLATO
 	cons = cs_msg_guardar_pl_create(msg->comida, 1, mi_nombre, msg->pedido_id);
 	rest_consultar_sindicato(GUARDAR_PLATO, cons, &resultado_cons);
 
-	//Retorna la respuesta generada
+	//Retorna la respuesta obtenida
 	rest_enviar_respuesta(conn, resultado_cons, ANIADIR_PLATO, NULL);
 
 	cs_msg_destroy(cons, OPCODE_CONSULTA, GUARDAR_PLATO);
