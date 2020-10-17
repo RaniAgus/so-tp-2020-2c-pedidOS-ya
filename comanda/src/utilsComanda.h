@@ -15,6 +15,7 @@ t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
 
 pthread_mutex_t mutexMemoriaInterna;
+pthread_mutex_t mutexListaFrames;
 
 typedef struct
 {
@@ -34,6 +35,7 @@ typedef struct
 	t_list* tablaPaginas;
 	uint32_t idPedido;
 	e_estado_ped estadoPedido;
+	pthread_mutex_t mutexPedido;
 }t_segmentoPedido;
 
 

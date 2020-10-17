@@ -121,19 +121,18 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	case HANDSHAKE:
 		server_send_rta_handshake(client_conn);
 		break;
-	case GUARDAR_PEDIDO:
-		puts("guardar pedido");
+	case GUARDAR_PEDIDO:({
 		e_opcode ok_fail1;
 		ok_fail1 = guardarPedido(elMensaje);
 		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
+	});
 	    break;
-	case GUARDAR_PLATO:
-		puts("guardar plato");
+	case GUARDAR_PLATO:({
 		e_opcode ok_fail2 = guardarPlato(elMensaje);
 		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail2);
+	});
 	   	break;
-	case OBTENER_PEDIDO:
-		puts("obtener pedido");
+	case OBTENER_PEDIDO:({
 		t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
 		t_rta_obt_ped* respuestaObtener = obtenerPedido(elMensaje);
 
@@ -149,27 +148,29 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 			{
 				CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
 				free(rta_to_str);
+				liberarRespuestaObtener(respuestaObtener);
 			}
-		}
-		liberarRespuestaObtener(respuestaObtener);
 
+		}
+	});
 	    break;
-	case CONFIRMAR_PEDIDO:
-		puts("confirmar pedido");
+	case CONFIRMAR_PEDIDO:({
 		e_opcode ok_fail3 = confirmarPedido(elMensaje);
 		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail3);
+	});
 		break;
-	case PLATO_LISTO:
-		puts("plato listo");
+	case PLATO_LISTO:({
 		e_opcode ok_fail4 = platoListo(elMensaje);
 		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
+	});
 
 	    break;
-	case FINALIZAR_PEDIDO:
-		puts("finalizar pedido");
+	case FINALIZAR_PEDIDO:({
 		e_opcode ok_fail5 = finalizarPedido(elMensaje);
 		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail5);
-	    break;
+    });
+    break;
+
 	default:
 		puts("algo anda mal xdxd");
 	  	break;
