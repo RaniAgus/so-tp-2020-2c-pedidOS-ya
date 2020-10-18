@@ -135,5 +135,10 @@ int cs_platos_sumar_listos(t_list* platos);
 */
 int cs_platos_sumar_totales(t_list* platos);
 
+/**
+* @NAME cs_receta_duplicate
+* @DESC Devuelve una copia de todos los pasos de una receta.
+*/
+t_list* cs_receta_duplicate(t_list* receta);
 
 #endif /* CSHARED_CSSTRUCTS_H_ */
