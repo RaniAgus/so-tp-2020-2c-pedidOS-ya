@@ -114,14 +114,14 @@ static void* ap_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t*
 	return ap_enviar_consulta(MODULO_COMANDA, conexion_comanda, msg_type, consulta, result);
 }
 
-static void* ap_enviar_consulta(e_module dest, t_sfd conexion_comanda, int8_t msg_type, t_consulta* consulta, int8_t* result)
+static void* ap_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result)
 {
 	e_status status;
 	void* rta;
 	char* consulta_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, msg_type);
 
 	//Envía la consulta
-	status = cs_send_consulta(conexion_comanda, msg_type, consulta, dest);
+	status = cs_send_consulta(conexion, msg_type, consulta, dest);
 	if(status == STATUS_SUCCESS)
 	{
 		CS_LOG_TRACE("Se envió la consulta: %s", consulta_str);
@@ -146,7 +146,7 @@ static void* ap_enviar_consulta(e_module dest, t_sfd conexion_comanda, int8_t ms
 				CS_LOG_ERROR("a ver a ver, qué pasó?");
 			}
 		}
-		status = cs_recv_msg(conexion_comanda, _recibir_respuesta);
+		status = cs_recv_msg(conexion, _recibir_respuesta);
 		if(status != STATUS_SUCCESS)
 		{
 			*result = OPCODE_RESPUESTA_FAIL;

@@ -154,7 +154,7 @@ static void ap_recibir_hs_cli(t_sfd conn, t_handshake_cli* msg)
 
 static void ap_recibir_hs_rest(t_sfd conn, t_handshake_res* msg)
 {
-	//e_status status;
+	e_status status;
 
 	//Se agrega a la lista de restaurantes y se envía RESPUESTA_OK
 	int index = ap_restaurante_add(ap_restaurante_create(msg->nombre, msg->posicion, msg->ip, msg->puerto));
@@ -162,10 +162,8 @@ static void ap_recibir_hs_rest(t_sfd conn, t_handshake_res* msg)
 			index, msg->nombre, msg->posicion.x, msg->posicion.y, msg->ip, msg->puerto
 	);
 
-/*	status = */ap_enviar_respuesta(conn, OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE, NULL);
+	status = ap_enviar_respuesta(conn, OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE, NULL);
 	cs_msg_destroy(msg, OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE);
-
-/* TODO: Ver si el Restaurante necesita enviar PLATO_LISTO por este socket
 
 	//Si se envió correctamente, recibe mensajes del Restaurante por este socket
 	CS_LOG_TRACE("(%d)Inició la conexión con el Restaurante.", conn);
@@ -179,9 +177,8 @@ static void ap_recibir_hs_rest(t_sfd conn, t_handshake_res* msg)
 			PRINT_ERROR(status);
 		}
 	}
-	CS_LOG_TRACE("(%d)Se cerró la conexión con el Restaurante.", conn); */
+	CS_LOG_TRACE("(%d)Se cerró la conexión con el Restaurante.", conn);
 
-	CS_LOG_TRACE("(%d)Se atendió HANDSHAKE RESTAURANTE, se cerrará la conexión.", conn);
 	close(conn);
 }
 
