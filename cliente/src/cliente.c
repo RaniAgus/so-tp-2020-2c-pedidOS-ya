@@ -71,8 +71,7 @@ int main(int argc, char* argv[])
 		arg_values = cs_console_readline(prompt, &arg_cant);
 		if(arg_values == NULL)
 		{
-			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió un salto de línea.", __func__, __LINE__);
-			break;
+			continue;
 		} else if(!strcmp(arg_values[0], "exit")) {
 			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió el comando exit.", __func__, __LINE__);
 			string_iterate_lines(arg_values, (void*) free);
@@ -162,7 +161,9 @@ void client_recv_msg_routine(void)
 		}
 	} while(status == STATUS_SUCCESS);
 
-	PRINT_ERROR(status);
+	system("reset -Q");
+	CS_LOG_INFO("Se perdió la conexión con %s.", cs_enum_module_to_str(serv_module));
+	console_save_line();
 	exit(-1);
 }
 
