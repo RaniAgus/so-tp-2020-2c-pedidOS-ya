@@ -1,6 +1,6 @@
 #include "restplanificador.h"
 
-static t_list* queues_ready;
+static t_list* 	queues_ready;
 
 static uint32_t        id_pedido;
 static pthread_mutex_t mutex_id_pedido;
@@ -18,7 +18,7 @@ void rest_planificador_init(t_rta_obt_rest* metadata)
 			list_add(queues_ready, (void*) queue_cocinero);
 		}
 
-		//TODO: Crear hilos de cocineros acá
+		//TODO: Crear hilos de cocineros acá ??
 	}
 	string_iterate_lines(metadata->afinidades, _crear_queues);
 
@@ -35,6 +35,8 @@ void rest_planificador_init(t_rta_obt_rest* metadata)
 		}
 		list_iterate(metadata->menu, (void*) _agregar_platos_restantes);
 		list_add(queues_ready, (void*) cola_restantes->comidas);
+
+		//TODO: Crear hilos de cocineros RESTANTES acá ??
 	}
 
 	//TODO: Crear hilos de hornos acá ??
@@ -59,6 +61,8 @@ uint32_t rest_generar_id(void)
 
 void rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_receta, char* cliente)
 {
+	CS_LOG_TRACE("Se va a agregar el PCB a la cola de planificación: {%s,%d}", comida, pedido_id);
+
 	rest_pcb_t* pcb_nuevo = malloc(sizeof(rest_pcb_t));
 	pcb_nuevo->estado = ESTADO_NEW;
 
@@ -81,8 +85,27 @@ void rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_recet
 		pcb_nuevo->conexion = -1;
 	}
 
-	//TODO: Agregar PCB
-	CS_LOG_TRACE("Se va a agregar el PCB a la cola de planificación");
+	rest_cola_ready_push(rest_cola_ready_find(pcb_nuevo->comida), pcb_nuevo);
+}
+
+void rest_cola_ready_push(rest_cola_ready_t* queue, rest_pcb_t* pcb)
+{
+	pthread_mutex_lock(&queue->mutex_queue);
+	queue_push(queue, (void*) pcb);
+	pthread_mutex_unlock(&queue->mutex_queue);
+	sem_post(&queue->sem_queue);
+}
+
+rest_pcb_t* rest_cola_ready_pop(rest_cola_ready_t* queue)
+{
+	rest_pcb_t* pcb;
+
+	sem_wait(&queue->sem_queue);
+	pthread_mutex_lock(&queue->mutex_queue);
+	pcb = queue_pop(queue);
+	pthread_mutex_unlock(&queue->mutex_queue);
+
+	return pcb;
 }
 
 static rest_cola_ready_t* rest_cola_ready_create(char* comida)
