@@ -1,5 +1,8 @@
+#include "restclientes.h"
 #include "restcore.h"
-#include "restlisten.h"
+#include "restenvio.h"
+#include "restplanificador.h"
+#include "restrecepcion.h"
 
 #define CONFIG_FILE_PATH "restaurante.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
@@ -20,9 +23,9 @@ int main(int argc, char* argv[])
 	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, mi_nombre));
 	cs_error_init();
 
-	rest_core_init(rest_obtener_metadata());
-	rest_listen_init();
-	rest_enviar_handshake();
+	rest_planificador_init(rest_obtener_metadata());
+	rest_recepcion_init();
+	rest_app_connect();
 
 	CS_LOG_TRACE("Iniciado correctamente");
 

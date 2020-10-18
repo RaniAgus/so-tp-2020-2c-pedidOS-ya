@@ -1,4 +1,4 @@
-#include "restlisten.h"
+#include "restrecepcion.h"
 
 static pthread_t hilo_escucha;
 static t_sfd	 conexion_escucha;
@@ -15,7 +15,7 @@ static void rest_recibir_cons_ped(t_sfd conn, t_consulta* msg);
 
 static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype msg_type, void* rta);
 
-void rest_listen_init(void)
+void rest_recepcion_init(void)
 {
 	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, cs_config_get_string("PUERTO_ESCUCHA")));
 	CHECK_STATUS(PTHREAD_CREATE(&hilo_escucha, rest_recv_msg_routine, NULL));
@@ -87,7 +87,7 @@ static void rest_recibir_hs_cli(t_sfd conn, t_handshake_cli* msg)
 	rta = cs_rta_handshake_cli_create();
 
 	// Si el cliente no se encuentra, se agrega
-	if(rest_cliente_find_index(msg->nombre) < 0)
+	if(!rest_cliente_find(msg->nombre))
 	{
 		CS_LOG_TRACE("(%d)No se encontró a %s entre la lista de Clientes, se agregará a la misma.", conn, msg->nombre);
 		rest_cliente_add( rest_cliente_create(msg->nombre, conn) );
@@ -182,8 +182,34 @@ static void rest_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 	pedido = rest_obtener_pedido(msg->pedido_id, &resultado_cons);
 
 	//Si se obtuvo con éxito, genera los PCBs de cada plato
-	if(resultado_cons == OPCODE_RESPUESTA_OK) {
-		rest_generar_pcbs(msg->pedido_id, pedido, cliente);
+	if(resultado_cons == OPCODE_RESPUESTA_OK)
+	{
+		CS_LOG_TRACE("Se generarán los PCBs del pedido %d generado por %s",
+				msg->pedido_id, ({ cliente ? cliente : "App"; })
+		);
+
+		//Itera la lista de platos
+		void _generar_plato_control_block(t_plato* plato)
+		{
+			int8_t result;
+
+			//Obtiene cada receta
+			t_rta_obt_rec* receta = rest_obtener_receta(plato->comida, &result);
+			if(result == OPCODE_RESPUESTA_OK)
+			{
+				//Crea un PCB para cada plato
+				for(int i = 0; i < plato->cant_total; i++) {
+					rest_planificar_plato(plato->comida, msg->pedido_id, receta->pasos_receta, cliente);
+				}
+			}
+			else
+			{
+				CS_LOG_ERROR("Error al obtener la receta de: %s", plato->comida);
+			}
+
+			cs_msg_destroy(receta, result, OBTENER_RECETA);
+		}
+		list_iterate(pedido->platos_y_estados, (void*) _generar_plato_control_block);
 	}
 
 	//Retorna la respuesta obtenida
