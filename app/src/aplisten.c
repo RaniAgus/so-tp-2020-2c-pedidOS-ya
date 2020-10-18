@@ -461,7 +461,7 @@ static void ap_recibir_aniadir_pl(t_sfd conn, t_consulta* msg, char* cliente)
 static void ap_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 {
 	int8_t result;
-	ap_restaurante_t* restaurante;
+	ap_restaurante_t* restaurante = NULL;
 
 	if(cliente != NULL)
 	{
@@ -654,10 +654,7 @@ static e_status ap_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype msg_
 	}
 	else
 	{
-		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s",
-				cs_enum_status_to_str(status),
-				respuesta_str
-		);
+		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s", cs_enum_status_to_str(status), respuesta_str);
 	}
 
 	free(respuesta_str);
