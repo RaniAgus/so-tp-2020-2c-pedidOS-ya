@@ -1,6 +1,5 @@
 #include "clparser.h"
 
-#define MODULE_NAME		 "CLIENTE"
 #define CONFIG_FILE_PATH "cliente.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
 #define IP_SERVER 		 "IP"
@@ -18,8 +17,14 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module);
 
 e_status client_init(pthread_t* thread_recv_msg)
 {
+	char* module_name;
+
 	//Inicia los config y logger
-	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
+	module_name = strdup(cs_config_get_string("ID_CLIENTE"));
+	string_to_upper(module_name);
+	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, module_name));
+	cs_error_init();
 
 	//serv_ip y serv_port almacenan la info del servidor a conectarse
 	serv_ip   = cs_config_get_string(IP_SERVER);
@@ -36,7 +41,8 @@ e_status client_init(pthread_t* thread_recv_msg)
 	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
 
 	CS_LOG_TRACE(__FILE__":%s:%d -- Iniciado correctamente.", __func__, __LINE__);
-
+	
+	free(module_name);
 	return STATUS_SUCCESS;
 }
 

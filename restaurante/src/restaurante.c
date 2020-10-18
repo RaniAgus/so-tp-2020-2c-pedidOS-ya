@@ -10,9 +10,15 @@
 
 void restaurante_init(void)
 {
+	char* nombre_en_mayus;
+
 	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
+
 	mi_nombre = cs_config_get_string("NOMBRE_RESTAURANTE");
-	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, mi_nombre));
+	nombre_en_mayus = strdup(mi_nombre);
+	string_to_upper(nombre_en_mayus);
+
+	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, nombre_en_mayus));
 	cs_error_init();
 
 	rest_planificador_corto_plazo_init();
@@ -21,6 +27,7 @@ void restaurante_init(void)
 	rest_app_connect();
 
 	CS_LOG_TRACE("Iniciado correctamente");
+	free(nombre_en_mayus);
 }
 
 void restaurante_routine(void)

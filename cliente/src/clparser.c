@@ -1,15 +1,11 @@
 #include "clparser.h"
 
-// <MSGTYPE>  ............<ARGS>............
-#define CL_MIN_AMOUNT_ARGS  1
-#define CL_MSGTYPE_ARG      0
-
 /**************************************** PARSER ********************************************/
 
 cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[], e_module serv_module)
 {
 	// Verifica que argc tenga el mínimo de argumentos necesarios
-	if(argc < CL_MIN_AMOUNT_ARGS)
+	if(argc < 1)
 	{
 		result->msgtype = MSGTYPE_UNKNOWN;
 
@@ -17,7 +13,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	}
 
 	// Lee el tipo de mensaje
-	result->msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
+	string_to_upper(argv[0]);
+	result->msgtype = (int8_t)cs_string_to_enum(argv[0],
 											   			cs_enum_msgtype_to_str);
 
 	CS_LOG_TRACE(__FILE__":%s:%d -- Se leyó el tipo de mensaje: %s",
@@ -28,7 +25,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	char *comida = NULL, *restaurante = NULL;
 	int cantidad = 0, pedido_id = 0;
 
-	int arg = CL_MSGTYPE_ARG + 1;
+	int arg = 1;
 	if(cs_cons_has_argument(result->msgtype, CONS_ARG_COMIDA, serv_module))
 	{
 		if(arg == argc)	return CL_CANT_ARGS_ERROR;
