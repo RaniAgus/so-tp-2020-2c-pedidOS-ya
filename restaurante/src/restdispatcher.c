@@ -1,4 +1,4 @@
-#include "restplanifcortoplazo.h"
+#include "restdispatcher.h"
 
 static sem_t** array_sem_inicio_ciclo_cpu;
 static sem_t** array_sem_fin_ciclo_cpu;

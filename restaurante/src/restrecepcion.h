@@ -3,7 +3,7 @@
 
 #include "restcore.h"
 #include "restenvio.h"
-#include "restplaniflargoplazo.h"
+#include "restplanificador.h"
 
 void rest_recepcion_init(void);
 

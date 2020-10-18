@@ -1,8 +1,8 @@
 #include "restclientes.h"
 #include "restcore.h"
+#include "restdispatcher.h"
 #include "restenvio.h"
-#include "restplanifcortoplazo.h"
-#include "restplaniflargoplazo.h"
+#include "restplanificador.h"
 #include "restrecepcion.h"
 
 #define CONFIG_FILE_PATH "restaurante.config"

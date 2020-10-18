@@ -1,5 +1,5 @@
-#ifndef RESTPLANIFCORTOPLAZO_H_
-#define RESTPLANIFCORTOPLAZO_H_
+#ifndef RESTDISPATCHER_H_
+#define RESTDISPATCHER_H_
 
 #include "restcore.h"
 
@@ -32,4 +32,4 @@ void rest_horno_routine();
 void rest_iniciar_ciclo_cpu(void);
 void rest_esperar_fin_ciclo_cpu(void);
 
-#endif /* RESTPLANIFCORTOPLAZO_H_ */
+#endif /* RESTDISPATCHER_H_ */

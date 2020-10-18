@@ -1,10 +1,10 @@
-#ifndef RESTPLANIFLARGOPLAZO_H_
-#define RESTPLANIFLARGOPLAZO_H_
+#ifndef RESTPLANIFICADOR_H_
+#define RESTPLANIFICADOR_H_
 
 #include "restcore.h"
 #include "restenvio.h"
 #include "restclientes.h"
-#include "restplanifcortoplazo.h"
+#include "restdispatcher.h"
 
 void rest_planificador_largo_plazo_init(t_rta_obt_rest* metadata);
 
@@ -14,4 +14,4 @@ int  	 rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_rec
 void 		rest_cola_ready_push(rest_cola_ready_t* queue, rest_pcb_t* pcb);
 rest_pcb_t* rest_cola_ready_pop(rest_cola_ready_t* queue);
 
-#endif /* RESTPLANIFLARGOPLAZO_H_ */
+#endif /* RESTPLANIFICADOR_H_ */
