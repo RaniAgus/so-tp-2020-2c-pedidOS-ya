@@ -2,6 +2,7 @@
 #define RESTDISPATCHER_H_
 
 #include "restcore.h"
+#include "restenvio.h"
 
 typedef enum
 {

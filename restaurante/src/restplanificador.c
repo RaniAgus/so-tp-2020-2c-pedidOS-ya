@@ -109,20 +109,10 @@ int rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_receta
 		pcb_nuevo->conexion = -1;
 	}
 
-	rest_cola_ready_push(queue, pcb_nuevo);
+	queue_sync_push(queue->queue, &queue->mutex_queue, NULL, (void*) pcb_nuevo);
 	CS_LOG_TRACE("Se agregó el PCB a la cola de planificación: {%s,%d}", pcb_nuevo->comida, pcb_nuevo->pedido_id);
 
 	return 0;
-}
-
-void rest_cola_ready_push(rest_cola_ready_t* queue, rest_pcb_t* pcb)
-{
-	queue_sync_push(queue->queue, &queue->mutex_queue, NULL, (void*) pcb);
-}
-
-rest_pcb_t* rest_cola_ready_pop(rest_cola_ready_t* queue)
-{
-	return queue_sync_pop(queue->queue, &queue->mutex_queue, NULL);
 }
 
 //Funciones privadas
