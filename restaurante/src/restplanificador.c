@@ -15,13 +15,13 @@ void rest_planificador_init(t_rta_obt_rest* metadata)
 	//Crea las queues con afinidades
 	void _crear_queues(char* comida) {
 		rest_cola_ready_t* queue_cocinero = rest_cola_ready_get(comida);
-		if(queue_cocinero == NULL) {
+		if(queue_cocinero == NULL)
+		{
 			queue_cocinero = rest_cola_ready_create(comida);
 			list_add(queues_ready, (void*) queue_cocinero);
 			CS_LOG_TRACE("Se creó la cola para: %s", comida);
 		}
-
-		//TODO: Crear hilos de cocineros acá ??
+		//TODO: [RESTAURANTE] Crear hilos de cocineros acá
 	}
 	string_iterate_lines(metadata->afinidades, _crear_queues);
 
@@ -33,8 +33,9 @@ void rest_planificador_init(t_rta_obt_rest* metadata)
 		CS_LOG_TRACE("Se creó una cola para comidas restantes");
 
 		void _agregar_platos_restantes(t_comida_menu* comida) {
-			if(rest_cola_ready_get(comida->comida) == NULL) {
-				//TODO: Incluir precios ??
+			if(rest_cola_ready_get(comida->comida) == NULL)
+			{
+				//TODO: [RESTAURANTE] Los precios sirven de algo ??
 				list_add(cola_restantes->comidas, strdup(comida->comida));
 				CS_LOG_TRACE("Se agregó %s a la cola de comidas restantes", comida->comida);
 			}
@@ -42,10 +43,16 @@ void rest_planificador_init(t_rta_obt_rest* metadata)
 		list_iterate(metadata->menu, (void*) _agregar_platos_restantes);
 		list_add(queues_ready, (void*) cola_restantes->comidas);
 
-		//TODO: Crear hilos de cocineros RESTANTES acá ??
+		for(int i = cant_cocineros_afines; i < metadata->cant_cocineros; i++)
+		{
+			//TODO: [RESTAURANTE] Crear hilos de cocineros RESTANTES acá
+		}
 	}
 
-	//TODO: Crear hilos de hornos acá ??
+	for(int i = 0; i < metadata->cant_hornos; i++)
+	{
+		//TODO: [RESTAURANTE] Crear hilos de hornos acá
+	}
 
 	id_pedido = metadata->cant_pedidos;
 	pthread_mutex_init(&mutex_id_pedido, NULL);

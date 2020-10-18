@@ -91,7 +91,7 @@ t_rta_obt_rec* rest_obtener_receta(char* comida, int8_t* result)
 	return receta;
 }
 
-//TODO: Testear envío plato listo
+//TODO: [RESTAURANTE] Testear envío plato listo
 int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente, char* comida, uint32_t pedido_id)
 {
 	int8_t result;
@@ -116,7 +116,7 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 	return result;
 }
 
-//TODO: testear envio terminar pedido
+//TODO: [RESTAURANTE] testear envio terminar pedido
 void rest_terminar_pedido(uint32_t pedido_id, int8_t* result)
 {
 	t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
