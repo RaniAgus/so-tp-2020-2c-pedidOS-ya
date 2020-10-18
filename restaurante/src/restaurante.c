@@ -23,8 +23,8 @@ int main(int argc, char* argv[])
 	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, mi_nombre));
 	cs_error_init();
 
-	rest_planificador_init(rest_obtener_metadata());
 	rest_recepcion_init();
+	rest_planificador_init(rest_obtener_metadata());
 	rest_app_connect();
 
 	CS_LOG_TRACE("Iniciado correctamente");

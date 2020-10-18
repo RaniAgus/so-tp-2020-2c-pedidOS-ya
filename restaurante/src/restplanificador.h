@@ -26,6 +26,14 @@ typedef struct
 	pthread_mutex_t* mutex_conexion;
 }rest_pcb_t;
 
+typedef struct
+{
+	t_list*			comidas;
+	t_queue* 		queue;
+	pthread_mutex_t mutex_queue;
+	sem_t 			sem_queue;
+}rest_cola_ready_t;
+
 void rest_planificador_init(t_rta_obt_rest* metadata);
 
 uint32_t rest_generar_id(void);

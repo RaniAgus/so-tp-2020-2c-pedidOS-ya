@@ -17,30 +17,28 @@ static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype ms
 
 void rest_recepcion_init(void)
 {
-	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, cs_config_get_string("PUERTO_ESCUCHA")));
+	char* puerto_escucha = cs_config_get_string("PUERTO_ESCUCHA");
+	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, puerto_escucha));
+	CS_LOG_TRACE("Se abrió un servidor: {PUERTO_ESCUCHA: %s}", puerto_escucha);
 	CHECK_STATUS(PTHREAD_CREATE(&hilo_escucha, rest_recv_msg_routine, NULL));
 }
 
 static void rest_recv_msg_routine(void)
 {
-	CS_LOG_TRACE("Se abrió un servidor: {PUERTO_ESCUCHA: %s}", cs_config_get_string("PUERTO_ESCUCHA"));
-
-	void _err_handler(e_status err) {
-		PRINT_ERROR(err);
-	}
-
-	void _recv_msg(t_sfd* conn) {
+	void _recv_msg(t_sfd* conn)
+	{
 		e_status status;
 
 		void _recibir_mensaje(t_sfd conexion, t_header encabezado, void* mensaje) {
 			rest_recibir_mensaje(conexion, encabezado, mensaje, NULL);
 		}
-
 		status = cs_recv_msg(*conn, _recibir_mensaje);
 		if(status != STATUS_SUCCESS) PRINT_ERROR(status);
 
 		free((void*)conn);
 	}
+
+	void _err_handler(e_status err) { PRINT_ERROR(err); }
 
 	cs_tcp_server_accept_routine(&conexion_escucha, _recv_msg, _err_handler);
 }
@@ -59,7 +57,7 @@ static void rest_recibir_mensaje(t_sfd conn, t_header header, void* msg, char* c
 		case CONSULTAR_PLATOS:	rest_recibir_cons_pl   (conn, msg); break;
 		case CREAR_PEDIDO:		rest_recibir_crear_ped (conn, msg); break;
 		case ANIADIR_PLATO:		rest_recibir_aniadir_pl(conn, msg); break;
-		case CONFIRMAR_PEDIDO:	rest_recibir_conf_ped(conn, msg, cliente); break;
+		case CONFIRMAR_PEDIDO:	rest_recibir_conf_ped  (conn, msg, cliente); break;
 		case CONSULTAR_PEDIDO:	rest_recibir_cons_ped  (conn, msg); break;
 		default:
 			/* Un Restaurante NO recibe:
@@ -202,10 +200,7 @@ static void rest_recibir_conf_ped(t_sfd conn, t_consulta* msg, char* cliente)
 					rest_planificar_plato(plato->comida, msg->pedido_id, receta->pasos_receta, cliente);
 				}
 			}
-			else
-			{
-				CS_LOG_ERROR("Error al obtener la receta de: %s", plato->comida);
-			}
+			else CS_LOG_ERROR("Error al obtener la receta de: %s", plato->comida);
 
 			cs_msg_destroy(receta, result, OBTENER_RECETA);
 		}
@@ -257,10 +252,7 @@ static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype ms
 	}
 	else
 	{
-		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s",
-				cs_enum_status_to_str(status),
-				respuesta_str
-		);
+		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s", cs_enum_status_to_str(status), respuesta_str);
 	}
 
 	free(respuesta_str);
