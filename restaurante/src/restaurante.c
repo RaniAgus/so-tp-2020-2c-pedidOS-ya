@@ -21,8 +21,7 @@ void restaurante_init(void)
 	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, nombre_en_mayus));
 	cs_error_init();
 
-	rest_planificador_corto_plazo_init();
-	rest_planificador_largo_plazo_init(rest_obtener_metadata());
+	rest_planificador_init( rest_dispatcher_init( rest_obtener_metadata() ) );
 	rest_recepcion_init();
 	rest_app_connect();
 

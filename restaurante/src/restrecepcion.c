@@ -21,6 +21,7 @@ void rest_recepcion_init(void)
 	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, puerto_escucha));
 	CS_LOG_TRACE("Se abrió un servidor: {PUERTO_ESCUCHA: %s}", puerto_escucha);
 	CHECK_STATUS(PTHREAD_CREATE(&hilo_escucha, rest_recv_msg_routine, NULL));
+	rest_clientes_init();
 }
 
 static void rest_recv_msg_routine(void)
@@ -198,6 +199,7 @@ static void rest_recibir_confirmar_pedido(t_sfd conn, t_consulta* recibido, char
 				//Crea un PCB para cada plato
 				for(int i = 0; i < plato->cant_total; i++) {
 					if(rest_planificar_plato(plato->comida, recibido->pedido_id, receta->pasos_receta, cliente) == -1) {
+						CS_LOG_ERROR("Error al planificar: %s", plato->comida);
 						break;
 					}
 				}
@@ -250,7 +252,7 @@ static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype ms
 	status = cs_send_respuesta(conn, header, rta);
 	if(status == STATUS_SUCCESS)
 	{
-		CS_LOG_TRACE("Se envió la respuesta: %s", respuesta_str);
+		CS_LOG_DEBUG("Se envió la respuesta: %s", respuesta_str);
 	}
 	else
 	{
