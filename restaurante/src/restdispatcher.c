@@ -217,8 +217,9 @@ static void rest_cocinero_routine(rest_cola_ready_t* queue_ready)
 			if(asignado)
 			{
 				asignado->estado = ESTADO_EXEC;
-				CS_LOG_INFO("Se empezó a cocinar: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-						asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
+				t_paso_receta* siguiente_paso = list_get(asignado->pasos_restantes, 0);
+				CS_LOG_INFO("Se empezó a %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
+						siguiente_paso->paso, asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
 				);
 			}
 		}
@@ -382,7 +383,9 @@ static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* asignado)
 			asignado = NULL;
 		} else if (asignado->estado == ESTADO_EXEC)
 		{
-			CS_LOG_DEBUG("Se continuará con el paso %s: {%s,%d}", siguiente_paso->paso, asignado->comida, asignado->pedido_id);
+			CS_LOG_INFO("Se continuará con el paso %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
+					siguiente_paso->paso, asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
+			);
 		}
 	} else
 	{
