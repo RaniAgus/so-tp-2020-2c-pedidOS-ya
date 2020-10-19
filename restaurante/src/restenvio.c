@@ -102,7 +102,7 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 		if(conexion == -1)
 		{
 			pthread_mutex_lock(mutex_conexion_app);
-			rest_enviar_consulta(MODULO_APP, conexion, PLATO_LISTO, cons, &result);
+			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, cons, &result);
 			pthread_mutex_unlock(mutex_conexion_app);
 		} else
 		{
@@ -111,17 +111,27 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 			pthread_mutex_unlock(mutex_conexion_cliente);
 		}
 	}
-	cs_msg_destroy(cons, result, PLATO_LISTO);
+	cs_msg_destroy(cons, OPCODE_CONSULTA, PLATO_LISTO);
 
 	return result;
 }
 
-//TODO: [RESTAURANTE] testear envio terminar pedido
-void rest_terminar_pedido(uint32_t pedido_id, int8_t* result)
+int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
-	t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
-	rest_consultar_sindicato(TERMINAR_PEDIDO, cons, result);
-	cs_msg_destroy(cons, OPCODE_CONSULTA, TERMINAR_PEDIDO);
+	int8_t result;
+	t_rta_obt_ped* pedido = rest_obtener_pedido(pedido_id, &result);
+	if(result == OPCODE_RESPUESTA_OK)
+	{
+		if(cs_platos_sumar_listos(pedido->platos_y_estados) == cs_platos_sumar_totales(pedido->platos_y_estados))
+		{
+			t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
+			rest_consultar_sindicato(TERMINAR_PEDIDO, cons, &result);
+			cs_msg_destroy(cons, OPCODE_CONSULTA, TERMINAR_PEDIDO);
+		}
+		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	}
+
+	return result;
 }
 
 static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result)
@@ -134,7 +144,7 @@ static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type
 	status = cs_send_consulta(conexion, msg_type, consulta, dest);
 	if(status == STATUS_SUCCESS)
 	{
-		CS_LOG_TRACE("Se envió la consulta: %s", consulta_str);
+		CS_LOG_DEBUG("Se envió la consulta: %s", consulta_str);
 		rta = rest_recibir_respuesta(conexion, msg_type, result);
 	}
 	else
@@ -157,7 +167,7 @@ static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* res
 	void _recibir_respuesta(t_sfd conexion, t_header header_recibido, void* respuesta)
 	{
 		char* rta_str = cs_msg_to_str(respuesta, header_recibido.opcode,  header_recibido.msgtype);
-		CS_LOG_TRACE("Se recibió la respuesta: %s", rta_str);
+		CS_LOG_DEBUG("Se recibió la respuesta: %s", rta_str);
 		free(rta_str);
 
 		//Guarda la respuesta para retornarla
