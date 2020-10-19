@@ -19,3 +19,12 @@ void*	queue_sync_pop(t_queue* self, pthread_mutex_t* mutex, sem_t* semaphor)
 
 	return data;
 }
+
+bool	queue_sync_has_elements(t_queue* self, pthread_mutex_t* mutex)
+{
+	pthread_mutex_lock(mutex);
+	bool is_empty = queue_is_empty(self);
+	pthread_mutex_unlock(mutex);
+
+	return !is_empty;
+}
