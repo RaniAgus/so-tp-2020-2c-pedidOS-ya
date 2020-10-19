@@ -150,7 +150,6 @@ int rest_derivar_pcb(rest_pcb_t* pcb)
 				pcb->id, rest_estado_to_str(pcb->estado), pcb->comida, pcb->pedido_id
 		);
 		rest_plato_listo(pcb->conexion, pcb->mutex_conexion, pcb->comida, pcb->pedido_id);
-		rest_terminar_pedido_si_corresponde(pcb->pedido_id);
 		rest_pcb_destroy(pcb);
 
 		return 1;

@@ -3,6 +3,8 @@
 static t_sfd 			conexion_app;
 static pthread_mutex_t* mutex_conexion_app;
 
+static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
+
 static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result);
 static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* result);
 
@@ -113,10 +115,10 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 	}
 	cs_msg_destroy(cons, OPCODE_CONSULTA, PLATO_LISTO);
 
-	return result;
+	return result == OPCODE_RESPUESTA_OK ? rest_terminar_pedido_si_corresponde(pedido_id) : result;
 }
 
-int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
+static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
 	int8_t result;
 	t_rta_obt_ped* pedido = rest_obtener_pedido(pedido_id, &result);
