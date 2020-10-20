@@ -31,7 +31,7 @@ void restaurante_init(void)
 
 void restaurante_routine(void)
 {
-	while(1)
+	while(true)
 	{
 		rest_iniciar_ciclo_cpu();
 		sleep(cs_config_get_int("RETARDO_CICLO_CPU"));

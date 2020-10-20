@@ -1,7 +1,7 @@
 #include "restenvio.h"
 
 static t_sfd 			conexion_app;
-static pthread_mutex_t* mutex_conexion_app;
+static pthread_mutex_t  mutex_conexion_app;
 
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
 
@@ -29,9 +29,7 @@ t_rta_obt_rest* rest_obtener_metadata(void)
 void rest_app_connect(void)
 {
 	e_status status;
-
-	mutex_conexion_app = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(mutex_conexion_app, NULL);
+	pthread_mutex_init(&mutex_conexion_app, NULL);
 
 	status = cs_tcp_client_create(&conexion_app, cs_config_get_string("IP_APP"), cs_config_get_string("PUERTO_APP"));
 	if(status == STATUS_SUCCESS)
@@ -93,31 +91,31 @@ t_rta_obt_rec* rest_obtener_receta(char* comida, int8_t* result)
 	return receta;
 }
 
-//TODO: [RESTAURANTE] Testear envío plato listo
 int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente, char* comida, uint32_t pedido_id)
 {
 	int8_t result;
-	t_consulta* cons = cs_msg_plato_listo_create(comida, mi_nombre, pedido_id);
-	rest_consultar_sindicato(PLATO_LISTO, cons, &result);
+	t_consulta* plato_listo = cs_msg_plato_listo_create(comida, mi_nombre, pedido_id);
+	rest_consultar_sindicato(PLATO_LISTO, plato_listo, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
 		if(conexion == -1)
 		{
 			pthread_mutex_lock(mutex_conexion_app);
-			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, cons, &result);
+			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, plato_listo, &result);
 			pthread_mutex_unlock(mutex_conexion_app);
 		} else
 		{
 			pthread_mutex_lock(mutex_conexion_cliente);
-			rest_enviar_consulta(MODULO_CLIENTE, conexion, PLATO_LISTO, cons, &result);
+			rest_enviar_consulta(MODULO_CLIENTE, conexion, PLATO_LISTO, plato_listo, &result);
 			pthread_mutex_unlock(mutex_conexion_cliente);
 		}
 	}
-	cs_msg_destroy(cons, OPCODE_CONSULTA, PLATO_LISTO);
+	cs_msg_destroy(plato_listo, OPCODE_CONSULTA, PLATO_LISTO);
 
 	return result == OPCODE_RESPUESTA_OK ? rest_terminar_pedido_si_corresponde(pedido_id) : result;
 }
 
+//TODO: [RESTAURANTE] Testear terminar pedido
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
 	int8_t result;
