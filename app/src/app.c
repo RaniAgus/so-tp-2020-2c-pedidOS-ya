@@ -1,13 +1,13 @@
-#include "apconn.h"
-#include "apsend.h"
+#include "appconectados.h"
+#include "appenvio.h"
 #include "applanificador.h"
-#include "aplisten.h"
+#include "apprecepcion.h"
 
 #define MODULE_NAME		 "APP"
 #define CONFIG_FILE_PATH "app.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
 
-void wait(void)
+void app_routine(void) //TODO: Cambiar!!
 {
 	sem_t aux;
 	sem_init(&aux, 0, 0);
@@ -21,9 +21,9 @@ int main(int argc, char* argv[])
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	CS_LOG_TRACE("Iniciado correctamente");
 
-	ap_conn_init();
-	ap_listen_init();
-	wait();
+	app_conectados_init();
+	app_recepcion_init();
+	app_routine();
 
 	cs_module_close();
 
