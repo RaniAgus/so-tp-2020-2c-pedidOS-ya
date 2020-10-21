@@ -50,7 +50,6 @@ void server_send_rta_handshake(t_sfd client_conn)
 
 int main(void)
 {
-	printf("tamanio de long long %i", sizeof(long long));
 	char* str_time;
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
@@ -72,6 +71,7 @@ int main(void)
 	memoriaPrincipal = malloc(tamMemoria);
 	listaRestaurantes = list_create();
 	listaFramesMemoria = acomodarFrames(tamMemoria);
+	crearAreaSwap();
 
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'

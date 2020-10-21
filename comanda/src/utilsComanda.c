@@ -149,6 +149,28 @@ void liberarFrame(void* direccion){
 	pthread_mutex_unlock(&mutexListaFrames);
 }
 
+void crearAreaSwap(){
+	int fd;
+	//struct stat file_st;
+	fd= open("swap.bin",O_RDWR | O_CREAT, (mode_t) 0777);
+	if(fd==-1){
+		CS_LOG_TRACE("error abriendo swap.bin");
+	}
+	//char bro = 'a';
+	//fwrite(&bro,1,2048,fd);
+	//fclose(fd);
+	//fstat(fd, &file_st);
+	fallocate(fd, 0, 0, cs_config_get_int("TAMANIO_SWAP"));
+	areaSwap= mmap(NULL, cs_config_get_int("TAMANIO_SWAP"),PROT_WRITE | PROT_READ,MAP_SHARED,fd,0);
+	if(areaSwap==MAP_FAILED){
+		CS_LOG_TRACE("error mapeando");
+	}
+	int a = 3;
+	memcpy(areaSwap,&a,4);
+	char* banana = "bananana";
+	memcpy(areaSwap,banana,8);
+}
+
 e_opcode guardarPedido(t_consulta* msg){
 	t_restaurante* restaurante;
 	restaurante = buscarRestaurante(msg->restaurante);

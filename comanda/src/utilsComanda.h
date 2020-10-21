@@ -9,8 +9,13 @@
 #define UTILSCOMANDA_H_
 
 #include <cshared/cshared.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 void* memoriaPrincipal;
+void* areaSwap;
 t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
 
