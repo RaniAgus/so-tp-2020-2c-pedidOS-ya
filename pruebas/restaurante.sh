@@ -1,3 +1,4 @@
+cd ..
 ./config.sh serv Sindicato
 ./config.sh res sin localhost 4444
 ./config.sh res serv 5003

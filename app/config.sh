@@ -11,6 +11,7 @@ if [ $# -lt 1 ];then
     echo "./config.sh fifo"
     echo "./config.sh hrrn [ALPHA] [ESTIMACION_INICIAL]"
     echo "./config.sh sjf [ALPHA] [ESTIMACION_INICIAL]"
+    echo "./config.sh rep \"[REPARTIDORES]\" [FRECUENCIA_DE_DESCANSO] [TIEMPO_DE_DESCANSO]"
 else
     if [ "$1" == "com" ];then
         sed -i "1s/.*/IP_COMANDA=$2/" $BIN$FILE
@@ -43,5 +44,12 @@ else
         echo "Nuevo algoritmo de planificacion: SJF"
         echo "Nuevo alpha: $2"
         echo "Nueva estimacion inicial: $3"
+    elif [ "$1" == "rep" ];then
+        sed -i "9s/.*/REPARTIDORES=$2/" $BIN$FILE
+        sed -i "10s/.*/FRECUENCIA_DE_DESCANSO=$3/" $BIN$FILE
+        sed -i "11s/.*/TIEMPO_DE_DESCANSO=$4/" $BIN$FILE
+        echo "Nuevos repartidores: $2"
+        echo "Nuevas frecuencias de descanso: $3"
+        echo "Nuevos tiempos de descanso: $4"
     fi
 fi
