@@ -102,15 +102,16 @@ static void app_recibir_mensaje(t_sfd conexion, t_header header, void* mensaje, 
 			app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, header.msgtype, NULL);
 			break;
 		}
-
+		//Si se recibió desde cliente, se cierra la conexión
+		if(cliente != NULL){
+			close(conexion);
+			CS_LOG_TRACE("(%d)Se cerró la conexión.", conexion);
+		}
 	} else //Si no es consulta, loguea un error
 	{
 		CS_LOG_ERROR("Se esperaba una consulta!!");
 		close(conexion);
 	}
-
-	//Si se recibió desde cliente, se cierra la conexión
-	if(cliente != NULL) close(conexion);
 }
 
 static void app_recibir_handshake_cliente(t_sfd conexion_cliente, t_handshake_cli* handshake_cliente)
