@@ -2,6 +2,8 @@
 
 static int QUANTUM = 0;
 
+static sem_t sem_creado;
+
 static t_list* 	queues_ready;
 
 static rest_ciclo_t**  array_sem_ciclo_cpu;
@@ -27,6 +29,8 @@ static void rest_pcb_destroy(rest_pcb_t* pcb);
 
 uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 {
+	sem_init(&sem_creado, 0, 0);
+
 	//Crea sus estructuras administrativas
 	queues_ready = list_create();
 
@@ -55,6 +59,7 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		pthread_t thread_cocinero;
 		PTHREAD_CREATE(&thread_cocinero, rest_cocinero_routine, queue_cocinero);
 		pthread_detach(thread_cocinero);
+		sem_wait(&sem_creado);
 	}
 	string_iterate_lines(metadata->afinidades, _crear_queues);
 
@@ -82,6 +87,7 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 			pthread_t thread_cocinero;
 			PTHREAD_CREATE(&thread_cocinero, rest_cocinero_routine, queue_restantes);
 			pthread_detach(thread_cocinero);
+			sem_wait(&sem_creado);
 		}
 	}
 
@@ -91,12 +97,14 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		pthread_t thread_horno;
 		PTHREAD_CREATE(&thread_horno, rest_horno_routine, NULL);
 		pthread_detach(thread_horno);
+		sem_wait(&sem_creado);
 	}
 
 	//Crea el hilo de platos en reposo
 	pthread_t thread_reposo;
 	PTHREAD_CREATE(&thread_reposo, rest_reposo_routine, NULL);
 	pthread_detach(thread_reposo);
+	sem_wait(&sem_creado);
 
 	//Obtiene el resto de la metadata
 	uint32_t cant_pedidos = metadata->cant_pedidos;
@@ -203,6 +211,7 @@ static void rest_cocinero_routine(rest_cola_ready_t* queue_ready)
 {
 	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
 	CS_LOG_DEBUG("Se creó un cocinero.");
+	sem_post(&sem_creado);
 
 	int ciclos = 0;
 	rest_pcb_t* asignado = NULL;
@@ -258,6 +267,7 @@ static void rest_horno_routine(void)
 {
 	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
 	CS_LOG_DEBUG("Se creó un horno.");
+	sem_post(&sem_creado);
 
 	rest_pcb_t* asignado = NULL;
 
@@ -299,6 +309,7 @@ static void rest_reposo_routine(void)
 {
 	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
 	CS_LOG_DEBUG("Se creó el thread reposo.");
+	sem_post(&sem_creado);
 
 	while(true)
 	{
@@ -374,7 +385,7 @@ static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* asignado)
 		}
 		list_remove_and_destroy_element(asignado->pasos_restantes, 0, (void*) _destruir_paso);
 		siguiente_paso = list_get(asignado->pasos_restantes, 0);
-		if( asignado->estado != ESTADO_EXEC
+		if( !siguiente_paso || asignado->estado != ESTADO_EXEC
 		    || string_equals_ignore_case(siguiente_paso->paso, "Reposar")
 		    || string_equals_ignore_case(siguiente_paso->paso, "Hornear") )
 		{

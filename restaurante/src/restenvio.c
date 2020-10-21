@@ -100,9 +100,9 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 	{
 		if(conexion == -1)
 		{
-			pthread_mutex_lock(mutex_conexion_app);
+			pthread_mutex_lock(&mutex_conexion_app);
 			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, plato_listo, &result);
-			pthread_mutex_unlock(mutex_conexion_app);
+			pthread_mutex_unlock(&mutex_conexion_app);
 		} else
 		{
 			pthread_mutex_lock(mutex_conexion_cliente);
