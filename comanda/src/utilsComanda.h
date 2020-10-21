@@ -9,12 +9,18 @@
 #define UTILSCOMANDA_H_
 
 #include <cshared/cshared.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 void* memoriaPrincipal;
+void* areaSwap;
 t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
 
 pthread_mutex_t mutexMemoriaInterna;
+pthread_mutex_t mutexListaFrames;
 
 typedef struct
 {
@@ -34,6 +40,7 @@ typedef struct
 	t_list* tablaPaginas;
 	uint32_t idPedido;
 	e_estado_ped estadoPedido;
+	pthread_mutex_t mutexPedido;
 }t_segmentoPedido;
 
 
