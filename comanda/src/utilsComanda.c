@@ -120,19 +120,23 @@ t_list* acomodarFrames(int tamMemoria){
 }
 
 t_frame_en_memoria* dameUnFrame(){
+	pthread_mutex_lock(&mutexListaFrames);
 	int tamanioListaFrames = list_size(listaFramesMemoria);
 	for (int i=0;i<tamanioListaFrames;i++){
 		t_frame_en_memoria* unFrame;
 		unFrame = list_get(listaFramesMemoria,i);
 		if(unFrame->paginaALaQuePertenece == NULL){
 			CS_LOG_TRACE("le di la posicion de memoria %i", (int) unFrame->inicio);
+			pthread_mutex_unlock(&mutexListaFrames);
 			return unFrame;
 		}
 	}
+	pthread_mutex_unlock(&mutexListaFrames);
 	//TODO: Swaaaaaaaaaaap
 }
 
 void liberarFrame(void* direccion){
+	pthread_mutex_lock(&mutexListaFrames);
 	int tamanioFrames = list_size(listaFramesMemoria);
 	for(int i=0;i<tamanioFrames;i++){
 		t_frame_en_memoria* unFrame = list_get(listaFramesMemoria,i);
@@ -142,6 +146,29 @@ void liberarFrame(void* direccion){
 			break;
 		}
 	}
+	pthread_mutex_unlock(&mutexListaFrames);
+}
+
+void crearAreaSwap(){
+	int fd;
+	//struct stat file_st;
+	fd= open("swap.bin",O_RDWR | O_CREAT, (mode_t) 0777);
+	if(fd==-1){
+		CS_LOG_TRACE("error abriendo swap.bin");
+	}
+	//char bro = 'a';
+	//fwrite(&bro,1,2048,fd);
+	//fclose(fd);
+	//fstat(fd, &file_st);
+	fallocate(fd, 0, 0, cs_config_get_int("TAMANIO_SWAP"));
+	areaSwap= mmap(NULL, cs_config_get_int("TAMANIO_SWAP"),PROT_WRITE | PROT_READ,MAP_SHARED,fd,0);
+	if(areaSwap==MAP_FAILED){
+		CS_LOG_TRACE("error mapeando");
+	}
+	int a = 3;
+	memcpy(areaSwap,&a,4);
+	char* banana = "bananana";
+	memcpy(areaSwap,banana,8);
 }
 
 e_opcode guardarPedido(t_consulta* msg){
@@ -157,6 +184,7 @@ e_opcode guardarPedido(t_consulta* msg){
 		pedido->idPedido = msg->pedido_id;
 		pedido->tablaPaginas = list_create();
 		pedido->estadoPedido = PEDIDO_PENDIENTE;
+		pthread_mutex_init(&(pedido->mutexPedido),NULL);
 		list_add(restaurante->pedidos,pedido);
 		return OPCODE_RESPUESTA_OK;
 	} else{
@@ -169,6 +197,7 @@ e_opcode guardarPedido(t_consulta* msg){
 		pedido->idPedido = msg->pedido_id;
 		pedido->tablaPaginas = list_create();
 		pedido->estadoPedido = PEDIDO_PENDIENTE;
+		pthread_mutex_init(&(pedido->mutexPedido),NULL);
 		list_add(restaurante->pedidos,pedido);
 		return OPCODE_RESPUESTA_OK;
 	}
@@ -183,7 +212,9 @@ e_opcode guardarPlato(t_consulta* msg){
 	if(!pedido){
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	pthread_mutex_lock(&(pedido->mutexPedido));
 	if(pedido->estadoPedido != PEDIDO_PENDIENTE){
+		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
 	pthread_mutex_lock(&mutexMemoriaInterna);
@@ -208,9 +239,11 @@ e_opcode guardarPlato(t_consulta* msg){
 		offset+=sizeof(uint32_t);
 		memcpy(pagina->inicioMemoria+offset,msg->comida,strlen(msg->comida)+1);
 		list_add(pedido->tablaPaginas,pagina);
+		CS_LOG_INFO("Guarde el plato %s en la direccion de memoria %i",msg->comida, pagina->inicioMemoria);
 
 	}
 	pthread_mutex_unlock(&mutexMemoriaInterna);
+	pthread_mutex_unlock(&(pedido->mutexPedido));
 	//TODO: cosas de swap //4
 	return OPCODE_RESPUESTA_OK;
 
@@ -230,6 +263,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 	}
 	t_list* listaPlatos = list_create();
 	t_pagina* pagina;
+	pthread_mutex_lock(&(pedido->mutexPedido));
 	int tamanioListaPaginas = list_size(pedido->tablaPaginas);
 	for(int i=0;i<tamanioListaPaginas;i++){
 		pagina = list_get(pedido->tablaPaginas,i);
@@ -245,6 +279,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 		list_add(listaPlatos,unPlato);
 		//puts(unPlato->comida);
 	}
+	pthread_mutex_unlock(&(pedido->mutexPedido));
 	t_rta_obt_ped* retorno;
 	if(tamanioListaPaginas > 0){
 		char *comidas, *listos, *totales;
@@ -277,10 +312,14 @@ e_opcode confirmarPedido(t_consulta* msg){
 	if(!pedido){
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	pthread_mutex_lock(&(pedido->mutexPedido));
 	if(pedido->estadoPedido != PEDIDO_PENDIENTE){
+		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
 	pedido->estadoPedido = PEDIDO_CONFIRMADO;
+	pthread_mutex_unlock(&(pedido->mutexPedido));
+
 	return OPCODE_RESPUESTA_OK;
 }
 
@@ -293,11 +332,14 @@ e_opcode platoListo(t_consulta* msg){
 	if(!pedido){
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	pthread_mutex_lock(&(pedido->mutexPedido));
 	t_pagina* plato = buscarPlato(pedido,msg->comida);
 	if(!plato){
+		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
 	if(pedido->estadoPedido != PEDIDO_CONFIRMADO){
+		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
 	pthread_mutex_lock(&mutexMemoriaInterna);
@@ -307,6 +349,7 @@ e_opcode platoListo(t_consulta* msg){
 	memcpy((plato->inicioMemoria) + 4,&dondeDepositoLaLectura,sizeof(uint32_t));
 	e_opcode retorno = buscarYTerminarPedido(pedido);
 	pthread_mutex_unlock(&mutexMemoriaInterna);
+	pthread_mutex_unlock(&(pedido->mutexPedido));
 	return retorno;
 }
 
@@ -320,8 +363,9 @@ e_opcode finalizarPedido(t_consulta* msg){
 	if(!pedido){
 		return OPCODE_RESPUESTA_FAIL;
 	}
-
+	pthread_mutex_lock(&(pedido->mutexPedido));
 	if(pedido->estadoPedido != PEDIDO_TERMINADO){
+		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
 	int tamanioPaginas = list_size (pedido->tablaPaginas);
@@ -332,10 +376,12 @@ e_opcode finalizarPedido(t_consulta* msg){
 			liberarFrame(unaPagina->inicioMemoria);
 			pthread_mutex_unlock(&mutexMemoriaInterna);
 		}
+		CS_LOG_INFO("Liberé la direccion de memoria %i", unaPagina->inicioMemoria);
 		free(unaPagina);
 	}
 	list_destroy(pedido->tablaPaginas);
 	borrarPedidoDeRestaurante(msg->pedido_id,unRest);
+	pthread_mutex_unlock(&(pedido->mutexPedido));
 	free(pedido);
 	return OPCODE_RESPUESTA_OK;
 }

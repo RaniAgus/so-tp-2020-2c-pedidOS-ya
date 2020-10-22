@@ -3,6 +3,7 @@
 	<name>restaurante</name>
 	<comment></comment>
 	<projects>
+		<project>cshared</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

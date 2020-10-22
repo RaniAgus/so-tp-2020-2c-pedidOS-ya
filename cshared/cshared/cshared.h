@@ -10,6 +10,7 @@
 #include "utils/csconsole.h"
 #include "utils/cstemporal.h"
 #include "utils/cssignal.h"
+#include "utils/csthreads.h"
 #include "csstructs.h"
 #include "csmsg.h"
 #include "csmsgtostring.h"

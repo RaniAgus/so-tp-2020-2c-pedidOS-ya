@@ -218,3 +218,20 @@ int cs_platos_sumar_totales(t_list* platos)
 
 	return (int)list_sum(platos, (void*) _sumar_totales);
 }
+
+t_list* cs_receta_duplicate(t_list* receta)
+{
+	t_list* duplicate = list_create();
+
+	void _duplicar_pasos(t_paso_receta* plato)
+	{
+		t_paso_receta* nuevo = malloc(sizeof(t_paso_receta));
+		nuevo->paso = strdup(plato->paso);
+		nuevo->tiempo = plato->tiempo;
+
+		list_add(duplicate, nuevo);
+	}
+	list_iterate(receta, (void*) _duplicar_pasos);
+
+	return duplicate;
+}

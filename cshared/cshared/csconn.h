@@ -62,4 +62,10 @@ void cs_buffer_destroy(t_buffer* buffer);
 */
 e_status cs_get_peer_info(t_sfd sfd, char** ip_str_ptr, char** port_str_ptr);
 
+/**
+* @NAME cs_socket_is_connected
+* @DESC Retorna true si el socket está conectado.
+*/
+bool cs_socket_is_connected(t_sfd sfd);
+
 #endif /* CONNCORE_H_ */

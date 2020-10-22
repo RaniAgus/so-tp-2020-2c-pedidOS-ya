@@ -1,11 +1,11 @@
 #include "clparser.h"
 
-#define MODULE_NAME		 "CLIENTE"
 #define CONFIG_FILE_PATH "cliente.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
 #define IP_SERVER 		 "IP"
 #define PORT_SERVER 	 "PUERTO"
 
+char*  prompt;
 char*  serv_ip;
 char*  serv_port;
 t_sfd  serv_conn;
@@ -18,8 +18,14 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module);
 
 e_status client_init(pthread_t* thread_recv_msg)
 {
+	char* module_name;
+
 	//Inicia los config y logger
-	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
+	CHECK_STATUS(cs_config_init(CONFIG_FILE_PATH));
+	module_name = strdup(cs_config_get_string("ID_CLIENTE"));
+	string_to_upper(module_name);
+	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, module_name));
+	cs_error_init();
 
 	//serv_ip y serv_port almacenan la info del servidor a conectarse
 	serv_ip   = cs_config_get_string(IP_SERVER);
@@ -33,10 +39,12 @@ e_status client_init(pthread_t* thread_recv_msg)
 
 	//Crea el primer socket para recibir mensajes ahí
 	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
+	CHECK_STATUS(client_send_handshake(serv_conn, &serv_module));
 	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
 
 	CS_LOG_TRACE(__FILE__":%s:%d -- Iniciado correctamente.", __func__, __LINE__);
-
+	
+	free(module_name);
 	return STATUS_SUCCESS;
 }
 
@@ -58,15 +66,19 @@ int main(int argc, char* argv[])
 		char** arg_values;
 
 		cl_parser_status  parser_status;
-		cl_parser_result *result = malloc(sizeof(cl_parser_result));
+		cl_parser_result *result;
 
-		arg_values = cs_console_readline("PedidOS Ya!> ", &arg_cant);
+		arg_values = cs_console_readline(prompt, &arg_cant);
 		if(arg_values == NULL)
 		{
-			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió un salto de línea.", __func__, __LINE__);
-			free(result);
+			continue;
+		} else if(!strcmp(arg_values[0], "exit")) {
+			CS_LOG_TRACE(__FILE__":%s:%d -- Se recibió el comando exit.", __func__, __LINE__);
+			string_iterate_lines(arg_values, (void*) free);
+			free(arg_values);
 			break;
 		}
+		result = malloc(sizeof(cl_parser_result));
 
 		//Parsea los argumentos
 		parser_status = client_parse_arguments(result, arg_cant, arg_values, serv_module);
@@ -96,6 +108,7 @@ int main(int argc, char* argv[])
 	pthread_cancel(thread_recv_msg);
 	pthread_join(thread_recv_msg, NULL);
 	close(serv_conn);
+	free(prompt);
 
 	cs_module_close();
 
@@ -117,8 +130,8 @@ e_status client_send_handshake(t_sfd serv_conn, int8_t* module)
 
 void client_recv_msg_routine(void)
 {
-	e_status status = client_send_handshake(serv_conn, &serv_module);
-	while(status == STATUS_SUCCESS)
+	e_status status;
+	do
 	{
 		t_header header;
 
@@ -146,8 +159,12 @@ void client_recv_msg_routine(void)
 			free(rta_str);
 			
 		}
-	}
-	PRINT_ERROR(status);
+	} while(status == STATUS_SUCCESS);
+
+	system("reset -Q");
+	CS_LOG_INFO("Se perdió la conexión con %s.", cs_enum_module_to_str(serv_module));
+	console_save_line();
+	exit(-1);
 }
 
 e_status client_send_msg(cl_parser_result* result)
@@ -197,10 +214,7 @@ e_status client_recv_msg(t_sfd conn, int8_t* msg_type, int8_t* module)
 			CS_LOG_TRACE(__FILE__":%s:%d -- Mensaje recibido: %s",  __func__, __LINE__, msg_str);
 		}
 		if(module) {
-			CS_LOG_INFO("Conectado con un(a) %s(#%d)",  
-				cs_enum_module_to_str(RTA_HANDSHAKE_PTR(msg)->modulo), 
-				RTA_HANDSHAKE_PTR(msg)->modulo
-			);
+			prompt = string_from_format("PedidOS Ya!:~/%s$ ", cs_enum_module_to_str(RTA_HANDSHAKE_PTR(msg)->modulo));
 			*module = RTA_HANDSHAKE_PTR(msg)->modulo;
 		}
 		if(msg_type) {

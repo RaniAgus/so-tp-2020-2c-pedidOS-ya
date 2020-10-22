@@ -78,3 +78,14 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 
 	return STATUS_SUCCESS;
 }
+
+bool cs_socket_is_connected(t_sfd sfd)
+{
+	bool is_connected;
+
+	void* stream = malloc(1);
+	is_connected = recv(sfd, stream, 1, MSG_PEEK | MSG_DONTWAIT) != 0;
+	free(stream);
+
+	return is_connected;
+}
