@@ -8,22 +8,9 @@
 #include <string.h>
 #include "utils/cserror.h"
 #include "utils/csconfig.h"
+#include "csmsg.h"
 
 typedef volatile int t_sfd;
-
-typedef struct
-{
-	int8_t 	 opcode;
-	int8_t 	 msgtype;
-}t_header;
-
-typedef enum
-{
-	OPCODE_UNKNOWN = 0,
-	OPCODE_CONSULTA,
-	OPCODE_RESPUESTA_OK,
-	OPCODE_RESPUESTA_FAIL
-}e_opcode;
 
 typedef struct
 {

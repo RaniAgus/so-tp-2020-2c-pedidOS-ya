@@ -15,22 +15,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-
-//Unix libs
-#include <pthread.h>
-#include <semaphore.h>
-#include <signal.h>
 #include <netdb.h>
-
-//Readline
-#include <readline/readline.h>
-
-//UTN Commons
-#include <commons/string.h>
-#include <commons/collections/list.h>
-#include <commons/collections/queue.h>
-#include <commons/bitarray.h>
-
-
 
 #endif /* UTILS_CORE_C_ */

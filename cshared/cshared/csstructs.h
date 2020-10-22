@@ -1,8 +1,7 @@
 #ifndef CSHARED_CSSTRUCTS_H_
 #define CSHARED_CSSTRUCTS_H_
 
-#include "utils/cscore.h"
-#include "utils/cserror.h"
+#include "utils/csstring.h"
 #include "utils/cslist.h"
 
 typedef enum

@@ -1,6 +1,18 @@
 #ifndef SHARED_CSHARED_H
 #define SHARED_CSHARED_H
 
+//Unix libs
+#include <pthread.h>
+#include <semaphore.h>
+#include <signal.h>
+
+//Readline
+#include <readline/readline.h>
+
+//UTN Commons
+#include <commons/bitarray.h>
+
+//C Shared Utils
 #include "utils/cscore.h"
 #include "utils/cserror.h"
 #include "utils/csconfig.h"
