@@ -344,7 +344,7 @@ static void app_recibir_crear_pedido(t_sfd conexion, t_consulta* consulta, char*
 				pthread_mutex_unlock(&mutex_id_default);
 			}
 			//Envía GUARDAR_PEDIDO a la Comanda
-			app_guardar_pedido(restaurante_vinculado->nombre, consulta->pedido_id, &result);
+			app_guardar_pedido(restaurante_vinculado->nombre, respuesta->pedido_id, &result);
 
 			//Retorna la respuesta al cliente
 			app_enviar_respuesta(conexion, result, CREAR_PEDIDO, respuesta);
