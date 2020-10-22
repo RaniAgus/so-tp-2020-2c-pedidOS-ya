@@ -13,4 +13,12 @@
 */
 e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*));
 
+/**
+* @NAME cs_buffer_to_msg
+* @DESC Convierten un stream a una estructura mensaje.
+* ADVERTENCIA: NO USAR, ESTÁN PUBLICADAS SOLO PARA TESTS
+*
+*/
+void* cs_buffer_to_msg(t_header header, t_buffer* payload, t_sfd conn);
+
 #endif /* CONNRECV_H_ */

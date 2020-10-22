@@ -1,9 +1,7 @@
 #include "csrecv.h"
-#include "utils/cslog.h"
 
-static e_status cs_recv_header(t_sfd sfd_cliente, t_header* header) NON_NULL(2);
-static e_status cs_recv_payload(t_sfd sfd_cliente, t_buffer* payload) NON_NULL(2);
-static void* cs_buffer_to_msg(t_header header, t_buffer* payload, t_sfd conn);
+static e_status _recv_header(t_sfd sfd_cliente, t_header* header) NON_NULL(2);
+static e_status _recv_payload(t_sfd sfd_cliente, t_buffer* payload) NON_NULL(2);
 
 e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 {
@@ -12,13 +10,13 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 	void* msg;
 
 	//Se recibe el header
-	status = cs_recv_header(conn, &package.header);
+	status = _recv_header(conn, &package.header);
 	if(status == STATUS_SUCCESS)
 	{
 		package.payload = malloc(sizeof(t_buffer));
 
 		//Se recibe el payload
-		status = cs_recv_payload(conn, package.payload);
+		status = _recv_payload(conn, package.payload);
 		if(status == STATUS_SUCCESS)
 		{
 			//Se pasa el payload a mensaje
@@ -34,7 +32,7 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 	return status;
 }
 
-static e_status cs_recv_header(t_sfd conn, t_header* header)
+static e_status _recv_header(t_sfd conn, t_header* header)
 {
 	uint32_t bytes;
 
@@ -49,7 +47,7 @@ static e_status cs_recv_header(t_sfd conn, t_header* header)
 	return STATUS_SUCCESS;
 }
 
-static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
+static e_status _recv_payload(t_sfd conn, t_buffer* payload)
 {
 	uint32_t bytes;
 
@@ -72,20 +70,20 @@ static e_status cs_recv_payload(t_sfd conn, t_buffer* payload)
 	return STATUS_SUCCESS;
 }
 
-static t_consulta* 		cs_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
-static t_handshake_cli* cs_buffer_to_handshake_cli(t_buffer* buffer);
-static t_handshake_res* cs_buffer_to_handshake_res(t_buffer* buffer, t_sfd conn);
+static t_consulta* 		_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
+static t_handshake_cli* _buffer_to_handshake_cli(t_buffer* buffer);
+static t_handshake_res* _buffer_to_handshake_res(t_buffer* buffer, t_sfd conn);
 
-static t_rta_handshake_cli*	cs_buffer_to_rta_handshake_cli(t_buffer* buffer);
-static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer);
-static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest (t_buffer* buffer);
-static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl  (t_buffer* buffer);
-static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer);
-static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped (t_buffer* buffer);
-static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped  (t_buffer* buffer);
-static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec  (t_buffer* buffer);
+static t_rta_handshake_cli*	_buffer_to_rta_handshake_cli(t_buffer* buffer);
+static t_rta_cons_rest* _buffer_to_rta_cons_rest(t_buffer* buffer);
+static t_rta_obt_rest*  _buffer_to_rta_obt_rest (t_buffer* buffer);
+static t_rta_cons_pl*   _buffer_to_rta_cons_pl  (t_buffer* buffer);
+static t_rta_crear_ped* _buffer_to_rta_crear_ped(t_buffer* buffer);
+static t_rta_cons_ped*  _buffer_to_rta_cons_ped (t_buffer* buffer);
+static t_rta_obt_ped*   _buffer_to_rta_obt_ped  (t_buffer* buffer);
+static t_rta_obt_rec*   _buffer_to_rta_obt_rec  (t_buffer* buffer);
 
-static void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
+void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
 {
 	switch(header.opcode)
 	{
@@ -93,32 +91,32 @@ static void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
 		switch(header.msgtype)
 		{
 		case HANDSHAKE_CLIENTE:
-			return (void*)cs_buffer_to_handshake_cli(buffer);
+			return (void*)_buffer_to_handshake_cli(buffer);
 		case HANDSHAKE_RESTAURANTE:
-			return (void*)cs_buffer_to_handshake_res(buffer, conn);
+			return (void*)_buffer_to_handshake_res(buffer, conn);
 		default:
-			return (void*)cs_buffer_to_consulta(header.msgtype, buffer);
+			return (void*)_buffer_to_consulta(header.msgtype, buffer);
 		}
 		break;
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
 		case HANDSHAKE_CLIENTE:
-			return (void*)cs_buffer_to_rta_handshake_cli(buffer);
+			return (void*)_buffer_to_rta_handshake_cli(buffer);
 		case CONSULTAR_RESTAURANTES:
-			return (void*)cs_buffer_to_rta_cons_rest(buffer);
+			return (void*)_buffer_to_rta_cons_rest(buffer);
 		case OBTENER_RESTAURANTE:
-			return (void*)cs_buffer_to_rta_obt_rest(buffer);
+			return (void*)_buffer_to_rta_obt_rest(buffer);
 		case CONSULTAR_PLATOS:
-			return (void*)cs_buffer_to_rta_cons_pl(buffer);
+			return (void*)_buffer_to_rta_cons_pl(buffer);
 		case CREAR_PEDIDO:
-			return (void*)cs_buffer_to_rta_crear_ped(buffer);
+			return (void*)_buffer_to_rta_crear_ped(buffer);
 		case CONSULTAR_PEDIDO:
-			return (void*)cs_buffer_to_rta_cons_ped(buffer);
+			return (void*)_buffer_to_rta_cons_ped(buffer);
 		case OBTENER_PEDIDO:
-			return (void*)cs_buffer_to_rta_obt_ped(buffer);
+			return (void*)_buffer_to_rta_obt_ped(buffer);
 		case OBTENER_RECETA:
-			return (void*)cs_buffer_to_rta_obt_rec(buffer);
+			return (void*)_buffer_to_rta_obt_rec(buffer);
 		default:
 			return NULL;
 		}
@@ -128,7 +126,7 @@ static void* cs_buffer_to_msg(t_header header, t_buffer* buffer, t_sfd conn)
 	}
 }
 
-static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
+static t_consulta* _buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 {
 	t_consulta* msg;
 	int offset = 0;
@@ -187,7 +185,7 @@ static t_consulta* cs_buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	return msg;
 }
 
-static t_handshake_cli* cs_buffer_to_handshake_cli(t_buffer* buffer)
+static t_handshake_cli* _buffer_to_handshake_cli(t_buffer* buffer)
 {
 	t_handshake_cli* msg;
 	int offset = 0;
@@ -210,7 +208,7 @@ static t_handshake_cli* cs_buffer_to_handshake_cli(t_buffer* buffer)
 	return msg;
 }
 
-static t_handshake_res* cs_buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
+static t_handshake_res* _buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
 {
 	t_handshake_res* msg;
 	int offset = 0;
@@ -242,7 +240,7 @@ static t_handshake_res* cs_buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
 	return msg;
 }
 
-static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
+static t_rta_cons_rest* _buffer_to_rta_cons_rest(t_buffer* buffer)
 {
 	t_rta_cons_rest* msg;
 	int offset = 0;
@@ -264,7 +262,7 @@ static t_rta_cons_rest* cs_buffer_to_rta_cons_rest(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
+static t_rta_obt_rest*  _buffer_to_rta_obt_rest(t_buffer* buffer)
 {
 	t_rta_obt_rest* msg;
 	int offset = 0;
@@ -315,7 +313,7 @@ static t_rta_obt_rest*  cs_buffer_to_rta_obt_rest(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl(t_buffer* buffer)
+static t_rta_cons_pl*   _buffer_to_rta_cons_pl(t_buffer* buffer)
 {
 	t_rta_cons_pl* msg;
 	int offset = 0;
@@ -337,7 +335,7 @@ static t_rta_cons_pl*   cs_buffer_to_rta_cons_pl(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer)
+static t_rta_crear_ped* _buffer_to_rta_crear_ped(t_buffer* buffer)
 {
 	int offset = 0;
 
@@ -349,7 +347,7 @@ static t_rta_crear_ped* cs_buffer_to_rta_crear_ped(t_buffer* buffer)
 	return cs_rta_crear_ped_create(pedido_id);
 }
 
-static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
+static t_rta_cons_ped*  _buffer_to_rta_cons_ped(t_buffer* buffer)
 {
 	t_rta_cons_ped* msg;
 	int offset = 0;
@@ -396,7 +394,7 @@ static t_rta_cons_ped*  cs_buffer_to_rta_cons_ped(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
+static t_rta_obt_ped*   _buffer_to_rta_obt_ped(t_buffer* buffer)
 {
 	t_rta_obt_ped* msg;
 	int offset = 0;
@@ -436,7 +434,7 @@ static t_rta_obt_ped*   cs_buffer_to_rta_obt_ped(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
+static t_rta_obt_rec*   _buffer_to_rta_obt_rec(t_buffer* buffer)
 {
 	t_rta_obt_rec* msg;
 	int offset = 0;
@@ -465,7 +463,7 @@ static t_rta_obt_rec*   cs_buffer_to_rta_obt_rec(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_handshake_cli*	cs_buffer_to_rta_handshake_cli(t_buffer* buffer)
+static t_rta_handshake_cli*	_buffer_to_rta_handshake_cli(t_buffer* buffer)
 {
 	t_rta_handshake_cli* msg;
 	int offset = 0;
