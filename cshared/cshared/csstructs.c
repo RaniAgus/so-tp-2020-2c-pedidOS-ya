@@ -53,27 +53,30 @@ t_list* cs_platos_create(char* comidas, char* listos, char* totales)
 	char** listos_arr  = string_get_string_as_array(listos);
 	char** totales_arr = string_get_string_as_array(totales);
 
-	//Agrega cada línea a una lista
-	for(int i=0; platos_arr[i] != NULL; i++)
+	if(platos_arr)
 	{
-		t_plato* plato_y_estado;
+		//Agrega cada línea a una lista
+		for(int i=0; platos_arr[i] != NULL; i++)
+		{
+			t_plato* plato_y_estado;
 
-		plato_y_estado = malloc(sizeof(t_plato));
+			plato_y_estado = malloc(sizeof(t_plato));
 
-		plato_y_estado->comida = string_duplicate(platos_arr[i]);
-		plato_y_estado->cant_lista = atoi(listos_arr[i]);
-		plato_y_estado->cant_total = atoi(totales_arr[i]);
+			plato_y_estado->comida = string_duplicate(platos_arr[i]);
+			plato_y_estado->cant_lista = atoi(listos_arr[i]);
+			plato_y_estado->cant_total = atoi(totales_arr[i]);
 
-		list_add(list, (void*)plato_y_estado);
+			list_add(list, (void*)plato_y_estado);
+		}
+
+		//Libera los arrays
+		string_iterate_lines(platos_arr, (void*)free);
+		free(platos_arr);
+		string_iterate_lines(listos_arr, (void*)free);
+		free(listos_arr);
+		string_iterate_lines(totales_arr, (void*)free);
+		free(totales_arr);
 	}
-
-	//Libera los arrays
-	string_iterate_lines(platos_arr, (void*)free);
-	free(platos_arr);
-	string_iterate_lines(listos_arr, (void*)free);
-	free(listos_arr);
-	string_iterate_lines(totales_arr, (void*)free);
-	free(totales_arr);
 
 	//Retorna la lista
 	return list;
@@ -144,23 +147,37 @@ t_list* cs_menu_create(char* comidas, char* precios)
 void cs_platos_to_string(t_list* platos, char** comidas, char** listos, char** totales)
 {
 	//Inicia los array de comidas y estados
-	*comidas = string_duplicate("[");
-	*listos  = string_duplicate("[");
-	*totales = string_duplicate("[");
+	*comidas = string_new();
+	*listos  = string_new();
+	*totales = string_new();
 
-	//Itera la lista, agregando la comida y el estado al respectivo string
-	void _platos_to_string(t_plato* plato)
+	if(platos->elements_count > 0)
 	{
-		string_append_with_format(comidas, "%s,", plato->comida);
-		string_append_with_format(listos , "%d,", plato->cant_lista);
-		string_append_with_format(totales, "%d,", plato->cant_total);
-	}
-	list_iterate(platos, (void*)_platos_to_string);
+		//Itera la lista, agregando la comida y el estado al respectivo string
+		void _platos_to_string(t_plato* plato)
+		{
+			string_append_with_format(comidas, ",%s", plato->comida);
+			string_append_with_format(listos , ",%d", plato->cant_lista);
+			string_append_with_format(totales, ",%d", plato->cant_total);
+		}
+		list_iterate(platos, (void*)_platos_to_string);
 
-	//Corrige la coma al final
-	(*comidas)[strlen(*comidas) - 1] = ']';
-	(*listos )[strlen(*listos ) - 1] = ']';
-	(*totales)[strlen(*totales) - 1] = ']';
+		//Corrige la coma al principio
+		(*comidas)[0] = '[';
+		(*listos )[0] = '[';
+		(*totales)[0] = '[';
+
+		//Agrega corchete al final
+		string_append(comidas, "]");
+		string_append(listos , "]");
+		string_append(totales, "]");
+	} else
+	{
+		//Lista vacía
+		string_append(comidas, "[]");
+		string_append(listos , "[]");
+		string_append(totales, "[]");
+	}
 }
 
 void cs_receta_to_string(t_list* receta, char** pasos, char** tiempos)

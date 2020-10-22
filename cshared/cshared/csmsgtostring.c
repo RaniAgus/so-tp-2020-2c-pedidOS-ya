@@ -259,7 +259,14 @@ static void _platos_append(char** msg_str, t_list* platos_y_estados)
 	}
 	list_iterate(platos_y_estados, (void*) _plato_y_estado_append);
 
-	(*msg_str)[strlen(*msg_str)-1] = ']';
+	if(platos_y_estados->elements_count > 0)
+	{
+		(*msg_str)[strlen(*msg_str)-1] = ']';
+	} else
+	{
+		string_append(msg_str, "]");
+	}
+
 	string_append(msg_str, "}");
 }
 
