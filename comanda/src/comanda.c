@@ -115,65 +115,69 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	t_consulta* elMensaje = (t_consulta*)msg;
 	//Loguea el mensaje
 	CS_LOG_INFO("%s", msg_str);
-	switch(header.msgtype)
+	if(header.opcode == OPCODE_CONSULTA)
 	{
-	case HANDSHAKE_CLIENTE:
-		server_send_rta_handshake(client_conn);
-		break;
-	case GUARDAR_PEDIDO:({
-		e_opcode ok_fail1;
-		ok_fail1 = guardarPedido(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
-	});
-	    break;
-	case GUARDAR_PLATO:({
-		e_opcode ok_fail2 = guardarPlato(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail2);
-	});
-	   	break;
-	case OBTENER_PEDIDO:({
-		t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
-		t_rta_obt_ped* respuestaObtener = obtenerPedido(elMensaje);
+		switch(header.msgtype)
+		{
+		case HANDSHAKE_CLIENTE:
+			server_send_rta_handshake(client_conn);
+			break;
+		case GUARDAR_PEDIDO:({
+			e_opcode ok_fail1;
+			ok_fail1 = guardarPedido(elMensaje);
+			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
+		});
+		    break;
+		case GUARDAR_PLATO:({
+			e_opcode ok_fail2 = guardarPlato(elMensaje);
+			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail2);
+		});
+			break;
+		case OBTENER_PEDIDO:({
+			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
+			t_rta_obt_ped* respuestaObtener = obtenerPedido(elMensaje);
 
-		if(!respuestaObtener){
-			server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
-		} else{
-			char* rta_to_str = cs_msg_to_str(respuestaObtener, headerResp.opcode, headerResp.msgtype);
-			if( cs_send_respuesta(client_conn, headerResp, respuestaObtener) == STATUS_SUCCESS )
-			{
-				CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
-				free(rta_to_str);
-			} else
-			{
-				CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
-				free(rta_to_str);
+			if(!respuestaObtener){
+				server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
+			} else{
+				char* rta_to_str = cs_msg_to_str(respuestaObtener, headerResp.opcode, headerResp.msgtype);
+				if( cs_send_respuesta(client_conn, headerResp, respuestaObtener) == STATUS_SUCCESS )
+				{
+					CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
+					free(rta_to_str);
+				} else
+				{
+					CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
+					free(rta_to_str);
+				}
 				liberarRespuestaObtener(respuestaObtener);
 			}
-
-		}
-	});
-	    break;
-	case CONFIRMAR_PEDIDO:({
-		e_opcode ok_fail3 = confirmarPedido(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail3);
-	});
+		});
+		    break;
+		case CONFIRMAR_PEDIDO:({
+			e_opcode ok_fail3 = confirmarPedido(elMensaje);
+			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail3);
+		});
+			break;
+		case PLATO_LISTO:({
+			e_opcode ok_fail4 = platoListo(elMensaje);
+			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
+		});
+			break;
+		case FINALIZAR_PEDIDO:({
+			e_opcode ok_fail5 = finalizarPedido(elMensaje);
+			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail5);
+		});
 		break;
-	case PLATO_LISTO:({
-		e_opcode ok_fail4 = platoListo(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail4);
-	});
 
-	    break;
-	case FINALIZAR_PEDIDO:({
-		e_opcode ok_fail5 = finalizarPedido(elMensaje);
-		server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail5);
-    });
-    break;
-
-	default:
+		default:
+			server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
+		  	break;
+		}
+	} else {
 		puts("algo anda mal xdxd");
-	  	break;
 	}
+
 
 	free(msg_str);
 	cs_msg_destroy(msg, header.opcode, header.msgtype);

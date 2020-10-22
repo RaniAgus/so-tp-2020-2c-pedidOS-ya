@@ -286,7 +286,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 		free(listos);
 		free(totales);
 	} else{
-		retorno =  cs_rta_obtener_ped_create(pedido->estadoPedido,"[]","[]","[]"); //TODO: cuando mando esto, el cliente hace seg fault
+		retorno =  cs_rta_obtener_ped_create(pedido->estadoPedido,"[]","[]","[]");
 	}
 
 
