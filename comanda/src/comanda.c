@@ -28,10 +28,10 @@ void server_sigint_handler(int signal)
 
 void server_send_rta_handshake(t_sfd client_conn)
 {
-	t_rta_handshake* respuesta;
+	t_rta_handshake_cli* respuesta;
 	char* rta_to_str;
-	t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE};
-	respuesta = cs_rta_handshake_create();
+	t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE_CLIENTE};
+	respuesta = cs_rta_handshake_cli_create();
 	rta_to_str = cs_msg_to_str(respuesta, header.opcode, header.msgtype);
 
 	if( cs_send_respuesta(client_conn, header, respuesta) == STATUS_SUCCESS )
@@ -63,7 +63,6 @@ int main(void)
 	CHECK_STATUS(cs_signal_change_action(SIGINT,server_sigint_handler,&old_sigint_action));
 
 	//Lee las direcciones desde el config interno
-	char* ip   = cs_config_get_string("IP");
 	char* port = cs_config_get_string("PUERTO_ESCUCHA");
 
 	//Inicializo memoria
@@ -75,10 +74,10 @@ int main(void)
 
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
-	CHECK_STATUS(cs_tcp_server_create(&conn, ip, port));
+	CHECK_STATUS(cs_tcp_server_create(&conn, port));
 
 	str_time = cs_temporal_get_string_time("(%d/%m/%y) Servidor abierto a las: %H:%M:%S");
-	printf("%s\n[IP: %s] [PUERTO: %s]\n", str_time, ip, port);
+	printf("%s\n [PUERTO: %s]\n", str_time, port);
 	free(str_time);
 
 	cs_tcp_server_accept_routine(&conn, server_recv_msg, server_error_handler);
@@ -118,7 +117,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 	CS_LOG_INFO("%s", msg_str);
 	switch(header.msgtype)
 	{
-	case HANDSHAKE:
+	case HANDSHAKE_CLIENTE:
 		server_send_rta_handshake(client_conn);
 		break;
 	case GUARDAR_PEDIDO:({
@@ -183,7 +182,8 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 void server_error_handler(e_status err)
 {
 	//Imprime el mensaje de error
-	PRINT_ERROR(err);
+	//PRINT_ERROR(err);
+	CS_LOG_TRACE("%s %d--%s",cs_enum_status_to_str(err), err, cs_string_error(err));
 }
 
 
