@@ -9,7 +9,7 @@ static const char* _MSGTYPE_STR[] =
 	"CONSULTAR_PLATOS",
 	"CREAR_PEDIDO",
 	"GUARDAR_PEDIDO",
-	"AÑADIR_PLATO",
+	"ANIADIR_PLATO",
 	"GUARDAR_PLATO",
 	"CONFIRMAR_PEDIDO",
 	"PLATO_LISTO",
@@ -196,8 +196,8 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 
 	for(int i=0; i < msg->cant_cocineros; i++)
 	{
-		string_append_with_format(msg_str, "(%d;%s),",
-				i, ({ i < string_array_size(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
+		string_append_with_format(msg_str, "#%d:%s,",
+				i + 1, ({ i < string_array_size(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
 	}
 
 	(*msg_str)[strlen(*msg_str)-1] = ']';
@@ -292,7 +292,7 @@ static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg)
 
 	void _pasos_receta_append(t_paso_receta* plato_y_estado)
 	{
-		string_append_with_format(msg_str, "(%s;%d),",
+		string_append_with_format(msg_str, "%s(%d),",
 				plato_y_estado->paso,
 				plato_y_estado->tiempo);
 	}

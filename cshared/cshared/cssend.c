@@ -7,11 +7,6 @@
 #define CS_PAYLOAD_SIZE\
 	(sizeof(uint32_t) + package->payload->size)
 
-static t_buffer*  cs_consulta_to_buffer(t_consulta* msg, e_module dest);
-static t_buffer*  cs_handshake_cli_to_buffer(t_handshake_cli* msg);
-static t_buffer*  cs_handshake_res_to_buffer(t_handshake_res* msg);
-static t_buffer*  cs_respuesta_to_buffer(t_header header, void* msg);
-
 static e_status   _send_msg(t_sfd conn, t_header header, t_buffer* (*_to_buffer_func)(void));
 static t_package* _package_create(t_header header, t_buffer* payload);
 static t_buffer*  _package_to_buffer(t_package* package);
@@ -69,6 +64,8 @@ e_status cs_send_respuesta(t_sfd conn, t_header header, void* msg)
 	}
 	return _send_msg(conn, header, _to_buffer_func);
 }
+
+/********************************* PAQUETES Y BUFFER  ***************************************/
 
 static e_status _send_msg(t_sfd conn, t_header header, t_buffer* (*_to_buffer_func)(void))
 {
@@ -170,15 +167,6 @@ static t_buffer* _package_to_buffer(t_package* package)
 	return buffer;
 }
 
-static t_buffer* cs_rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg);
-static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
-static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
-static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
-static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg);
-static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg);
-static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg);
-static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg);
-
 static t_buffer* cs_buffer_create(int size)
 {
 	t_buffer *buffer = malloc(sizeof(t_buffer));
@@ -193,7 +181,9 @@ static t_buffer* cs_buffer_create(int size)
 	return buffer;
 }
 
-static t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
+/********************************* CONSULTAS / HANDSHAKES  ***************************************/
+
+t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -241,7 +231,7 @@ static t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
 	return buffer;
 }
 
-static t_buffer* cs_handshake_cli_to_buffer(t_handshake_cli* msg)
+t_buffer* cs_handshake_cli_to_buffer(t_handshake_cli* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -258,7 +248,7 @@ static t_buffer* cs_handshake_cli_to_buffer(t_handshake_cli* msg)
 	return buffer;
 }
 
-static t_buffer* cs_handshake_res_to_buffer(t_handshake_res* msg)
+t_buffer* cs_handshake_res_to_buffer(t_handshake_res* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -278,7 +268,18 @@ static t_buffer* cs_handshake_res_to_buffer(t_handshake_res* msg)
 	return buffer;
 }
 
-static t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
+/********************************* RESPUESTAS  ***************************************/
+
+static t_buffer* _rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg);
+static t_buffer* _rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
+static t_buffer* _rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
+static t_buffer* _rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
+static t_buffer* _rta_crear_ped_to_buffer(t_rta_crear_ped* msg);
+static t_buffer* _rta_cons_ped_to_buffer(t_rta_cons_ped* msg);
+static t_buffer* _rta_obt_ped_to_buffer(t_rta_obt_ped* msg);
+static t_buffer* _rta_obt_rec_to_buffer(t_rta_obt_rec* msg);
+
+t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
 {
 	switch(header.opcode)
 	{
@@ -286,21 +287,21 @@ static t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
 		switch(header.msgtype)
 		{
 		case HANDSHAKE_CLIENTE:
-			return cs_rta_handshake_cli_to_buffer((t_rta_handshake_cli*)msg);
+			return _rta_handshake_cli_to_buffer((t_rta_handshake_cli*)msg);
 		case CONSULTAR_RESTAURANTES:
-			return cs_rta_cons_rest_to_buffer((t_rta_cons_rest*)msg);
+			return _rta_cons_rest_to_buffer((t_rta_cons_rest*)msg);
 		case OBTENER_RESTAURANTE:
-			return cs_rta_obt_rest_to_buffer((t_rta_obt_rest*)msg);
+			return _rta_obt_rest_to_buffer((t_rta_obt_rest*)msg);
 		case CONSULTAR_PLATOS:
-			return cs_rta_cons_pl_to_buffer((t_rta_cons_pl*)msg);
+			return _rta_cons_pl_to_buffer((t_rta_cons_pl*)msg);
 		case CREAR_PEDIDO:
-			return cs_rta_crear_ped_to_buffer((t_rta_crear_ped*)msg);
+			return _rta_crear_ped_to_buffer((t_rta_crear_ped*)msg);
 		case CONSULTAR_PEDIDO:
-			return cs_rta_cons_ped_to_buffer((t_rta_cons_ped*)msg);
+			return _rta_cons_ped_to_buffer((t_rta_cons_ped*)msg);
 		case OBTENER_PEDIDO:
-			return cs_rta_obt_ped_to_buffer((t_rta_obt_ped*)msg);
+			return _rta_obt_ped_to_buffer((t_rta_obt_ped*)msg);
 		case OBTENER_RECETA:
-			return cs_rta_obt_rec_to_buffer((t_rta_obt_rec*)msg);
+			return _rta_obt_rec_to_buffer((t_rta_obt_rec*)msg);
 		default:
 			break;
 		}
@@ -311,7 +312,20 @@ static t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
 	return cs_buffer_create(0);
 }
 
-static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
+static t_buffer* _rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg)
+{
+	t_buffer *buffer;
+	int offset = 0;
+
+	buffer = cs_buffer_create(sizeof(int8_t));
+
+	//Módulo
+	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(uint8_t),COPY_SEND);
+
+	return buffer;
+}
+
+static t_buffer* _rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -336,7 +350,7 @@ static t_buffer* cs_rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
+static t_buffer* _rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -387,7 +401,7 @@ static t_buffer* cs_rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
+static t_buffer* _rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -413,7 +427,7 @@ static t_buffer* cs_rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
 }
 
 
-static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
+static t_buffer* _rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -426,7 +440,7 @@ static t_buffer* cs_rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
+static t_buffer* _rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -471,7 +485,7 @@ static t_buffer* cs_rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
+static t_buffer* _rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -511,7 +525,7 @@ static t_buffer* cs_rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
 	return buffer;
 }
 
-static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
+static t_buffer* _rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
 {
 	t_buffer *buffer;
 	int offset = 0;
@@ -538,19 +552,6 @@ static t_buffer* cs_rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
 
 	free(pasos);
 	free(tiempos);
-
-	return buffer;
-}
-
-static t_buffer* cs_rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg)
-{
-	t_buffer *buffer;
-	int offset = 0;
-
-	buffer = cs_buffer_create(sizeof(int8_t));
-
-	//Módulo
-	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(uint8_t),COPY_SEND);
 
 	return buffer;
 }

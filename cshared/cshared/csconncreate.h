@@ -1,6 +1,8 @@
 #ifndef CONN_CREATE_H_
 #define CONN_CREATE_H_
 
+#include <pthread.h>
+
 #include "csconn.h"
 #include "utils/csstring.h"
 

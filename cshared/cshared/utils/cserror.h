@@ -2,6 +2,7 @@
 #define UTILS_CSERROR_H
 
 #include "cscore.h"
+#include <pthread.h>
 
 /**
 * @NAME PRINT_ERROR

@@ -1,13 +1,24 @@
 #ifndef UTILS_MSG_H_
 #define UTILS_MSG_H_
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <commons/string.h>
-#include "utils/cscore.h"
 #include "utils/csstring.h"
-#include "csconn.h"
+#include "utils/csconfig.h"
 #include "csstructs.h"
+
+typedef struct
+{
+	int8_t 	 opcode;
+	int8_t 	 msgtype;
+}t_header;
+
+typedef enum
+{
+	OPCODE_UNKNOWN = 0,
+	OPCODE_CONSULTA,
+	OPCODE_RESPUESTA_OK,
+	OPCODE_RESPUESTA_FAIL
+}e_opcode;
 
 typedef enum
 {

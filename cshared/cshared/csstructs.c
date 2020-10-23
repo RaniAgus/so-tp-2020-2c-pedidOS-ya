@@ -147,36 +147,31 @@ t_list* cs_menu_create(char* comidas, char* precios)
 void cs_platos_to_string(t_list* platos, char** comidas, char** listos, char** totales)
 {
 	//Inicia los array de comidas y estados
-	*comidas = string_new();
-	*listos  = string_new();
-	*totales = string_new();
+	*comidas = string_duplicate("[");
+	*listos  = string_duplicate("[");
+	*totales = string_duplicate("[");
 
 	if(platos->elements_count > 0)
 	{
 		//Itera la lista, agregando la comida y el estado al respectivo string
 		void _platos_to_string(t_plato* plato)
 		{
-			string_append_with_format(comidas, ",%s", plato->comida);
-			string_append_with_format(listos , ",%d", plato->cant_lista);
-			string_append_with_format(totales, ",%d", plato->cant_total);
+			string_append_with_format(comidas, "%s,", plato->comida);
+			string_append_with_format(listos , "%d,", plato->cant_lista);
+			string_append_with_format(totales, "%d,", plato->cant_total);
 		}
 		list_iterate(platos, (void*)_platos_to_string);
 
-		//Corrige la coma al principio
-		(*comidas)[0] = '[';
-		(*listos )[0] = '[';
-		(*totales)[0] = '[';
-
-		//Agrega corchete al final
-		string_append(comidas, "]");
-		string_append(listos , "]");
-		string_append(totales, "]");
+		//Corrige el corchete al final
+		(*comidas)[strlen(*comidas) - 1] = ']';
+		(*listos )[strlen(*listos ) - 1] = ']';
+		(*totales)[strlen(*totales) - 1] = ']';
 	} else
 	{
 		//Lista vacía
-		string_append(comidas, "[]");
-		string_append(listos , "[]");
-		string_append(totales, "[]");
+		string_append(comidas, "]");
+		string_append(listos , "]");
+		string_append(totales, "]");
 	}
 }
 
