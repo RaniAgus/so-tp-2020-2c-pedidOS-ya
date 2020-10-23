@@ -118,7 +118,7 @@ context(test_messages) {
 	} end
 
 	describe("Consultar Platos") {
-		it("Consulta (App)") {
+		it("Consulta (App y Restaurante)") {
 			t_consulta* consulta = cs_msg_consultar_pl_create();
 
 			msg_to_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, CONSULTAR_PLATOS);
@@ -127,7 +127,7 @@ context(test_messages) {
 			free(msg_to_str);
 		} end
 
-		it("Consulta (Comanda)") {
+		it("Consulta (Sindicato)") {
 			t_consulta* consulta = cs_msg_consultar_pl_rest_create("Resto");
 
 			should_string(consulta->restaurante) be equal to ("Resto");
@@ -442,5 +442,17 @@ context(test_messages) {
 		} end
 	} end
 
+/*	describe("Handshakes") {
+
+		before {
+			cs_config_init("tests.config");
+		} end
+
+		after {
+			cs_config_delete();
+		} end
+
+	} end
+*/
 
 }
