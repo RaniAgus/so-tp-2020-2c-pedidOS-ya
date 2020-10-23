@@ -116,7 +116,7 @@ t_handshake_res* cs_cons_handshake_res_create(t_pos pos)
 	msg->posicion.y = pos.y;
 
 	msg->ip     = NULL;
-	msg->puerto = cs_config_get_string("PUERTO_ESCUCHA");
+	msg->puerto = string_duplicate(cs_config_get_string("PUERTO_ESCUCHA"));
 
 	return msg;
 }

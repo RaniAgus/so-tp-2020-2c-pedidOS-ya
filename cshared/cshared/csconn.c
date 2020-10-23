@@ -48,6 +48,8 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 
 	if(getpeername(sfd, (struct sockaddr *)&addr, &addr_size) == -1)
 	{
+		free(ip);
+		free(port);
 		cs_set_local_err(errno);
 		return STATUS_GETPEERNAME_ERROR;
 	}
@@ -59,6 +61,8 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 	);
 	if(err != 0)
 	{
+		free(ip);
+		free(port);
 		if(err == EAI_SYSTEM)
 		{
 			cs_set_local_err(errno);

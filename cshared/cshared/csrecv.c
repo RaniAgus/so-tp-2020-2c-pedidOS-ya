@@ -229,6 +229,7 @@ static t_handshake_res* _buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
 	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_RECV);
 
 	//IP
+	msg->ip = NULL;
 	cs_get_peer_info(conn, &msg->ip, NULL);
 
 	//Puerto
