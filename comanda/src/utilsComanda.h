@@ -8,6 +8,8 @@
 #ifndef UTILSCOMANDA_H_
 #define UTILSCOMANDA_H_
 
+#define _GNU_SOURCE
+
 #include <cshared/cshared.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -51,8 +53,14 @@ typedef struct
 	t_list* pedidos;
 }t_restaurante;
 
+void crearAreaSwap();
+
 e_opcode guardarPedido(t_consulta* msg);
 e_opcode guardarPlato(t_consulta* msg);
+t_rta_obt_ped* obtenerPedido(t_consulta* msg);
+e_opcode confirmarPedido(t_consulta* msg);
+e_opcode platoListo(t_consulta* msg);
+e_opcode finalizarPedido(t_consulta* msg);
 
 t_restaurante* buscarRestaurante(char* restaurante);
 t_list* acomodarFrames(int tamMemoria);

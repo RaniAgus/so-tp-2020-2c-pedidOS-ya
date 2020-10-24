@@ -1,22 +1,5 @@
 #include "utilsComanda.h"
 
-void server_send_rta_ok_fail(e_msgtype msg_type, t_sfd client_conn,e_opcode ok_fail)
-{
-	t_header header= {ok_fail,msg_type};
-	char* rta_to_str = cs_msg_to_str(NULL, header.opcode, header.msgtype);
-	if( cs_send_respuesta(client_conn, header, NULL) == STATUS_SUCCESS )
-		{
-			CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
-		} else
-		{
-			CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
-		}
-
-		free(rta_to_str);
-		cs_msg_destroy(NULL, header.opcode, header.msgtype);
-
-}
-
 t_restaurante* buscarRestaurante(char* restaurante){
 	int tamanioSegmentos= list_size(listaRestaurantes);
 	t_restaurante* unRestaurante;
@@ -90,20 +73,6 @@ void borrarPedidoDeRestaurante(uint32_t pedido_id, t_restaurante* unRest){
 	}
 }
 
-void liberarRespuestaObtener(t_rta_obt_ped* respuestaObtener){
-	int tamanioLista = list_size(respuestaObtener->platos_y_estados);
-	for(int i=0; i<tamanioLista;i++){
-		t_plato* platoYestado = list_get(respuestaObtener->platos_y_estados,i);
-		free(platoYestado->comida);
-		free(platoYestado);
-	}
-	list_destroy(respuestaObtener->platos_y_estados);
-	free(respuestaObtener);
-}
-
-
-
-
 t_list* acomodarFrames(int tamMemoria){
 	int cantidadDeFrames = tamMemoria/32;
 	t_list* frames = list_create();
@@ -132,7 +101,9 @@ t_frame_en_memoria* dameUnFrame(){
 		}
 	}
 	pthread_mutex_unlock(&mutexListaFrames);
+
 	//TODO: Swaaaaaaaaaaap
+	return NULL;
 }
 
 void liberarFrame(void* direccion){
