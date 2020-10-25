@@ -20,9 +20,12 @@ void* memoriaPrincipal;
 void* areaSwap;
 t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
+t_list* listaFramesEnSwap;
+uint32_t contadorLRU;
 
 pthread_mutex_t mutexMemoriaInterna;
 pthread_mutex_t mutexListaFrames;
+pthread_mutex_t mutexLRU;
 
 typedef struct
 {
@@ -36,6 +39,12 @@ typedef struct
 	void* inicio;
 	t_pagina* paginaALaQuePertenece; //estaOcupado
 }t_frame_en_memoria;
+
+typedef struct
+{
+	void* inicio;
+	t_pagina* paginaALaQuePertenece;
+}t_frame_en_swap;
 
 typedef struct
 {
@@ -53,7 +62,7 @@ typedef struct
 	t_list* pedidos;
 }t_restaurante;
 
-void crearAreaSwap();
+t_list* crearAreaSwap(int tamSwap);
 
 e_opcode guardarPedido(t_consulta* msg);
 e_opcode guardarPlato(t_consulta* msg);

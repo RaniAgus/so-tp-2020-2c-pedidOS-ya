@@ -22,18 +22,19 @@ int main(void) {
 
 	//inicializo mutex
 	pthread_mutex_init(&mutexMemoriaInterna,NULL);
-	//pthread_mutex_lock(&suscriptoresLocalized);
-	//pthread_mutex_unlock(&suscriptoresLocalized);
+	pthread_mutex_init(&mutexLRU,NULL);
+
 
 	//Lee las direcciones desde el config interno
 	char* port = cs_config_get_string("PUERTO_ESCUCHA");
 
 	//Inicializo memoria
 	int tamMemoria= cs_config_get_int("TAMANIO_MEMORIA");
+	int tamSwap=cs_config_get_int("TAMANIO_SWAP");
 	memoriaPrincipal = malloc(tamMemoria);
 	listaRestaurantes = list_create();
 	listaFramesMemoria = acomodarFrames(tamMemoria);
-	crearAreaSwap();
+	listaFramesEnSwap = crearAreaSwap(tamSwap);
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
 	CHECK_STATUS(cs_tcp_server_create(&socketEscucha, port));

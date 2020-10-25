@@ -106,6 +106,18 @@ t_frame_en_memoria* dameUnFrame(){
 	return NULL;
 }
 
+t_frame_en_swap* dameUnFrameEnSwap(){
+	int tamanioListaFramesEnSwap = list_size(listaFramesEnSwap);
+	for (int i=0;i<tamanioListaFramesEnSwap;i++){
+		t_frame_en_swap* unFrame;
+		unFrame = list_get(listaFramesEnSwap,i);
+		if(unFrame->paginaALaQuePertenece == NULL){
+			CS_LOG_TRACE("le di la posicion de swap %i", (int) unFrame->inicio);
+			return unFrame;
+		}
+	}
+}
+
 void liberarFrame(void* direccion){
 	pthread_mutex_lock(&mutexListaFrames);
 	int tamanioFrames = list_size(listaFramesMemoria);
@@ -120,7 +132,7 @@ void liberarFrame(void* direccion){
 	pthread_mutex_unlock(&mutexListaFrames);
 }
 
-void crearAreaSwap(){
+t_list* crearAreaSwap(int tamSwap){
 	int fd;
 	//struct stat file_st;
 	fd= open("swap.swp",O_RDWR | O_CREAT, (mode_t) 0777);
@@ -133,10 +145,19 @@ void crearAreaSwap(){
 	if(areaSwap==MAP_FAILED){
 		CS_LOG_TRACE("error mapeando");
 	}
-	int a = 3;
-	memcpy(areaSwap,&a,4);
-	char* banana = "bananana";
-	memcpy(areaSwap,banana,8);
+
+	int cantidadDeFrames = tamSwap/32;
+	t_list* framesEnSwap = list_create();
+	int offset = 0;
+	for(int i=0; i<cantidadDeFrames; i++){
+		t_frame_en_swap* unFrame = malloc(sizeof(t_frame_en_swap));
+		unFrame->inicio = areaSwap + offset;
+		offset+=32;
+		unFrame->paginaALaQuePertenece = NULL;
+		list_add(framesEnSwap,unFrame);
+	}
+	return framesEnSwap;
+
 }
 
 e_opcode guardarPedido(t_consulta* msg){
@@ -194,11 +215,13 @@ e_opcode guardarPlato(t_consulta* msg){
 		memcpy(plato->inicioMemoria,&dondeDepositoLaLectura,sizeof(uint32_t));
 	} else{
 		t_frame_en_memoria* frameAPisar = dameUnFrame();
+		t_frame_en_swap* enSwap=dameUnFrameEnSwap();
 		t_pagina* pagina = malloc(sizeof(t_pagina));
 		pagina->inicioMemoria = frameAPisar->inicio;
 		pagina->numeroPagina= list_size(pedido->tablaPaginas);
 		pagina->presente =1;
 		frameAPisar->paginaALaQuePertenece = pagina;
+		enSwap->paginaALaQuePertenece=pagina;
 		int offset=0;
 		memcpy(pagina->inicioMemoria + offset,&(msg->cantidad),sizeof(int));
 		offset+=sizeof(uint32_t);
@@ -206,8 +229,14 @@ e_opcode guardarPlato(t_consulta* msg){
 		memcpy(pagina->inicioMemoria + offset,&cero,sizeof(int));
 		offset+=sizeof(uint32_t);
 		memcpy(pagina->inicioMemoria+offset,msg->comida,strlen(msg->comida)+1);
+		memcpy(enSwap->inicio,pagina->inicioMemoria,32);
 		list_add(pedido->tablaPaginas,pagina);
 		CS_LOG_INFO("Guarde el plato %s en la direccion de memoria %i",msg->comida, pagina->inicioMemoria);
+		char* varTest = malloc(24);
+		//TODO: test borar
+		memcpy(varTest,(enSwap->inicio)+8,24);
+		CS_LOG_TRACE("A ver si es swap leo bien %s", varTest);
+		//test
 
 	}
 	pthread_mutex_unlock(&mutexMemoriaInterna);
