@@ -1,16 +1,9 @@
 #ifndef UTILS_MSG_H_
 #define UTILS_MSG_H_
 
-#include <commons/string.h>
 #include "utils/csstring.h"
 #include "utils/csconfig.h"
-#include "csstructs.h"
-
-typedef struct
-{
-	int8_t 	 opcode;
-	int8_t 	 msgtype;
-}t_header;
+#include "csmsgstructs.h"
 
 typedef enum
 {

@@ -19,10 +19,10 @@
 #include "utils/cslog.h"
 #include "utils/csstring.h"
 #include "utils/csconsole.h"
-#include "csstructs.h"
-#include "csmsg.h"
+#include "utils/cssockets.h"
+#include "csmsgstructs.h"
+#include "csmsgtypes.h"
 #include "csmsgtostring.h"
-#include "csconn.h"
 #include "cssend.h"
 #include "csrecv.h"
 

@@ -7,11 +7,16 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
-#include "utils/cserror.h"
-#include "utils/csconfig.h"
-#include "csmsg.h"
+
+#include "cserror.h"
 
 typedef volatile int t_sfd;
+
+typedef struct
+{
+	int8_t 	 opcode;
+	int8_t 	 msgtype;
+}t_header;
 
 typedef struct
 {

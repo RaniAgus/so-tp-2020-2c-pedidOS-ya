@@ -1,4 +1,4 @@
-#include "csconn.h"
+#include "cssockets.h"
 
 static const char* CS_OPCODE_STR[] =
 {
