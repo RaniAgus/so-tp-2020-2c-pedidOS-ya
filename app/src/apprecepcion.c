@@ -46,7 +46,7 @@ void app_recepcion_init(void)
 
 	//Abre un puerto de escucha para recibir mensajes y crea el hilo
 	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, cs_config_get_string("PUERTO_ESCUCHA")));
-	CHECK_STATUS(PTHREAD_CREATE(&hilo_escucha, app_rutina_recepcion_de_mensajes, NULL));
+	pthread_create(&hilo_escucha, NULL, (void*) app_rutina_recepcion_de_mensajes, NULL);
 }
 
 // Funciones locales

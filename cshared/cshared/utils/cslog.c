@@ -8,7 +8,7 @@ e_status cs_logger_init(const char* file_key, const char* program_name)
 {
 	char* file = NULL;
 
-	PTHREAD_MUTEX_INIT(CS_LOGGER_MUTEX);
+	pthread_mutex_init(&CS_LOGGER_MUTEX, NULL);
 
 	file = cs_config_get_string(file_key);
 	if(file == NULL) 

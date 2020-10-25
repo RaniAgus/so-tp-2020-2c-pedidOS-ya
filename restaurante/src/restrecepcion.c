@@ -20,7 +20,7 @@ void rest_recepcion_init(void)
 	char* puerto_escucha = cs_config_get_string("PUERTO_ESCUCHA");
 	CHECK_STATUS(cs_tcp_server_create(&conexion_escucha, puerto_escucha));
 	CS_LOG_TRACE("Se abrió un servidor: {PUERTO_ESCUCHA: %s}", puerto_escucha);
-	CHECK_STATUS(PTHREAD_CREATE(&hilo_escucha, rest_recv_msg_routine, NULL));
+	pthread_create(&hilo_escucha, NULL, (void*)rest_recv_msg_routine, NULL);
 	rest_clientes_init();
 }
 

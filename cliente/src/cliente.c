@@ -40,7 +40,7 @@ e_status client_init(pthread_t* thread_recv_msg)
 	//Crea el primer socket para recibir mensajes ahí
 	CHECK_STATUS(cs_tcp_client_create(&serv_conn, serv_ip, serv_port));
 	CHECK_STATUS(client_send_handshake(serv_conn, &serv_module));
-	CHECK_STATUS(PTHREAD_CREATE(thread_recv_msg, client_recv_msg_routine, NULL));
+	pthread_create(thread_recv_msg, NULL, (void*) client_recv_msg_routine, NULL);
 
 	CS_LOG_TRACE(__FILE__":%s:%d -- Iniciado correctamente.", __func__, __LINE__);
 	
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 
 			//Envía el mensaje
 			pthread_t thread_msg;
-			PTHREAD_CREATE(&thread_msg, client_send_msg, result);
+			pthread_create(&thread_msg, NULL, (void*) client_send_msg, (void*) result);
 			pthread_detach(thread_msg);
 		}
 		else

@@ -24,25 +24,11 @@
         PRINT_ERROR(__val);\
         exit(__val);} })
 
-#define SEM_INIT(semaphor, value)\
-({ sem_init(&semaphor, 0, value) ?\
-({ cs_set_local_err(errno); STATUS_SEM_INIT_ERROR;}) : STATUS_SUCCESS; })
-
-#define PTHREAD_MUTEX_INIT(mutex)\
-({ int __val = pthread_mutex_init(&mutex, NULL); (__val != 0 ?\
-({ cs_set_local_err(__val); STATUS_PTHREAD_ERROR;}) : STATUS_SUCCESS); })
-
-#define PTHREAD_CREATE(thread, func, arg) \
-({ int __val = pthread_create(thread, (void*)NULL, (void*)func, (void*)arg); (__val != 0 ?\
-({ cs_set_local_err(__val); STATUS_PTHREAD_ERROR;}) : STATUS_SUCCESS); })
-
 typedef enum
 {
 	STATUS_SUCCESS = 0,
 	STATUS_LOOK_UP_ERROR,
 
-	STATUS_SEM_INIT_ERROR,
-	STATUS_PTHREAD_ERROR,
 	STATUS_SIGACTION_ERROR,
 
 	STATUS_CONFIG_ERROR,

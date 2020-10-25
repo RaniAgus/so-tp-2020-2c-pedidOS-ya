@@ -57,7 +57,7 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		}
 
 		pthread_t thread_cocinero;
-		PTHREAD_CREATE(&thread_cocinero, rest_cocinero_routine, queue_cocinero);
+		pthread_create(&thread_cocinero, NULL, (void*) rest_cocinero_routine, (void*) queue_cocinero);
 		pthread_detach(thread_cocinero);
 		sem_wait(&sem_creado);
 	}
@@ -85,7 +85,7 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		for(int i = cant_cocineros_afines; i < metadata->cant_cocineros; i++)
 		{
 			pthread_t thread_cocinero;
-			PTHREAD_CREATE(&thread_cocinero, rest_cocinero_routine, queue_restantes);
+			pthread_create(&thread_cocinero, NULL, (void*) rest_cocinero_routine, (void*) queue_restantes);
 			pthread_detach(thread_cocinero);
 			sem_wait(&sem_creado);
 		}
@@ -95,14 +95,14 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 	for(int i = 0; i < metadata->cant_hornos; i++)
 	{
 		pthread_t thread_horno;
-		PTHREAD_CREATE(&thread_horno, rest_horno_routine, NULL);
+		pthread_create(&thread_horno, NULL, (void*) rest_horno_routine, NULL);
 		pthread_detach(thread_horno);
 		sem_wait(&sem_creado);
 	}
 
 	//Crea el hilo de platos en reposo
 	pthread_t thread_reposo;
-	PTHREAD_CREATE(&thread_reposo, rest_reposo_routine, NULL);
+	pthread_create(&thread_reposo, NULL, (void*) rest_reposo_routine, NULL);
 	pthread_detach(thread_reposo);
 	sem_wait(&sem_creado);
 
