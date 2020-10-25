@@ -6,7 +6,7 @@
 #define LOG_FILE_KEY	 "SERVER_LOGGER"
 
 static t_sfd conn;
-static t_sigaction old_sigint_action;
+static struct sigaction old_sigint_action;
 
 void server_recv_msg(t_sfd* client_conn);
 void server_log_and_send_reply(t_sfd client_conn, t_header header, t_consulta* msg);
