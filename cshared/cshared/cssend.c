@@ -160,7 +160,6 @@ static t_buffer* _package_to_buffer(t_package* package)
 	cs_stream_copy(buffer->stream, &offset, &package->header.opcode,  sizeof(int8_t), 1);
 	cs_stream_copy(buffer->stream, &offset, &package->header.msgtype, sizeof(int8_t), 1);
 
-
 	cs_stream_copy(buffer->stream, &offset, &package->payload->size,  sizeof(uint32_t), 1);
 	cs_stream_copy(buffer->stream, &offset, package->payload->stream, package->payload->size, 1);
 

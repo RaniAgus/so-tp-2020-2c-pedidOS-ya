@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <cshared/csmsg.h>
+#include <cshared/csmsgtypes.h>
 #include <cshared/csmsgtostring.h>
 
 #include <cspecs/cspec.h>

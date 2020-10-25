@@ -1,4 +1,4 @@
-#include "csstructs.h"
+#include "csmsgstructs.h"
 
 static const char* ESTADO_PEDIDO_STR[] =
 {

@@ -1,8 +1,8 @@
-#ifndef CSHARED_CSSTRUCTS_H_
-#define CSHARED_CSSTRUCTS_H_
+#ifndef CSHARED_CSMSGSTRUCTS_H_
+#define CSHARED_CSMSGSTRUCTS_H_
 
 #include "utils/csstring.h"
-#include "utils/cslist.h"
+#include "utils/csutils.h"
 
 typedef enum
 {
@@ -140,4 +140,4 @@ int cs_platos_sumar_totales(t_list* platos);
 */
 t_list* cs_receta_duplicate(t_list* receta);
 
-#endif /* CSHARED_CSSTRUCTS_H_ */
+#endif /* CSHARED_CSMSGSTRUCTS_H_ */

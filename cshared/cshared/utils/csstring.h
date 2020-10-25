@@ -60,28 +60,28 @@ bool cs_string_is_unsigned_int_array(char* str);
 */
 char* cs_string_array_to_string(char** str_arr);
 
-	/**
-	* @NAME: string_new
-	* @DESC: Crea un array de strings vacio
-	*/
-	char** string_array_new();
+/**
+* @NAME: string_new
+* @DESC: Crea un array de strings vacio
+*/
+char** string_array_new();
 
-	/**
-	* @NAME string_array_size
-	* @DESC Devuelve la cantidad de líneas que tiene un array de strings
-	*/
-	int		string_array_size(char** str_arr);
+/**
+* @NAME string_array_size
+* @DESC Devuelve la cantidad de líneas que tiene un array de strings
+*/
+int	string_array_size(char** str_arr);
 
-	/*
-	 * @NAME: string_array_is_empty
-	 * @DESC: Verifica si el array de strings está vacío
-	 */
-	bool 	string_array_is_empty(char** array);
+/*
+ * @NAME: string_array_is_empty
+ * @DESC: Verifica si el array de strings está vacío
+ */
+bool string_array_is_empty(char** array);
 
-	/**
-	* @NAME: string_array_push
-	* @DESC: Agrega un string al final del array
-	*/
-	void 	string_array_push(char*** array, char* text);
+/**
+* @NAME: string_array_push
+* @DESC: Agrega un string al final del array
+*/
+void string_array_push(char*** array, char* text);
 
 #endif /* UTILS_STRING_H_ */

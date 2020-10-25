@@ -1,8 +1,13 @@
 #ifndef UTILS_CSERROR_H
 #define UTILS_CSERROR_H
 
-#include "cscore.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <netdb.h>
 #include <pthread.h>
+
+#include "csutils.h"
 
 /**
 * @NAME PRINT_ERROR

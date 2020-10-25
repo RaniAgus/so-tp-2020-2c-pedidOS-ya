@@ -1,10 +1,8 @@
 #ifndef CONN_SEND_H_
 #define CONN_SEND_H_
 
-#include "utils/cserror.h"
-#include "csmsg.h"
-#include "csconn.h"
-#include "csconncreate.h"
+#include "utils/cssockets.h"
+#include "csmsgtypes.h"
 
 /**
 * @NAME cs_send_msg
