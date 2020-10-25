@@ -13,21 +13,16 @@
 #include <commons/bitarray.h>
 
 //C Shared Utils
-#include "utils/cscore.h"
+#include "utils/csutils.h"
 #include "utils/cserror.h"
 #include "utils/csconfig.h"
 #include "utils/cslog.h"
 #include "utils/csstring.h"
-#include "utils/cslist.h"
 #include "utils/csconsole.h"
-#include "utils/cstemporal.h"
-#include "utils/cssignal.h"
-#include "utils/csthreads.h"
 #include "csstructs.h"
 #include "csmsg.h"
 #include "csmsgtostring.h"
 #include "csconn.h"
-#include "csconncreate.h"
 #include "cssend.h"
 #include "csrecv.h"
 

@@ -4,7 +4,6 @@
 #include "utils/cserror.h"
 #include "csmsg.h"
 #include "csconn.h"
-#include "csconncreate.h"
 
 /**
 * @NAME cs_send_msg

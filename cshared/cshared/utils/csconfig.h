@@ -1,8 +1,8 @@
 #ifndef UTILS_CONFIG_H_
 #define UTILS_CONFIG_H_
 
-#include "cserror.h"
 #include <commons/config.h>
+#include "cserror.h"
 
 /**
 * @NAME cs_config_init (versión de config_create de commons/config.h)

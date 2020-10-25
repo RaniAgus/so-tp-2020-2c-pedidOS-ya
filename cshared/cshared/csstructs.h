@@ -2,7 +2,7 @@
 #define CSHARED_CSSTRUCTS_H_
 
 #include "utils/csstring.h"
-#include "utils/cslist.h"
+#include "utils/csutils.h"
 
 typedef enum
 {
