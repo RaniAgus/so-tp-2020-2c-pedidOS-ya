@@ -81,7 +81,8 @@ t_list* acomodarFrames(int tamMemoria){
 		t_frame_en_memoria* unFrame = malloc(sizeof(t_frame_en_memoria));
 		unFrame->inicio = memoriaPrincipal + offset;
 		offset+=32;
-		unFrame->paginaALaQuePertenece = NULL;
+		//unFrame->paginaALaQuePertenece = NULL;
+		unFrame->estaSiendoUsado=0;
 		list_add(frames,unFrame);
 	}
 //	printf("LA memoria incia en %i, el ultimo frame esta en en %i", (int)memoriaPrincipal, (int) (((t_frame_en_memoria*)list_get(frames,31))->inicio));
@@ -94,7 +95,7 @@ t_frame_en_memoria* dameUnFrame(){
 	for (int i=0;i<tamanioListaFrames;i++){
 		t_frame_en_memoria* unFrame;
 		unFrame = list_get(listaFramesMemoria,i);
-		if(unFrame->paginaALaQuePertenece == NULL){
+		if(unFrame->estaSiendoUsado == 0){
 			CS_LOG_TRACE("le di la posicion de memoria %i", (int) unFrame->inicio);
 			pthread_mutex_unlock(&mutexListaFrames);
 			return unFrame;
@@ -111,11 +112,17 @@ t_frame_en_swap* dameUnFrameEnSwap(){
 	for (int i=0;i<tamanioListaFramesEnSwap;i++){
 		t_frame_en_swap* unFrame;
 		unFrame = list_get(listaFramesEnSwap,i);
-		if(unFrame->paginaALaQuePertenece == NULL){
+		if(unFrame->frameAsignado == NULL){
 			CS_LOG_TRACE("le di la posicion de swap %i", (int) unFrame->inicio);
+			unFrame->frameAsignado = dameUnFrame();
+			if(unFrame->frameAsignado == NULL){
+				traemeDeSwap(unFrame);
+			}
 			return unFrame;
 		}
 	}
+	return NULL;
+	//TODO: en caso de que ESTA funcion de NULL
 }
 
 void liberarFrame(void* direccion){
@@ -125,7 +132,7 @@ void liberarFrame(void* direccion){
 		t_frame_en_memoria* unFrame = list_get(listaFramesMemoria,i);
 		if(unFrame->inicio == direccion){
 			CS_LOG_TRACE("me libere un frame");
-			unFrame->paginaALaQuePertenece = NULL;
+			unFrame->estaSiendoUsado = 0;
 			break;
 		}
 	}
@@ -153,12 +160,47 @@ t_list* crearAreaSwap(int tamSwap){
 		t_frame_en_swap* unFrame = malloc(sizeof(t_frame_en_swap));
 		unFrame->inicio = areaSwap + offset;
 		offset+=32;
-		unFrame->paginaALaQuePertenece = NULL;
+		unFrame->frameAsignado = NULL;
+		unFrame->presente =0;
+		unFrame->LRU =1;
 		list_add(framesEnSwap,unFrame);
 	}
 	return framesEnSwap;
 
 }
+
+void traemeDeSwap(t_frame_en_swap* frameEnSwap) {
+	int tamanioSwap = list_size(listaFramesEnSwap);
+	if (!strcmp(cs_config_get_string("ALGORITMO_REEMPLAZO"), "LRU")) {
+		CS_LOG_TRACE("Voy a reemplazar por LRU");
+		uint32_t lruMin = UINT32_MAX;
+		t_frame_en_swap* frameAReemplazar = 0;
+		for (int i = 0; i < tamanioSwap; i++) {
+			t_frame_en_swap* potencialFrame = list_get(listaFramesEnSwap, i);
+
+			if (potencialFrame->presente) {
+				if (potencialFrame->LRU < lruMin) {
+					frameAReemplazar = potencialFrame;
+				}
+			}
+		}
+		if(frameAReemplazar->modificado){
+			memcpy(frameAReemplazar->frameAsignado->inicio,frameAReemplazar->inicio,32);
+		}
+		frameAReemplazar->modificado=0;
+		frameAReemplazar->presente=0;
+		memcpy(frameAReemplazar->frameAsignado->inicio,frameEnSwap->inicio,32);
+		frameEnSwap->frameAsignado = frameAReemplazar->frameAsignado;
+		pthread_mutex_lock(&mutexLRU);
+		frameEnSwap->LRU = contadorLRU++;
+		pthread_mutex_unlock(&mutexLRU);
+		frameEnSwap->presente =1;
+		frameEnSwap->modificado=0;
+
+	}
+}
+
+//TODO: fijate si mmapeas de forma global
 
 e_opcode guardarPedido(t_consulta* msg){
 	t_restaurante* restaurante;
@@ -209,19 +251,29 @@ e_opcode guardarPlato(t_consulta* msg){
 	pthread_mutex_lock(&mutexMemoriaInterna);
 	t_pagina* plato = buscarPlato(pedido,msg->comida);
 	if(plato){
+		if(!(plato->frameEnSwap->presente)){
+			traemeDeSwap(plato->frameEnSwap);
+		}
 		uint32_t dondeDepositoLaLectura;
 		memcpy(&dondeDepositoLaLectura,plato->inicioMemoria,sizeof(uint32_t));
 		dondeDepositoLaLectura+= msg->cantidad;
 		memcpy(plato->inicioMemoria,&dondeDepositoLaLectura,sizeof(uint32_t));
+		pthread_mutex_lock(&mutexLRU);
+		plato->frameEnSwap->LRU = contadorLRU++;
+		pthread_mutex_unlock(&mutexLRU);
+		plato->frameEnSwap->modificado =1;
 	} else{
-		t_frame_en_memoria* frameAPisar = dameUnFrame();
 		t_frame_en_swap* enSwap=dameUnFrameEnSwap();
 		t_pagina* pagina = malloc(sizeof(t_pagina));
-		pagina->inicioMemoria = frameAPisar->inicio;
+		pagina->frameEnSwap = enSwap;
+		pagina->inicioMemoria = enSwap->frameAsignado->inicio;
 		pagina->numeroPagina= list_size(pedido->tablaPaginas);
-		pagina->presente =1;
-		frameAPisar->paginaALaQuePertenece = pagina;
-		enSwap->paginaALaQuePertenece=pagina;
+		pagina->frameEnSwap->presente=1;
+		enSwap->frameAsignado->estaSiendoUsado = 1;
+		enSwap->modificado =0;
+		pthread_mutex_lock(&mutexLRU);
+		pagina->frameEnSwap->LRU = contadorLRU++;
+		pthread_mutex_unlock(&mutexLRU);
 		int offset=0;
 		memcpy(pagina->inicioMemoria + offset,&(msg->cantidad),sizeof(int));
 		offset+=sizeof(uint32_t);
@@ -264,6 +316,12 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 	int tamanioListaPaginas = list_size(pedido->tablaPaginas);
 	for(int i=0;i<tamanioListaPaginas;i++){
 		pagina = list_get(pedido->tablaPaginas,i);
+		if(!(pagina->frameEnSwap->presente)){
+			traemeDeSwap(pagina->frameEnSwap);
+		}
+		pthread_mutex_lock(&mutexLRU);
+		pagina->frameEnSwap->LRU = contadorLRU++;
+		pthread_mutex_unlock(&mutexLRU);
 		t_plato* unPlato = malloc(sizeof(t_plato));
 		pthread_mutex_lock(&mutexMemoriaInterna);
 		memcpy(&unPlato->cant_total,(pagina->inicioMemoria),sizeof(uint32_t));
@@ -339,12 +397,18 @@ e_opcode platoListo(t_consulta* msg){
 		pthread_mutex_unlock(&(pedido->mutexPedido));
 		return OPCODE_RESPUESTA_FAIL;
 	}
+	if(!(plato->frameEnSwap->presente)){
+		traemeDeSwap(plato->frameEnSwap);
+	}
 	pthread_mutex_lock(&mutexMemoriaInterna);
 	int dondeDepositoLaLectura;
 	memcpy(&dondeDepositoLaLectura,(plato->inicioMemoria) +4,sizeof(uint32_t));
 	dondeDepositoLaLectura++;
 	memcpy((plato->inicioMemoria) + 4,&dondeDepositoLaLectura,sizeof(uint32_t));
 	e_opcode retorno = buscarYTerminarPedido(pedido);
+	pthread_mutex_lock(&mutexLRU);
+	plato->frameEnSwap->LRU = contadorLRU++;
+	pthread_mutex_unlock(&mutexLRU);
 	pthread_mutex_unlock(&mutexMemoriaInterna);
 	pthread_mutex_unlock(&(pedido->mutexPedido));
 	return retorno;
@@ -368,7 +432,7 @@ e_opcode finalizarPedido(t_consulta* msg){
 	int tamanioPaginas = list_size (pedido->tablaPaginas);
 	for(int i=0;i<tamanioPaginas;i++){
 		t_pagina* unaPagina = list_get(pedido->tablaPaginas,i);
-		if(unaPagina->presente){
+		if(unaPagina->frameEnSwap->presente){
 			pthread_mutex_lock(&mutexMemoriaInterna);
 			liberarFrame(unaPagina->inicioMemoria);
 			pthread_mutex_unlock(&mutexMemoriaInterna);

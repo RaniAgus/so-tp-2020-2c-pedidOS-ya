@@ -35,6 +35,7 @@ int main(void) {
 	listaRestaurantes = list_create();
 	listaFramesMemoria = acomodarFrames(tamMemoria);
 	listaFramesEnSwap = crearAreaSwap(tamSwap);
+	contadorLRU= 0;
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
 	CHECK_STATUS(cs_tcp_server_create(&socketEscucha, port));
