@@ -25,17 +25,23 @@ t_segmentoPedido* buscarPedido(uint32_t pedido_id, t_restaurante* unRest){
 	return NULL;
 }
 
-t_pagina* buscarPlato(t_segmentoPedido* unPedido,char* comida){
+t_pagina* buscarPlato(t_segmentoPedido* unPedido, char* comida) {
 	int tamanioComidas = list_size(unPedido->tablaPaginas);
 	char* comidaExtraida = malloc(24);
 	t_pagina* plato;
-	for (int i=0;i<tamanioComidas;i++){
-		 plato = list_get(unPedido->tablaPaginas,i);
-		 memcpy(comidaExtraida, (plato->inicioMemoria)+8,24);
-		 if(!strcmp(comidaExtraida,comida)){
-			 free(comidaExtraida);
-			 return plato;
-		 }
+	for (int i = 0; i < tamanioComidas; i++) {
+		plato = list_get(unPedido->tablaPaginas, i);
+		if (!(plato->frameEnSwap->presente)) {
+			traemeDeSwap(plato->frameEnSwap);
+		}
+		memcpy(comidaExtraida, (plato->inicioMemoria) + 8, 24);
+		pthread_mutex_lock(&mutexLRU);
+		plato->frameEnSwap->LRU = contadorLRU++;
+		pthread_mutex_unlock(&mutexLRU);
+		if (!strcmp(comidaExtraida, comida)) {
+			free(comidaExtraida);
+			return plato;
+		}
 	}
 	free(comidaExtraida);
 
@@ -172,23 +178,30 @@ t_list* crearAreaSwap(int tamSwap){
 void traemeDeSwap(t_frame_en_swap* frameEnSwap) {
 	int tamanioSwap = list_size(listaFramesEnSwap);
 	if (!strcmp(cs_config_get_string("ALGORITMO_REEMPLAZO"), "LRU")) {
-		CS_LOG_TRACE("Voy a reemplazar por LRU");
-		uint32_t lruMin = UINT32_MAX;
+		CS_LOG_INFO("Voy a reemplazar por LRU");
+		uint32_t lruMin = 99999;//UINT32_MAX;
 		t_frame_en_swap* frameAReemplazar = 0;
 		for (int i = 0; i < tamanioSwap; i++) {
 			t_frame_en_swap* potencialFrame = list_get(listaFramesEnSwap, i);
 
 			if (potencialFrame->presente) {
+				//CS_LOG_TRACE("EL LRU esta en %s, el min es %s",potencialFrame->LRU);
+				CS_LOG_TRACE("EL LRU esta en %i, el min es %i",potencialFrame->LRU,lruMin);
 				if (potencialFrame->LRU < lruMin) {
 					frameAReemplazar = potencialFrame;
+					lruMin = potencialFrame->LRU;
 				}
 			}
 		}
 		if(frameAReemplazar->modificado){
-			memcpy(frameAReemplazar->frameAsignado->inicio,frameAReemplazar->inicio,32);
+			memcpy(frameAReemplazar->inicio,frameAReemplazar->frameAsignado->inicio,32);
 		}
 		frameAReemplazar->modificado=0;
 		frameAReemplazar->presente=0;
+		char* nombrePlatoAReemplazar = malloc(24);
+		memcpy(nombrePlatoAReemplazar,(frameAReemplazar->frameAsignado->inicio)+8,24);
+		CS_LOG_INFO("La victima para reemplazo de pagina es el plato %s", nombrePlatoAReemplazar);
+		free(nombrePlatoAReemplazar);
 		memcpy(frameAReemplazar->frameAsignado->inicio,frameEnSwap->inicio,32);
 		frameEnSwap->frameAsignado = frameAReemplazar->frameAsignado;
 		pthread_mutex_lock(&mutexLRU);
@@ -288,6 +301,7 @@ e_opcode guardarPlato(t_consulta* msg){
 		//TODO: test borar
 		memcpy(varTest,(enSwap->inicio)+8,24);
 		CS_LOG_TRACE("A ver si es swap leo bien %s", varTest);
+		free(varTest);
 		//test
 
 	}
@@ -316,6 +330,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 	int tamanioListaPaginas = list_size(pedido->tablaPaginas);
 	for(int i=0;i<tamanioListaPaginas;i++){
 		pagina = list_get(pedido->tablaPaginas,i);
+		CS_LOG_TRACE("EStoy presente %i", pagina->frameEnSwap->presente);
 		if(!(pagina->frameEnSwap->presente)){
 			traemeDeSwap(pagina->frameEnSwap);
 		}

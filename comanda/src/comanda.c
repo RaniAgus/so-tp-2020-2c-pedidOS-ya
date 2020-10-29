@@ -29,13 +29,13 @@ int main(void) {
 	char* port = cs_config_get_string("PUERTO_ESCUCHA");
 
 	//Inicializo memoria
+	contadorLRU= 0;
 	int tamMemoria= cs_config_get_int("TAMANIO_MEMORIA");
 	int tamSwap=cs_config_get_int("TAMANIO_SWAP");
 	memoriaPrincipal = malloc(tamMemoria);
 	listaRestaurantes = list_create();
 	listaFramesMemoria = acomodarFrames(tamMemoria);
 	listaFramesEnSwap = crearAreaSwap(tamSwap);
-	contadorLRU= 0;
 
 	//Abre un socket de escucha 'conn' para aceptar conexiones con 'server_recv_msg'
 	CHECK_STATUS(cs_tcp_server_create(&socketEscucha, port));
