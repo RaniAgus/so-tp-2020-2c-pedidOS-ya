@@ -11,13 +11,24 @@
 #include<cshared/cshared.h>
 #include<semaphore.h>
 #include<sys/mman.h>
-#include <fcntl.h>
+#include<fcntl.h>
+#include"sindicato.h"
+
+// ------------ COMUNICACIONES ------------ //
+
+char* miPuerto;
+t_sfd escucha;
 
 // ------------ SINCRO ------------ //
 
 sem_t bitmapSem;
 
 // ------------ ARCHIVOS ------------ //
+
+#define MODULE_NAME		 "SINDICATO"
+#define CONFIG_FILE_PATH "sindicato.config"
+#define LOG_FILE_KEY	 "RUTA_LOG"
+
 
 t_log* logger;
 t_config* config;
@@ -33,8 +44,10 @@ int tamanioBloque;
 
 // ------------ FUNCIONES ------------ //
 
+void* atenderConsola();
 void leerConfig();
-t_log* iniciar_logger(void);
-
+void server_recv_msg(t_sfd*);
+void server_log_and_send_reply(t_sfd, t_header, void*);
+void server_error_handler(e_status);
 
 #endif /* SINDICATO_H_ */

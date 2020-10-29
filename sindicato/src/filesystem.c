@@ -13,13 +13,14 @@ void crearDirectorioAFIP(){
 	string_append(&bitmap, "/Metadata/Bitmap.bin");
 
 	if(fopen(metadata,"r") == NULL || fopen(bitmap, "r") == NULL){
-		log_info(logger, "Genere el directorio para el FL en %s", puntoMontaje);
+		mkdir(puntoMontaje, 0777);
+		CS_LOG_INFO("Genere el directorio %s", puntoMontaje);
 		crearMetadata(path);
 		crearFiles(path);
 		crearBlocks(path);
 	} else {
 	free(path);
-	puts("No hice nada");
+	printf("Ya existe el FL");
 	}
 
 	free(metadata);
@@ -35,7 +36,7 @@ void crearMetadata(char* pathOrigin){
 	char* pathMetadata = string_duplicate(path);
 	mkdir(path, 0777);
 
-	log_info(logger, "Agrego carpeta Metadata");
+	CS_LOG_INFO("Agrego directorio Metadata");
 
 	string_append(&path, "/Metadata.");
 	string_append(&path, magicNumber);
@@ -51,7 +52,7 @@ void crearMetadata(char* pathOrigin){
 	free(tamanio);
 	free(cantidad);
 
-	log_info(logger, "Agrego el Metadata del File System");
+	CS_LOG_INFO("Agrego el Metadata del File System");
 
 	generarBitmap(pathMetadata, md);
 	config_destroy(md);
@@ -72,9 +73,9 @@ void crearFiles(char* pathOrigin){
 	string_append(&path, "/Files/Recetas");
 	mkdir(path, 0777);
 
-	log_info(logger, "Agrego carpeta Files");
-	log_info(logger, "Agrego carpeta Restaurantes");
-	log_info(logger, "Agrego carpeta Recetas");
+	CS_LOG_INFO("Agrego directorio Files");
+	CS_LOG_INFO("Agrego directorio Restaurantes");
+	CS_LOG_INFO("Agrego directorio Recetas");
 	free(path);
 }
 
@@ -82,7 +83,7 @@ void crearFiles(char* pathOrigin){
 void crearBlocks(char* path){
 	string_append(&path, "/Blocks");
 	mkdir(path, 0777);
-	log_info(logger, "Agrego la carpeta Blocks");
+	CS_LOG_INFO("Agrego el directorio Blocks");
 	free(path);
 }
 
@@ -105,7 +106,123 @@ void generarBitmap(char* pathOrigin, t_config* md){
 	free(punteroABitmap);
 	free(path);
 
-	log_info(logger, "Genere el bitmap");
+	CS_LOG_INFO("Genere el bitmap");
+}
+
+
+// --------------------------------------------------------- //
+// ----------------- MENSAJES COMPONENTES ------------------ //
+// --------------------------------------------------------- //
+
+t_rta_cons_pl* consultarPlatos(t_consulta* consulta){
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	t_rta_cons_pl* respuesta;
+	if(existeDirectorio(path, 0)){
+		string_append(&path, "/info.AFIP");
+	} else {
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+e_opcode guardarPedido(t_consulta* consulta){
+	e_opcode respuesta;
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		respuesta = OPCODE_RESPUESTA_FAIL;
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+e_opcode guardarPlato(t_consulta* consulta){
+	e_opcode respuesta;
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		respuesta = OPCODE_RESPUESTA_FAIL;
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+e_opcode confirmarPedido(t_consulta* consulta){
+	e_opcode respuesta;
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		respuesta = OPCODE_RESPUESTA_FAIL;
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // Esta bien esto?
+	t_rta_obt_ped* respuesta = malloc(sizeof(t_rta_obt_ped));
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+//e_opcode+t_rta_cons_ped obtener_pedido(t_consulta*);
+
+t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){
+	t_rta_obt_rest* respuesta = malloc(sizeof(t_rta_obt_rest));
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+e_opcode platoListo(t_consulta* consulta){
+	e_opcode respuesta;
+	char* path = obtenerPathRestaurante(consulta->restaurante);
+	if(existeDirectorio(path, 0)){
+
+	} else {
+		respuesta = OPCODE_RESPUESTA_FAIL;
+		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+	}
+	free(path);
+	return respuesta;
+}
+
+t_rta_obt_rec* obtenerReceta(t_consulta* consulta){
+	t_rta_obt_rec* respuesta = leerReceta(consulta->comida);
+	if(respuesta == NULL){
+		CS_LOG_ERROR("No existe el Plato %s", consulta->comida);
+	}
+	return respuesta;
+}
+
+// --------------------------------------------------------- //
+// ----------------- MENSAJES COMPONENTES ------------------ //
+// --------------------------------------------------------- //
+
+char* crearRestaurante(char** consulta){
+	char* respuesta = string_new();
+	return respuesta;
+}
+
+char* crearReceta(char** consulta){
+	char* respuesta = string_new();
+	return respuesta;
 }
 
 // --------------------- MANEJO BITMAP --------------------- //
@@ -126,9 +243,8 @@ int obtenerYEscribirProximoDisponible(){
 	for(int i=0; i<cantidadBloques; i++){
 		if(bitarray_test_bit(bitmap, i) == 0){
 			bitarray_set_bit(bitmap ,i);
-			printf("Posicion %d\n", i);
+			CS_LOG_INFO("Se asigno el bloque %d", i);
 			msync(punteroABitmap ,cantidadBloques/8 ,0);
-			//write(bitmapFile, punteroABitmap, cantidadBloques/8);
 			close(bitmapFile);
 			sem_post(&bitmapSem);
 			free(path);
@@ -140,7 +256,7 @@ int obtenerYEscribirProximoDisponible(){
 	sem_post(&bitmapSem);
 	bitarray_destroy(bitmap);
 	free(path);
-	printf("Espacio lleno\n");
+	printf("BITMAP LLENO");
 	return 0;
 }
 
@@ -166,6 +282,7 @@ void eliminarBit(int index){
 	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadDeBloques/8, MSB_FIRST);
 
 	bitarray_clean_bit(bitmap, index);
+	CS_LOG_INFO("Se desasigno el bloque %d", index );
 
 	msync(punteroABitmap ,cantidadDeBloques/8 ,0);
 
@@ -178,7 +295,47 @@ void eliminarBit(int index){
 	free(path);
 }
 
+// --------------------- RECETA --------------------- //
+
+t_rta_obt_rec* leerReceta(char* nombre){
+	t_rta_obt_rec* receta = malloc(sizeof(t_rta_obt_rec));
+	char* path = string_new();
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/Files/Recetas/");
+	string_append(&path, nombre);
+	string_append(&path, ".AFIP");
+	if(mkdir(path, 0777)){
+		//LOGICA
+		free(path);
+		return receta;
+	} else {
+		return NULL;
+	}
+}
+
+// --------------------- RESTAURANTE --------------------- //
+
+char* obtenerPathRestaurante(char* nombreRestaurante){
+	char* path = string_new();
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/Files/Restaurantes/");
+	string_append(&path, nombreRestaurante);
+	return path;
+}
+
 // --------------------- AUX --------------------- //
+
+int existeDirectorio(char* path, int creacion){
+	if(creacion){
+		return mkdir(path, 0777);
+	} else {
+		int existe = mkdir(path, 0777);
+		if(!existe){
+			rmdir(path);
+		}
+		return existe;
+	}
+}
 
 int cantidadDeBloques(char** bloques){
 	int i = 0;
