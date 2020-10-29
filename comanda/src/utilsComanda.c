@@ -198,10 +198,14 @@ void traemeDeSwap(t_frame_en_swap* frameEnSwap) {
 		}
 		frameAReemplazar->modificado=0;
 		frameAReemplazar->presente=0;
+
+
 		char* nombrePlatoAReemplazar = malloc(24);
 		memcpy(nombrePlatoAReemplazar,(frameAReemplazar->frameAsignado->inicio)+8,24);
 		CS_LOG_INFO("La victima para reemplazo de pagina es el plato %s", nombrePlatoAReemplazar);
 		free(nombrePlatoAReemplazar);
+
+
 		memcpy(frameAReemplazar->frameAsignado->inicio,frameEnSwap->inicio,32);
 		frameEnSwap->frameAsignado = frameAReemplazar->frameAsignado;
 		pthread_mutex_lock(&mutexLRU);
@@ -267,13 +271,17 @@ e_opcode guardarPlato(t_consulta* msg){
 		if(!(plato->frameEnSwap->presente)){
 			traemeDeSwap(plato->frameEnSwap);
 		}
+		plato->inicioMemoria = plato->frameEnSwap->frameAsignado->inicio;
+
 		uint32_t dondeDepositoLaLectura;
 		memcpy(&dondeDepositoLaLectura,plato->inicioMemoria,sizeof(uint32_t));
 		dondeDepositoLaLectura+= msg->cantidad;
 		memcpy(plato->inicioMemoria,&dondeDepositoLaLectura,sizeof(uint32_t));
+
 		pthread_mutex_lock(&mutexLRU);
 		plato->frameEnSwap->LRU = contadorLRU++;
 		pthread_mutex_unlock(&mutexLRU);
+
 		plato->frameEnSwap->modificado =1;
 	} else{
 		t_frame_en_swap* enSwap=dameUnFrameEnSwap();
@@ -284,9 +292,11 @@ e_opcode guardarPlato(t_consulta* msg){
 		pagina->frameEnSwap->presente=1;
 		enSwap->frameAsignado->estaSiendoUsado = 1;
 		enSwap->modificado =0;
+
 		pthread_mutex_lock(&mutexLRU);
 		pagina->frameEnSwap->LRU = contadorLRU++;
 		pthread_mutex_unlock(&mutexLRU);
+
 		int offset=0;
 		memcpy(pagina->inicioMemoria + offset,&(msg->cantidad),sizeof(int));
 		offset+=sizeof(uint32_t);
@@ -331,9 +341,12 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 	for(int i=0;i<tamanioListaPaginas;i++){
 		pagina = list_get(pedido->tablaPaginas,i);
 		CS_LOG_TRACE("EStoy presente %i", pagina->frameEnSwap->presente);
+
 		if(!(pagina->frameEnSwap->presente)){
 			traemeDeSwap(pagina->frameEnSwap);
 		}
+		pagina->inicioMemoria = pagina->frameEnSwap->frameAsignado->inicio;
+
 		pthread_mutex_lock(&mutexLRU);
 		pagina->frameEnSwap->LRU = contadorLRU++;
 		pthread_mutex_unlock(&mutexLRU);
@@ -415,6 +428,8 @@ e_opcode platoListo(t_consulta* msg){
 	if(!(plato->frameEnSwap->presente)){
 		traemeDeSwap(plato->frameEnSwap);
 	}
+	plato->inicioMemoria = plato->frameEnSwap->frameAsignado->inicio;
+
 	pthread_mutex_lock(&mutexMemoriaInterna);
 	int dondeDepositoLaLectura;
 	memcpy(&dondeDepositoLaLectura,(plato->inicioMemoria) +4,sizeof(uint32_t));
@@ -424,6 +439,7 @@ e_opcode platoListo(t_consulta* msg){
 	pthread_mutex_lock(&mutexLRU);
 	plato->frameEnSwap->LRU = contadorLRU++;
 	pthread_mutex_unlock(&mutexLRU);
+	plato->frameEnSwap->modificado=1;
 	pthread_mutex_unlock(&mutexMemoriaInterna);
 	pthread_mutex_unlock(&(pedido->mutexPedido));
 	return retorno;
