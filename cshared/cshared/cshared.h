@@ -1,19 +1,28 @@
 #ifndef SHARED_CSHARED_H
 #define SHARED_CSHARED_H
 
-#include "utils/cscore.h"
+//Unix libs
+#include <pthread.h>
+#include <semaphore.h>
+#include <signal.h>
+
+//Readline
+#include <readline/readline.h>
+
+//UTN Commons
+#include <commons/bitarray.h>
+
+//C Shared Utils
+#include "utils/csutils.h"
 #include "utils/cserror.h"
 #include "utils/csconfig.h"
 #include "utils/cslog.h"
 #include "utils/csstring.h"
 #include "utils/csconsole.h"
-#include "utils/cstemporal.h"
-#include "utils/cssignal.h"
-#include "csstructs.h"
-#include "csmsg.h"
+#include "utils/cssockets.h"
+#include "csmsgstructs.h"
+#include "csmsgtypes.h"
 #include "csmsgtostring.h"
-#include "csconn.h"
-#include "csconncreate.h"
 #include "cssend.h"
 #include "csrecv.h"
 

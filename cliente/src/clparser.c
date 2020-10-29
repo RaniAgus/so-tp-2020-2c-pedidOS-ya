@@ -1,15 +1,11 @@
 #include "clparser.h"
 
-// <MSGTYPE>  ............<ARGS>............
-#define CL_MIN_AMOUNT_ARGS  1
-#define CL_MSGTYPE_ARG      0
-
 /**************************************** PARSER ********************************************/
 
 cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char* argv[], e_module serv_module)
 {
 	// Verifica que argc tenga el mínimo de argumentos necesarios
-	if(argc < CL_MIN_AMOUNT_ARGS)
+	if(argc < 1)
 	{
 		result->msgtype = MSGTYPE_UNKNOWN;
 
@@ -17,7 +13,8 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	}
 
 	// Lee el tipo de mensaje
-	result->msgtype = (int8_t)cs_string_to_enum(argv[CL_MSGTYPE_ARG],
+	string_to_upper(argv[0]);
+	result->msgtype = (int8_t)cs_string_to_enum(argv[0],
 											   			cs_enum_msgtype_to_str);
 
 	CS_LOG_TRACE(__FILE__":%s:%d -- Se leyó el tipo de mensaje: %s",
@@ -28,7 +25,7 @@ cl_parser_status client_parse_arguments(cl_parser_result* result, int argc, char
 	char *comida = NULL, *restaurante = NULL;
 	int cantidad = 0, pedido_id = 0;
 
-	int arg = CL_MSGTYPE_ARG + 1;
+	int arg = 1;
 	if(cs_cons_has_argument(result->msgtype, CONS_ARG_COMIDA, serv_module))
 	{
 		if(arg == argc)	return CL_CANT_ARGS_ERROR;
@@ -124,8 +121,7 @@ void client_print_parser_error(cl_parser_status status, cl_parser_result result,
 			break;
 		//Tipo de error: msgtype inválido.
 		case CL_MSGTYPE_ARG_ERROR:
-			string_append_with_format(&err_str, "Tipo de mensaje no válido.\n"
-												"Tipos de mensaje válidos: CONSULTAR_RESTAURANTES | SELECCIONAR_RESTAURANTE | OBTENER_RESTAURANTE | CONSULTAR_PLATOS | CREAR_PEDIDO | GUARDAR_PEDIDO | AÑADIR_PLATO | GUARDAR_PLATO | CONFIRMAR_PEDIDO | PLATO_LISTO | CONSULTAR_PEDIDO | OBTENER_PEDIDO | FINALIZAR_PEDIDO | TERMINAR_PEDIDO | OBTENER_RECETA");
+			string_append_with_format(&err_str, "Tipo de mensaje no válido.");
 			break;
 		//Tipo de error: argumentos con un formato no válido.
 		default:

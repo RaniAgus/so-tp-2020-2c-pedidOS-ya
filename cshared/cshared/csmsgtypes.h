@@ -1,13 +1,17 @@
 #ifndef UTILS_MSG_H_
 #define UTILS_MSG_H_
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <commons/string.h>
-#include "utils/cscore.h"
 #include "utils/csstring.h"
-#include "csconn.h"
-#include "csstructs.h"
+#include "utils/csconfig.h"
+#include "csmsgstructs.h"
+
+typedef enum
+{
+	OPCODE_UNKNOWN = 0,
+	OPCODE_CONSULTA,
+	OPCODE_RESPUESTA_OK,
+	OPCODE_RESPUESTA_FAIL
+}e_opcode;
 
 typedef enum
 {
@@ -133,7 +137,7 @@ typedef struct
 
 #define RTA_CONS_REST(ptr) ((t_rta_cons_rest*)(ptr))
 
-t_rta_cons_rest* cs_rta_consultar_rest_create(char* restaurantes);
+t_rta_cons_rest* cs_rta_consultar_rest_create(char** restaurantes);
 
 //*************************SELECCIONAR RESTAURANTE*************************
 

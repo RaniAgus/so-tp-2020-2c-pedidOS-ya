@@ -27,21 +27,9 @@ int cs_string_to_enum(const char* str, const char* (*enum_to_str)(int));
 
 /**
 * @NAME cs_string_to_uint
-* @DESC Devuelve por argumento el valor entero de un string (retorna -1 en caso de error).
-*/
-int cs_string_to_int(int* number, const char* str);
-
-/**
-* @NAME cs_string_to_uint
 * @DESC Devuelve el valor entero sin signo de un string (-1 en caso de error).
 */
 int cs_string_to_uint(const char* str);
-
-/**
-* @NAME cs_string_array_lines_count
-* @DESC Devuelve la cantidad de líneas que tiene un array de strings
-*/
-int	cs_string_array_lines_count(char** str_arr);
 
 /**
 * @NAME cs_string_is_in_string_array_format
@@ -52,7 +40,7 @@ int	cs_string_array_lines_count(char** str_arr);
 * Ejemplos no válidos:
 * 	"[a,b,c", "[a,b,,c]", "a,b,c]"
 */
-bool cs_string_is_in_string_array_format(char* str);
+bool cs_string_is_string_array(char* str);
 
 /**
 * @NAME cs_string_is_in_uint_array_format
@@ -64,19 +52,7 @@ bool cs_string_is_in_string_array_format(char* str);
 * Ejemplos NO válidos:
 * 	"[a,0,1]", "[0,1,2", "[0,1,,2]", "0,1,2]", "[-2,-1,0,1,2]"
 */
-bool cs_string_is_in_uint_array_format(char* str);
-
-/**
-* @NAME cs_string_is_in_int_array_format
-* @DESC Retorna != 0 si el string pasado por argumento está en formato array
-* de enteros.
-*
-* Ejemplos válidos:
-* 	"[1,2,3,4]", "[-2,-1,0,+1,2]", "[-1234]"
-* Ejemplos NO válidos:
-* 	"[a,0,1]", "[0,1,2", "[0,1,,2]", "0,1,2]"
-*/
-bool cs_string_is_in_int_array_format(char* str);
+bool cs_string_is_unsigned_int_array(char* str);
 
 /**
 * @NAME cs_string_array_to_string
@@ -84,5 +60,28 @@ bool cs_string_is_in_int_array_format(char* str);
 */
 char* cs_string_array_to_string(char** str_arr);
 
+/**
+* @NAME: string_new
+* @DESC: Crea un array de strings vacio
+*/
+char** string_array_new();
+
+/**
+* @NAME string_array_size
+* @DESC Devuelve la cantidad de líneas que tiene un array de strings
+*/
+int	string_array_size(char** str_arr);
+
+/*
+ * @NAME: string_array_is_empty
+ * @DESC: Verifica si el array de strings está vacío
+ */
+bool string_array_is_empty(char** array);
+
+/**
+* @NAME: string_array_push
+* @DESC: Agrega un string al final del array
+*/
+void string_array_push(char*** array, char* text);
 
 #endif /* UTILS_STRING_H_ */

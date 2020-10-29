@@ -2,13 +2,13 @@
 
 static t_log*           CS_LOGGER_INTERNAL = NULL;
 static pthread_mutex_t  CS_LOGGER_MUTEX;
-static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_INFO;
+static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_TRACE;
 
 e_status cs_logger_init(const char* file_key, const char* program_name)
 {
 	char* file = NULL;
 
-	PTHREAD_MUTEX_INIT(CS_LOGGER_MUTEX);
+	pthread_mutex_init(&CS_LOGGER_MUTEX, NULL);
 
 	file = cs_config_get_string(file_key);
 	if(file == NULL) 

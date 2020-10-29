@@ -1,8 +1,8 @@
-#ifndef CSHARED_CSSTRUCTS_H_
-#define CSHARED_CSSTRUCTS_H_
+#ifndef CSHARED_CSMSGSTRUCTS_H_
+#define CSHARED_CSMSGSTRUCTS_H_
 
-#include "utils/cscore.h"
-#include "utils/cserror.h"
+#include "utils/csstring.h"
+#include "utils/csutils.h"
 
 typedef enum
 {
@@ -118,4 +118,26 @@ void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
 */
 void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
 
-#endif /* CSHARED_CSSTRUCTS_H_ */
+/**
+* @NAME cs_platos_sumar_listos
+* @DESC Devuelve la sumatoria de la cantidad lista de platos de un
+* pedido.
+*
+*/
+int cs_platos_sumar_listos(t_list* platos);
+
+/**
+* @NAME cs_platos_sumar_totales
+* @DESC Devuelve la sumatoria de la cantidad total de platos de un
+* pedido.
+*
+*/
+int cs_platos_sumar_totales(t_list* platos);
+
+/**
+* @NAME cs_receta_duplicate
+* @DESC Devuelve una copia de todos los pasos de una receta.
+*/
+t_list* cs_receta_duplicate(t_list* receta);
+
+#endif /* CSHARED_CSMSGSTRUCTS_H_ */

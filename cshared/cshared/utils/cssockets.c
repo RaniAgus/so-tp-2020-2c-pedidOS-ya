@@ -1,4 +1,40 @@
-#include "csconncreate.h"
+#include "cssockets.h"
+
+static const char* CS_OPCODE_STR[] =
+{
+	"UNKNOWN",
+	"MENSAJE",
+	"RESPUESTA_OK",
+	"RESPUESTA_FAIL",
+	NULL
+};
+
+const char* cs_enum_opcode_to_str(int value)
+{
+	return CS_OPCODE_STR[value];
+}
+
+void cs_package_destroy(t_package* package)
+{
+	if(package)
+	{
+		if(package->payload) cs_buffer_destroy(package->payload);
+		free(package);
+	}
+
+	return;
+}
+
+void cs_buffer_destroy(t_buffer* buffer)
+{
+	if(buffer)
+	{
+		if(buffer->stream) free(buffer->stream);
+		free(buffer);
+	}
+
+	return;
+}
 
 void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), void(*err_handler)(e_status))
 {
@@ -142,4 +178,62 @@ e_status cs_tcp_client_create(t_sfd* conn, char* ip, char* port)
 
 	freeaddrinfo(clientInfo);
 	return STATUS_SUCCESS;
+}
+
+e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
+{
+	char *ip, *port;
+
+	struct sockaddr_storage addr;
+	socklen_t addr_size = sizeof(struct sockaddr_storage);
+
+	ip   = strdup("0000:0000:0000:0000:0000:0000:0000:0000");
+	port = strdup("65535");
+
+	if(getpeername(sfd, (struct sockaddr *)&addr, &addr_size) == -1)
+	{
+		free(ip);
+		free(port);
+		cs_set_local_err(errno);
+		return STATUS_GETPEERNAME_ERROR;
+	}
+
+	int err = getnameinfo(
+			(struct sockaddr *)&addr, addr_size,
+			ip, strlen(ip) + 1,
+			port, strlen(port) + 1, 0
+	);
+	if(err != 0)
+	{
+		free(ip);
+		free(port);
+		if(err == EAI_SYSTEM)
+		{
+			cs_set_local_err(errno);
+			return STATUS_LOOK_UP_ERROR;
+		} else
+		{
+			cs_set_local_err(err);
+			return STATUS_GETADDRINFO_ERROR;
+		}
+	}
+
+	if(ip_ptr)   *ip_ptr   = strdup(ip);
+	if(port_ptr) *port_ptr = strdup(port);
+
+	free(ip);
+	free(port);
+
+	return STATUS_SUCCESS;
+}
+
+bool cs_socket_is_connected(t_sfd sfd)
+{
+	bool is_connected;
+
+	void* stream = malloc(1);
+	is_connected = recv(sfd, stream, 1, MSG_PEEK | MSG_DONTWAIT) != 0;
+	free(stream);
+
+	return is_connected;
 }

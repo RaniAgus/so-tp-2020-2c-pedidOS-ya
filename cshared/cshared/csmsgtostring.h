@@ -1,7 +1,7 @@
 #ifndef CSHARED_CSMSGTOSTRING_H_
 #define CSHARED_CSMSGTOSTRING_H_
 
-#include "csmsg.h"
+#include "csmsgtypes.h"
 
 /**
 * @NAME cs_enum_msgtype_to_str

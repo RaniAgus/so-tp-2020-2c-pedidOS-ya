@@ -1,9 +1,8 @@
 #ifndef CONN_RECV_H_
 #define CONN_RECV_H_
 
-#include "utils/cserror.h"
-#include "csmsg.h"
-#include "csconn.h"
+#include "utils/cssockets.h"
+#include "csmsgtypes.h"
 
 /**
 * @NAME cs_recv_msg
@@ -12,5 +11,13 @@
 * recibido con éxito.
 */
 e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*));
+
+/**
+* @NAME cs_buffer_to_msg
+* @DESC Convierten un stream a una estructura mensaje.
+* ADVERTENCIA: NO USAR, ESTÁN PUBLICADAS SOLO PARA TESTS
+*
+*/
+void* cs_buffer_to_msg(t_header header, t_buffer* payload, t_sfd conn);
 
 #endif /* CONNRECV_H_ */

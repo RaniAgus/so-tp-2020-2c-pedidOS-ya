@@ -1,4 +1,4 @@
-#include "csstructs.h"
+#include "csmsgstructs.h"
 
 static const char* ESTADO_PEDIDO_STR[] =
 {
@@ -53,27 +53,30 @@ t_list* cs_platos_create(char* comidas, char* listos, char* totales)
 	char** listos_arr  = string_get_string_as_array(listos);
 	char** totales_arr = string_get_string_as_array(totales);
 
-	//Agrega cada línea a una lista
-	for(int i=0; platos_arr[i] != NULL; i++)
+	if(platos_arr)
 	{
-		t_plato* plato_y_estado;
+		//Agrega cada línea a una lista
+		for(int i=0; platos_arr[i] != NULL; i++)
+		{
+			t_plato* plato_y_estado;
 
-		plato_y_estado = malloc(sizeof(t_plato));
+			plato_y_estado = malloc(sizeof(t_plato));
 
-		plato_y_estado->comida = string_duplicate(platos_arr[i]);
-		plato_y_estado->cant_lista = atoi(listos_arr[i]);
-		plato_y_estado->cant_total = atoi(totales_arr[i]);
+			plato_y_estado->comida = string_duplicate(platos_arr[i]);
+			plato_y_estado->cant_lista = atoi(listos_arr[i]);
+			plato_y_estado->cant_total = atoi(totales_arr[i]);
 
-		list_add(list, (void*)plato_y_estado);
+			list_add(list, (void*)plato_y_estado);
+		}
+
+		//Libera los arrays
+		string_iterate_lines(platos_arr, (void*)free);
+		free(platos_arr);
+		string_iterate_lines(listos_arr, (void*)free);
+		free(listos_arr);
+		string_iterate_lines(totales_arr, (void*)free);
+		free(totales_arr);
 	}
-
-	//Libera los arrays
-	string_iterate_lines(platos_arr, (void*)free);
-	free(platos_arr);
-	string_iterate_lines(listos_arr, (void*)free);
-	free(listos_arr);
-	string_iterate_lines(totales_arr, (void*)free);
-	free(totales_arr);
 
 	//Retorna la lista
 	return list;
@@ -148,19 +151,28 @@ void cs_platos_to_string(t_list* platos, char** comidas, char** listos, char** t
 	*listos  = string_duplicate("[");
 	*totales = string_duplicate("[");
 
-	//Itera la lista, agregando la comida y el estado al respectivo string
-	void _platos_to_string(t_plato* plato)
+	if(platos->elements_count > 0)
 	{
-		string_append_with_format(comidas, "%s,", plato->comida);
-		string_append_with_format(listos , "%d,", plato->cant_lista);
-		string_append_with_format(totales, "%d,", plato->cant_total);
-	}
-	list_iterate(platos, (void*)_platos_to_string);
+		//Itera la lista, agregando la comida y el estado al respectivo string
+		void _platos_to_string(t_plato* plato)
+		{
+			string_append_with_format(comidas, "%s,", plato->comida);
+			string_append_with_format(listos , "%d,", plato->cant_lista);
+			string_append_with_format(totales, "%d,", plato->cant_total);
+		}
+		list_iterate(platos, (void*)_platos_to_string);
 
-	//Corrige la coma al final
-	(*comidas)[strlen(*comidas) - 1] = ']';
-	(*listos )[strlen(*listos ) - 1] = ']';
-	(*totales)[strlen(*totales) - 1] = ']';
+		//Corrige el corchete al final
+		(*comidas)[strlen(*comidas) - 1] = ']';
+		(*listos )[strlen(*listos ) - 1] = ']';
+		(*totales)[strlen(*totales) - 1] = ']';
+	} else
+	{
+		//Lista vacía
+		string_append(comidas, "]");
+		string_append(listos , "]");
+		string_append(totales, "]");
+	}
 }
 
 void cs_receta_to_string(t_list* receta, char** pasos, char** tiempos)
@@ -199,4 +211,39 @@ void cs_menu_to_string(t_list* menu, char** comidas, char** precios)
 	//Corrige la coma al final
 	(*comidas)[strlen(*comidas) - 1] = ']';
 	(*precios)[strlen(*precios) - 1] = ']';
+}
+
+int cs_platos_sumar_listos(t_list* platos)
+{
+	double _sumar_listos(t_plato* plato){
+		return (double)plato->cant_lista;
+	}
+
+	return (int)list_sum(platos, (void*) _sumar_listos);
+}
+
+int cs_platos_sumar_totales(t_list* platos)
+{
+	double _sumar_totales(t_plato* plato){
+		return (double)plato->cant_total;
+	}
+
+	return (int)list_sum(platos, (void*) _sumar_totales);
+}
+
+t_list* cs_receta_duplicate(t_list* receta)
+{
+	t_list* duplicate = list_create();
+
+	void _duplicar_pasos(t_paso_receta* plato)
+	{
+		t_paso_receta* nuevo = malloc(sizeof(t_paso_receta));
+		nuevo->paso = strdup(plato->paso);
+		nuevo->tiempo = plato->tiempo;
+
+		list_add(duplicate, nuevo);
+	}
+	list_iterate(receta, (void*) _duplicar_pasos);
+
+	return duplicate;
 }

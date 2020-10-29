@@ -7,6 +7,7 @@ if [ $# -lt 1 ];then
     echo "./config.sh serv [PUERTO_ESCUCHA]"
     echo "./config.sh sin [IP_SINDICATO] [PUERTO_SINDICATO]"
     echo "./config.sh app [IP_APP] [PUERTO_APP]"
+    echo "./config.sh cpu [RETARDO_CICLO_CPU]"
     echo "./config.sh fifo"
     echo "./config.sh rr [QUANTUM]"
     echo "./config.sh [NOMBRE_RESTAURANTE]"
@@ -24,17 +25,20 @@ else
         sed -i "5s/.*/PUERTO_APP=$3/" $BIN$FILE
         echo "Nueva ip de app: $2"
         echo "Nuevo puerto de app: $3"
+    elif [ "$1" == "cpu" ];then
+        sed -i "6s/.*/RETARDO_CICLO_CPU=$2/" $BIN$FILE
+        echo "Nuevo retardo ciclo CPU: $2"
     elif [ "$1" == "fifo" ];then
-        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=FIFO/" $BIN$FILE
+        sed -i "7s/.*/ALGORITMO_DE_PLANIFICACION=FIFO/" $BIN$FILE
         echo "Nuevo algoritmo de planificacion: FIFO"
     elif [ "$1" == "rr" ];then
-        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=RR/" $BIN$FILE
-        sed -i "7s/.*/QUANTUM=$2/" $BIN$FILE
+        sed -i "7s/.*/ALGORITMO_DE_PLANIFICACION=RR/" $BIN$FILE
+        sed -i "8s/.*/QUANTUM=$2/" $BIN$FILE
         echo "Nuevo algoritmo de planificacion: RR"
         echo "Nuevo quantum: $2"
     else
-        sed -i "8s/.*/NOMBRE_RESTAURANTE=$1/" $BIN$FILE
-        sed -i "9s/.*/ARCHIVO_LOG=$1.log/" $BIN$FILE
+        sed -i "9s/.*/NOMBRE_RESTAURANTE=$1/" $BIN$FILE
+        sed -i "10s/.*/ARCHIVO_LOG=$1.log/" $BIN$FILE
         echo "Nuevo nombre de restaurante: $1"
     fi
 fi

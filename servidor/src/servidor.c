@@ -6,10 +6,10 @@
 #define LOG_FILE_KEY	 "SERVER_LOGGER"
 
 static t_sfd conn;
-static t_sigaction old_sigint_action;
+static struct sigaction old_sigint_action;
 
 void server_recv_msg(t_sfd* client_conn);
-void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg);
+void server_log_and_send_reply(t_sfd client_conn, t_header header, t_consulta* msg);
 void server_error_handler(e_status err);
 
 void server_sigint_handler(int signal)
@@ -65,7 +65,7 @@ void server_recv_msg(t_sfd* client_conn)
 //Recibe el mensaje del cliente y llama a la función que lo muestra
 	do
 	{
-		status = cs_recv_msg(*client_conn, server_log_and_send_reply);
+		status = cs_recv_msg(*client_conn, (void*)server_log_and_send_reply);
 		if( status != STATUS_SUCCESS )	server_error_handler(status);
 	} while(status == STATUS_SUCCESS);
 
@@ -73,7 +73,7 @@ void server_recv_msg(t_sfd* client_conn)
 	free((void*)client_conn);
 }
 
-void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
+void server_log_and_send_reply(t_sfd client_conn, t_header header, t_consulta* msg)
 {
 	//Pasa el mensaje a string
 	char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
@@ -102,10 +102,10 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg)
 		server_send_rta_consultar_pedido(client_conn);
 	    break;
 	case OBTENER_PEDIDO:
-		server_send_rta_obtener_pedido(client_conn);
+		server_send_rta_obtener_pedido(client_conn, msg->pedido_id);
 	    break;
 	case OBTENER_RECETA:
-		server_send_rta_obtener_receta(client_conn);
+		server_send_rta_obtener_receta(client_conn, msg->comida);
 	    break;
 	default:
 		server_send_rta_ok(header.msgtype, client_conn);

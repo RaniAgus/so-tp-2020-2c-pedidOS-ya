@@ -9,7 +9,7 @@ static const char* _MSGTYPE_STR[] =
 	"CONSULTAR_PLATOS",
 	"CREAR_PEDIDO",
 	"GUARDAR_PEDIDO",
-	"AÑADIR_PLATO",
+	"ANIADIR_PLATO",
 	"GUARDAR_PLATO",
 	"CONFIRMAR_PEDIDO",
 	"PLATO_LISTO",
@@ -26,20 +26,6 @@ static const char* _MSGTYPE_STR[] =
 const char* cs_enum_msgtype_to_str(int value)
 {
 	return _MSGTYPE_STR[value];
-}
-
-static const char* _MODULES_STR[] = {
-		"Desconocido",
-		"Comanda",
-		"Sindicato",
-		"Cliente",
-		"App",
-		"Restaurante",
-		NULL
-};
-
-const char* cs_enum_module_to_str(int value) {
-	return _MODULES_STR[value];
 }
 
 static void _cons_append(char** msg_str, t_consulta* msg);
@@ -210,8 +196,8 @@ static void _rta_obt_rest_append(char** msg_str, t_rta_obt_rest* msg)
 
 	for(int i=0; i < msg->cant_cocineros; i++)
 	{
-		string_append_with_format(msg_str, "(%d;%s),",
-				i, ({ i < cs_string_array_lines_count(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
+		string_append_with_format(msg_str, "#%d:%s,",
+				i + 1, ({ i < string_array_size(msg->afinidades)? msg->afinidades[i]:"Ninguna";}));
 	}
 
 	(*msg_str)[strlen(*msg_str)-1] = ']';
@@ -273,7 +259,14 @@ static void _platos_append(char** msg_str, t_list* platos_y_estados)
 	}
 	list_iterate(platos_y_estados, (void*) _plato_y_estado_append);
 
-	(*msg_str)[strlen(*msg_str)-1] = ']';
+	if(platos_y_estados->elements_count > 0)
+	{
+		(*msg_str)[strlen(*msg_str)-1] = ']';
+	} else
+	{
+		string_append(msg_str, "]");
+	}
+
 	string_append(msg_str, "}");
 }
 
@@ -299,7 +292,7 @@ static void _rta_obt_rec_append(char** msg_str, t_rta_obt_rec* msg)
 
 	void _pasos_receta_append(t_paso_receta* plato_y_estado)
 	{
-		string_append_with_format(msg_str, "(%s;%d),",
+		string_append_with_format(msg_str, "%s(%d),",
 				plato_y_estado->paso,
 				plato_y_estado->tiempo);
 	}
