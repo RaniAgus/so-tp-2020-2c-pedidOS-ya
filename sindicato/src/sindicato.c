@@ -8,10 +8,7 @@ int main(void) {
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	leerConfig();
 
-	if(!strcmp(magicNumber, "AFIP")){
-		crearDirectorioAFIP();
-	}
-	consultarPlatos("Maxi");
+	crearDirectorioAFIP();
 
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
 
@@ -26,9 +23,7 @@ int main(void) {
 // ----------- INITIALIZER ----------- //
 
 void leerConfig(){
-<<<<<<< HEAD
 	rutaLog = cs_config_get_string("RUTA_LOG");
-	magicNumber = cs_config_get_string("MAGIC_NUMBER");
 	puntoMontaje = cs_config_get_string("PUNTO_MONTAJE_TALLGRASS");
 	tamanioBloque = cs_config_get_int("BLOCKS_SIZE");
 	cantidadBloques = cs_config_get_int("BLOCKS");
@@ -109,11 +104,6 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 		case CONSULTAR_PLATOS:({
 			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
 			t_rta_cons_pl* respuestaObtener = consultarPlatos(elMensaje);
-=======
-//	config = config_create("gamecard.config");
-//	ip = config_get_string_value(config,"IP_BROKER");
->>>>>>> master
-
 			if(!respuestaObtener){
 				server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
 			} else{

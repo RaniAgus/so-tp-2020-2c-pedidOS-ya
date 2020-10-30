@@ -20,7 +20,7 @@ void crearDirectorioAFIP(){
 		crearBlocks(path);
 	} else {
 	free(path);
-	printf("Ya existe el FL");
+	CS_LOG_TRACE("Ya existe el FL")
 	}
 
 	free(metadata);
@@ -38,8 +38,7 @@ void crearMetadata(char* pathOrigin){
 
 	CS_LOG_INFO("Agrego directorio Metadata");
 
-	string_append(&path, "/Metadata.");
-	string_append(&path, magicNumber);
+	string_append(&path, "/Metadata.AFIP");
 	metadata = fopen(path, "wrb");
 	fclose(metadata);
 	t_config* md = config_create(path);
@@ -47,7 +46,7 @@ void crearMetadata(char* pathOrigin){
 	char* cantidad = string_itoa(cantidadBloques);
 	config_set_value(md, "BLOCK_SIZE", tamanio);
 	config_set_value(md, "BLOCKS", cantidad);
-	config_set_value(md, "MAGIC_NUMBER", magicNumber);
+	config_set_value(md, "MAGIC_NUMBER", "AFIP");
 	config_save(md);
 	free(tamanio);
 	free(cantidad);
@@ -212,17 +211,40 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){
 }
 
 // --------------------------------------------------------- //
-// ----------------- MENSAJES COMPONENTES ------------------ //
+// ----------------- MENSAJES CONSOLA ------------------ //
 // --------------------------------------------------------- //
 
-char* crearRestaurante(char** consulta){
-	char* respuesta = string_new();
-	return respuesta;
+void crearRestaurante(char** consulta){
+	char* path = obtenerPathRestaurante(consulta[1]);
+	char* escritura = string_new();
+	if(existeDirectorio(path ,1)){
+		CS_LOG_ERROR("No se pudo crear el restaurante %s porque ya existe", consulta[1]);
+	} else {
+		CS_LOG_INFO("Se creo el restaurante %s", consulta[1]);
+		string_append(&path, "/info.AFIP");
+		string_append(&escritura,"CANTIDAD_COCINEROS=");
+		string_append(&escritura,consulta[2]);
+		string_append(&escritura,"\nPOSICION=");
+		string_append(&escritura,consulta[3]);
+		string_append(&escritura,"\nAFINIDAD_COCINEROS=");
+		string_append(&escritura,consulta[4]);
+		string_append(&escritura,"\nPLATOS=");
+		string_append(&escritura,consulta[5]);
+		string_append(&escritura,"\nPRECIO_PLATOS=");
+		string_append(&escritura,consulta[6]);
+		string_append(&escritura,"\nCANTIDAD_HORNOS=");
+		string_append(&escritura,consulta[7]);
+		string_append(&escritura,"\n");
+		FILE* fd = fopen(path, "wt");
+		fwrite(escritura, strlen(escritura), 1, fd);
+		fclose(fd);
+		CS_LOG_INFO("Se creo el archivo \"info.AFIP\" para el restaurant %s", consulta[1]);
+	}
+	free(path);
+	free(escritura);
 }
 
-char* crearReceta(char** consulta){
-	char* respuesta = string_new();
-	return respuesta;
+void crearReceta(char** consulta){
 }
 
 // --------------------- MANEJO BITMAP --------------------- //

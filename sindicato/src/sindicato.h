@@ -36,7 +36,6 @@ t_config* config;
 // ------------ CONFIG ------------ //
 
 char* rutaLog;
-char* magicNumber;
 char* puntoMontaje;
 
 int cantidadBloques;

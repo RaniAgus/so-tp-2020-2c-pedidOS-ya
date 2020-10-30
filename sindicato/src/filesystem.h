@@ -30,8 +30,8 @@ t_rta_obt_rec* obtenerReceta(t_consulta*);
 
 // -------- CONSOLA -------- //
 
-char* crearRestaurante(char**);
-char* crearReceta(char**);
+void crearRestaurante(char**);
+void crearReceta(char**);
 
 
 // -------- MANEJO BITMAP -------- //
