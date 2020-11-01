@@ -12,7 +12,6 @@
 #include<semaphore.h>
 #include<sys/mman.h>
 #include<fcntl.h>
-#include"sindicato.h"
 
 // ------------ COMUNICACIONES ------------ //
 

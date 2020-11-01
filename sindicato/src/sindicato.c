@@ -37,13 +37,13 @@ void* atenderConsola(){
 		int argc;
 		char** argv;
 		argv = cs_console_readline(">", &argc);
-		if(argc==4 && !strcmp(argv[0], "CrearReceta") && cs_string_is_string_array(argv[2]) && cs_string_is_unsigned_int_array(argv[3])){
+		if(argc==4 && !strcmp(argv[0], "CrearReceta") && cs_string_is__array(argv[2]) && cs_string_is_unsigned_int_array(argv[3])){
 			crearReceta(argv);
 			continue;
 		}
-		if(argc==8 && !strcmp(argv[0], "CrearRestaurante") && cs_string_to_uint(argv[2]) > 0 && cs_string_is_unsigned_int_array(argv[3]) &&
-			cs_string_is_string_array(argv[4]) && cs_string_is_string_array(argv[5]) && cs_string_is_unsigned_int_array(argv[6]) &&
-			cs_string_to_uint(argv[7]) > 0 ){
+		if(argc==8 && !strcmp(argv[0], "CrearRestaurante" )){//&& cs_string_to_uint(argv[2]) > 0 )){ //&& cs_string_is_unsigned_int_array(argv[3]) &&
+			//cs_string_is_string_array(argv[4]) && cs_string_is_string_array(argv[5]) && cs_string_is_unsigned_int_array(argv[6]) &&
+			//cs_string_to_uint(argv[7]) > 0 ){
 			crearRestaurante(argv);
 			continue;
 		}

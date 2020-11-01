@@ -19,8 +19,8 @@ void crearDirectorioAFIP(){
 		crearFiles(path);
 		crearBlocks(path);
 	} else {
-	free(path);
-	CS_LOG_TRACE("Ya existe el FL")
+		free(path);
+		CS_LOG_TRACE("Ya existe el FL\n");
 	}
 
 	free(metadata);
@@ -245,6 +245,27 @@ void crearRestaurante(char** consulta){
 }
 
 void crearReceta(char** consulta){
+	char* path = string_new();
+	string_append(&path, puntoMontaje);
+	string_append(&path, "/Files/Recetas/");
+	string_append(&path, consulta[1]);
+	string_append(&path, ".AFIP");
+
+	char* escritura = string_new();
+	string_append(&escritura,"PASOS=");
+	string_append(&escritura,consulta[2]);
+	string_append(&escritura,"\nTIEMPO_PASOS=");
+	string_append(&escritura,consulta[3]);
+	string_append(&escritura,"\n");
+
+	FILE* fd = fopen(path, "wt");
+	fwrite(escritura, strlen(escritura), 1, fd);
+	fclose(fd);
+	CS_LOG_INFO("Se creo el archivo \"%s.AFIP\"", consulta[1]);
+
+	free(path);
+	free(escritura);
+
 }
 
 // --------------------- MANEJO BITMAP --------------------- //
@@ -322,15 +343,25 @@ void eliminarBit(int index){
 t_rta_obt_rec* leerReceta(char* nombre){
 	t_rta_obt_rec* receta = malloc(sizeof(t_rta_obt_rec));
 	char* path = string_new();
+	char* pasos = string_new();
+	char* tiempos = string_new();
 	string_append(&path, puntoMontaje);
 	string_append(&path, "/Files/Recetas/");
 	string_append(&path, nombre);
 	string_append(&path, ".AFIP");
-	if(mkdir(path, 0777)){
-		//LOGICA
+	if(fopen(path,"r") != NULL){
+		t_config* receta = config_create(path);
+		pasos = config_get_string_value(receta,"PASOS");
+		tiempos = config_get_string_value(receta,"TIEMPO_PASOS");
+		cs_rta_obtener_receta_create(pasos, tiempos);
 		free(path);
+		free(pasos);
+		free(tiempos);
 		return receta;
 	} else {
+		free(path);
+		free(pasos);
+		free(tiempos);
 		return NULL;
 	}
 }
