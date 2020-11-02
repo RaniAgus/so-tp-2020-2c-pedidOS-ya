@@ -34,7 +34,7 @@ void crearMetadata(char* pathOrigin){
 
 	string_append(&path,"/Metadata");
 	char* pathMetadata = string_duplicate(path);
-	mkdir(path, 0777);
+	existeDirectorio(path, 1);
 
 	CS_LOG_INFO("Agrego directorio Metadata");
 
@@ -83,6 +83,15 @@ void crearBlocks(char* path){
 	string_append(&path, "/Blocks");
 	mkdir(path, 0777);
 	CS_LOG_INFO("Agrego el directorio Blocks");
+	FILE* block;
+	char* pathAux;
+	for(int i=1; i<=cantidadBloques; i++){
+		pathAux = string_from_format("%s/%d.AFIP", path, i);
+		block = fopen(pathAux, "wrb");
+		fclose(block);
+		free(pathAux);
+	}
+	CS_LOG_INFO("Se agregaron %d archivos BLOCKS", cantidadBloques);
 	free(path);
 }
 
@@ -118,8 +127,13 @@ t_rta_cons_pl* consultarPlatos(t_consulta* consulta){
 	t_rta_cons_pl* respuesta;
 	if(existeDirectorio(path, 0)){
 		string_append(&path, "/info.AFIP");
+		t_config* md = config_create(path);
+		char* platos = config_get_string_value(md, "PLATOS");
+		respuesta = cs_rta_consultar_pl_create(platos);
+		config_destroy(md);
 	} else {
 		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
+		respuesta = NULL;
 	}
 	free(path);
 	return respuesta;
@@ -178,10 +192,21 @@ t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // Esta bien esto?
 //e_opcode+t_rta_cons_ped obtener_pedido(t_consulta*);
 
 t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){
-	t_rta_obt_rest* respuesta = malloc(sizeof(t_rta_obt_rest));
+	t_rta_obt_rest* respuesta;
 	char* path = obtenerPathRestaurante(consulta->restaurante);
+	uint32_t cantPedidos = obtenerCantidadPedidos(consulta->restaurante);
 	if(existeDirectorio(path, 0)){
-
+		string_append(&path, "/info.AFIP");
+		t_config* md = config_create(path);
+		uint32_t cantCocineros = config_get_int_value(md, "CANTIDAD_COCINEROS");
+		uint32_t cantHornos = config_get_int_value(md, "CANTIDAD_HORNOS");
+		char* afinidad = config_get_string_value(md, "AFINIDAD_COCINEROS");
+		char* platos = config_get_string_value(md, "PLATOS");
+		char* precios = config_get_string_value(md, "PRECIO_PLATOS");
+		char** posicion = config_get_array_value(md, "POSICION");
+		t_pos pos = string_array_to_pos(posicion);
+		cs_rta_obtener_rest_create(cantCocineros, afinidad, platos, precios, pos, cantHornos, cantPedidos);
+		config_destroy(md);
 	} else {
 		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
 	}
@@ -245,18 +270,8 @@ void crearRestaurante(char** consulta){
 }
 
 void crearReceta(char** consulta){
-	char* path = string_new();
-	string_append(&path, puntoMontaje);
-	string_append(&path, "/Files/Recetas/");
-	string_append(&path, consulta[1]);
-	string_append(&path, ".AFIP");
-
-	char* escritura = string_new();
-	string_append(&escritura,"PASOS=");
-	string_append(&escritura,consulta[2]);
-	string_append(&escritura,"\nTIEMPO_PASOS=");
-	string_append(&escritura,consulta[3]);
-	string_append(&escritura,"\n");
+	char* path = string_from_format("%s/Files/Recetas/%s.AFIP", puntoMontaje, consulta[1]);
+	char* escritura = string_from_format("PASOS=%s\nTIEMPO_PASOS=%s\n", consulta[2], consulta[3]);
 
 	FILE* fd = fopen(path, "wt");
 	fwrite(escritura, strlen(escritura), 1, fd);
@@ -341,7 +356,7 @@ void eliminarBit(int index){
 // --------------------- RECETA --------------------- //
 
 t_rta_obt_rec* leerReceta(char* nombre){
-	t_rta_obt_rec* receta = malloc(sizeof(t_rta_obt_rec));
+	t_rta_obt_rec* receta;
 	char* path = string_new();
 	char* pasos = string_new();
 	char* tiempos = string_new();
@@ -350,20 +365,18 @@ t_rta_obt_rec* leerReceta(char* nombre){
 	string_append(&path, nombre);
 	string_append(&path, ".AFIP");
 	if(fopen(path,"r") != NULL){
-		t_config* receta = config_create(path);
-		pasos = config_get_string_value(receta,"PASOS");
-		tiempos = config_get_string_value(receta,"TIEMPO_PASOS");
-		cs_rta_obtener_receta_create(pasos, tiempos);
-		free(path);
-		free(pasos);
-		free(tiempos);
-		return receta;
+		t_config* md = config_create(path);
+		pasos = config_get_string_value(md,"PASOS");
+		tiempos = config_get_string_value(md,"TIEMPO_PASOS");
+		receta = cs_rta_obtener_receta_create(pasos, tiempos);
+		config_destroy(md);
 	} else {
-		free(path);
-		free(pasos);
-		free(tiempos);
-		return NULL;
+		receta = NULL;
 	}
+	free(path);
+	free(pasos);
+	free(tiempos);
+	return receta;
 }
 
 // --------------------- RESTAURANTE --------------------- //
@@ -376,7 +389,31 @@ char* obtenerPathRestaurante(char* nombreRestaurante){
 	return path;
 }
 
+uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
+	uint32_t cant = 1;
+	char* path = obtenerPathRestaurante(nombreRestaurante);
+	char* pathAux = string_from_format("%s/Pedido%d.AFIP", path, cant);
+	FILE* f = fopen(pathAux, "r");
+	while(f != NULL){
+		cant++;
+		fclose(f);
+		free(pathAux);
+		pathAux = string_from_format("%s/Pedido%d.AFIP", path, cant);
+		f = fopen(pathAux, "r");
+	}
+	free(path);
+	free(pathAux);
+	return cant - 1;
+}
+
 // --------------------- AUX --------------------- //
+
+t_pos string_array_to_pos(char** posicion){
+	t_pos pos;
+	pos.x = atoi(posicion[0]);
+	pos.y = atoi(posicion[1]);
+	liberar_lista(posicion);
+}
 
 int existeDirectorio(char* path, int creacion){
 	if(creacion){

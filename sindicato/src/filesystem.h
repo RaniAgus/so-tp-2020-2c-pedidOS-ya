@@ -46,9 +46,11 @@ t_rta_obt_rec* leerReceta(char*);
 // -------- RESTAURANTE -------- //
 
 char* obtenerPathRestaurante(char*);
+uint32_t obtenerCantidadPedidos(char*);
 
 // -------- AUX -------- //
 
+t_pos string_array_to_pos(char**);
 int existeDirectorio(char*, int);
 int cantidadDeBloques(char**);
 int tamanioDeBloque(char*);

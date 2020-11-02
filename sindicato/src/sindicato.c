@@ -12,6 +12,10 @@ int main(void) {
 
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
 
+	t_consulta* consulta = malloc(sizeof(t_consulta));
+	consulta->restaurante = "MiRestaurante";
+	obtenerRestaurante(consulta);
+
 	pthread_t consola;
 	pthread_create(&consola, NULL, (void*)atenderConsola, NULL);
 
@@ -24,7 +28,7 @@ int main(void) {
 
 void leerConfig(){
 	rutaLog = cs_config_get_string("RUTA_LOG");
-	puntoMontaje = cs_config_get_string("PUNTO_MONTAJE_TALLGRASS");
+	puntoMontaje = cs_config_get_string("PUNTO_MONTAJE");
 	tamanioBloque = cs_config_get_int("BLOCKS_SIZE");
 	cantidadBloques = cs_config_get_int("BLOCKS");
 
@@ -37,7 +41,7 @@ void* atenderConsola(){
 		int argc;
 		char** argv;
 		argv = cs_console_readline(">", &argc);
-		if(argc==4 && !strcmp(argv[0], "CrearReceta") && cs_string_is__array(argv[2]) && cs_string_is_unsigned_int_array(argv[3])){
+		if(argc==4 && !strcmp(argv[0], "CrearReceta") && cs_string_is_string_array(argv[2]) && cs_string_is_unsigned_int_array(argv[3])){
 			crearReceta(argv);
 			continue;
 		}
