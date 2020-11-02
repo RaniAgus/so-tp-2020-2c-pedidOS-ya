@@ -36,22 +36,166 @@ void leerConfig(){
 
 // ----------- ATENDER MENSAJES ----------- //
 
+bool crearRecetaVerificarArgumentos(int argc, char** argv) {
+	if(argc < 4){
+		CS_LOG_ERROR("Faltan argumentos para crearReceta");
+		return false;
+	}
+
+	if(argc > 4) {
+		CS_LOG_ERROR("Sobran argumentos para crearReceta");
+		return false;
+	}
+
+	/* [NOMBRE] */
+
+	// [PASOS]
+	if(!cs_string_is_string_array(argv[2])){
+		CS_LOG_ERROR("[PASOS](arg=2) no está en formato array de strings");
+		return false;
+	}
+
+	// [TIEMPO_PASOS]
+	if(!cs_string_is_unsigned_int_array(argv[3])){
+		CS_LOG_ERROR("[TIEMPO_PASOS](arg=3) no está en formato array de enteros");
+		return false;
+	}
+
+	char** pasos = string_get_string_as_array(argv[2]);
+	char** tiempos = string_get_string_as_array(argv[3]);
+
+	// [PASOS] y [TIEMPO_PASOS] no pueden estar vacías
+	if(*pasos == NULL || *tiempos == NULL) {
+		CS_LOG_ERROR("[PASOS](arg=2) y [TIEMPO_PASOS](arg=3) no admiten listas vacias");
+		liberar_lista(pasos);
+		liberar_lista(tiempos);
+		return false;
+	}
+
+	// [PASOS].size == [TIEMPO_PASOS].size
+	if(string_array_size(pasos) != string_array_size(tiempos)) {
+		CS_LOG_ERROR("[PASOS](arg=2) y [TIEMPO_PASOS](arg=3) no tienen el mismo tamaño");
+		liberar_lista(pasos);
+		liberar_lista(tiempos);
+		return false;
+	}
+	liberar_lista(pasos);
+	liberar_lista(tiempos);
+
+	return true;
+}
+
+bool crearRestauranteVerificarArgumentos(int argc, char** argv) {
+	if(argc < 8){
+		CS_LOG_ERROR("Faltan argumentos para crearRestaurante");
+		return false;
+	}
+
+	if(argc > 8) {
+		CS_LOG_ERROR("Sobran argumentos para crearRestaurante");
+		return false;
+	}
+
+	// [NOMBRE]
+	char* path = obtenerPathRestaurante(argv[1]);
+	if(existeDirectorio(path ,0)) {
+		CS_LOG_ERROR("No se pudo crear el restaurante %s porque ya existe", argv[1]);
+		free(path);
+		return false;
+	}
+	free(path);
+
+	// [CANTIDAD_COCINEROS]
+	if(cs_string_to_uint(argv[2]) <= 0) {
+		CS_LOG_ERROR("[CANTIDAD_COCINEROS](arg=2) no está en un formato numérico válido");
+		return false;
+	}
+
+	// [POSICION]
+	if(!cs_string_is_unsigned_int_array(argv[3])){
+		CS_LOG_ERROR("[POSICION](arg=3) no está en formato array de enteros");
+		return false;
+	}
+
+	// [POSICION].size == 2
+	char** posicion = string_get_string_as_array(argv[3]);
+	if(string_array_size(posicion) != 2) {
+		CS_LOG_ERROR("[POSICION](arg=3) no está en un formato válido");
+		return false;
+	}
+
+	// [AFINIDAD_COCINEROS]
+	if(!cs_string_is_string_array(argv[4])){
+		CS_LOG_ERROR("[AFINIDAD_COCINEROS](arg=4) no está en formato array de strings");
+		return false;
+	}
+
+	// [CANTIDAD_COCINEROS] >= [AFINIDAD_COCINEROS].size
+	char** afinidad_cocineros = string_get_string_as_array(argv[4]);
+	if(cs_string_to_uint(argv[2]) < string_array_size(afinidad_cocineros)) {
+		CS_LOG_ERROR("[CANTIDAD_COCINEROS](arg=2) es menor al tamaño de [AFINIDAD_COCINEROS](arg=4)");
+		liberar_lista(afinidad_cocineros);
+		return false;
+	}
+	liberar_lista(afinidad_cocineros);
+
+	// [PLATOS]
+	if(!cs_string_is_string_array(argv[5])){
+		CS_LOG_ERROR("[PLATOS](arg=5) no está en formato array de strings");
+		return false;
+	}
+
+	// [PRECIO_PLATOS]
+	if(!cs_string_is_unsigned_int_array(argv[6])){
+		CS_LOG_ERROR("[PRECIO_PLATOS](arg=6) no está en formato array de enteros");
+		return false;
+	}
+
+	char** platos = string_get_string_as_array(argv[5]);
+	char** precio_platos = string_get_string_as_array(argv[6]);
+
+	// [PLATOS] y [PRECIO_PLATOS] no pueden estar vacías
+	if(*platos == NULL || *precio_platos == NULL) {
+		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no admiten listas vacias");
+		liberar_lista(platos);
+		liberar_lista(precio_platos);
+		return false;
+	}
+
+	// [PLATOS].size == [PRECIO_PLATOS].size
+	if(string_array_size(platos) != string_array_size(precio_platos)) {
+		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no tienen el mismo tamaño");
+		liberar_lista(platos);
+		liberar_lista(precio_platos);
+		return false;
+	}
+	liberar_lista(platos);
+	liberar_lista(precio_platos);
+
+	// [CANTIDAD_HORNOS]
+	if(cs_string_to_uint(argv[7]) <= 0) {
+		CS_LOG_ERROR("[CANTIDAD_HORNOS](arg=7) no está en un formato numérico válido");
+		return false;
+	}
+
+	return true;
+}
+
 void* atenderConsola(){
 	while(1){
 		int argc;
 		char** argv;
-		argv = cs_console_readline(">", &argc);
-		if(argc==4 && !strcmp(argv[0], "CrearReceta") && cs_string_is_string_array(argv[2]) && cs_string_is_unsigned_int_array(argv[3])){
-			crearReceta(argv);
-			continue;
+		argv = cs_console_readline(">>> ", &argc);
+		if( argc > 0 && (!strcmp(argv[0], "CrearReceta") || !strcmp(argv[0], "CrearRestaurante")) ) {
+			if(!strcmp(argv[0], "CrearReceta") && crearRecetaVerificarArgumentos(argc, argv)){
+				crearReceta(argv);
+			} else if(!strcmp(argv[0], "CrearRestaurante") && crearRestauranteVerificarArgumentos(argc, argv)){
+				crearRestaurante(argv);
+			}
+		} else if(argc > 0){
+			CS_LOG_ERROR("Mensaje invalido recibido por consola");
 		}
-		if(argc==8 && !strcmp(argv[0], "CrearRestaurante" )){//&& cs_string_to_uint(argv[2]) > 0 )){ //&& cs_string_is_unsigned_int_array(argv[3]) &&
-			//cs_string_is_string_array(argv[4]) && cs_string_is_string_array(argv[5]) && cs_string_is_unsigned_int_array(argv[6]) &&
-			//cs_string_to_uint(argv[7]) > 0 ){
-			crearRestaurante(argv);
-			continue;
-		}
-		CS_LOG_TRACE("Mensaje invalido recibido por consola");
+		if(argc > 0) liberar_lista(argv);
 	}
 }
 
@@ -81,38 +225,26 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 		case HANDSHAKE_CLIENTE:
 			server_send_rta_handshake(client_conn);
 			break;
-		case GUARDAR_PEDIDO:({
-			e_opcode ok_fail1;
-			ok_fail1 = guardarPedido(elMensaje);
-			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
-		});
-		    break;
-		case GUARDAR_PLATO:({
-			e_opcode ok_fail1;
-			ok_fail1 = guardarPlato(elMensaje);
-			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
-		});
+		case GUARDAR_PEDIDO:;
+			server_send_rta_ok_fail(header.msgtype, client_conn, guardarPedido(elMensaje));
+	    	break;
+		case GUARDAR_PLATO:;
+			server_send_rta_ok_fail(header.msgtype, client_conn, guardarPlato(elMensaje));
 			break;
-		case CONFIRMAR_PEDIDO:({
-			e_opcode ok_fail1;
-			ok_fail1 = confirmarPedido(elMensaje);
-			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
-		});
+		case CONFIRMAR_PEDIDO:;
+			server_send_rta_ok_fail(header.msgtype, client_conn, confirmarPedido(elMensaje));
 			break;
-		case PLATO_LISTO:({
-			e_opcode ok_fail1;
-			ok_fail1 = platoListo(elMensaje);
-			server_send_rta_ok_fail(header.msgtype, client_conn,ok_fail1);
-		});
+		case PLATO_LISTO:;
+			server_send_rta_ok_fail(header.msgtype, client_conn, platoListo(elMensaje));
 			break;
 		case CONSULTAR_PLATOS:({
-			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
-			t_rta_cons_pl* respuestaObtener = consultarPlatos(elMensaje);
-			if(!respuestaObtener){
+			t_header headerResp= {OPCODE_RESPUESTA_OK,CONSULTAR_PLATOS};
+			t_rta_cons_pl* respuestaConsultar = consultarPlatos(elMensaje);
+			if(!respuestaConsultar){
 				server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
 			} else{
-				char* rta_to_str = cs_msg_to_str(respuestaObtener, headerResp.opcode, headerResp.msgtype);
-				if( cs_send_respuesta(client_conn, headerResp, respuestaObtener) == STATUS_SUCCESS )
+				char* rta_to_str = cs_msg_to_str(respuestaConsultar, headerResp.opcode, headerResp.msgtype);
+				if( cs_send_respuesta(client_conn, headerResp, respuestaConsultar) == STATUS_SUCCESS )
 				{
 					CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
 				} else
@@ -124,7 +256,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 		});
 		    break;
 		case OBTENER_RESTAURANTE:({
-			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
+			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_RESTAURANTE};
 			t_rta_obt_rest* respuestaObtener = obtenerRestaurante(elMensaje);
 
 			if(!respuestaObtener){
@@ -144,7 +276,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 			break;
 		case OBTENER_PEDIDO:({
 			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
-			t_rta_obt_ped* respuestaObtener = obtenerRestaurante(elMensaje);
+			t_rta_obt_ped* respuestaObtener = obtenerPedido(elMensaje);
 
 			if(!respuestaObtener){
 				server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
@@ -162,7 +294,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 		});
 			break;
 		case OBTENER_RECETA:({
-			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_PEDIDO};
+			t_header headerResp= {OPCODE_RESPUESTA_OK,OBTENER_RECETA};
 			t_rta_obt_rec* respuestaObtener = obtenerReceta(elMensaje);
 
 			if(!respuestaObtener){

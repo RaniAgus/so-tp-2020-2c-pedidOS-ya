@@ -192,7 +192,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // Esta bien esto?
 //e_opcode+t_rta_cons_ped obtener_pedido(t_consulta*);
 
 t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){
-	t_rta_obt_rest* respuesta;
+	t_rta_obt_rest* respuesta = NULL;
 	char* path = obtenerPathRestaurante(consulta->restaurante);
 	uint32_t cantPedidos = obtenerCantidadPedidos(consulta->restaurante);
 	if(existeDirectorio(path, 0)){
@@ -241,32 +241,27 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){
 
 void crearRestaurante(char** consulta){
 	char* path = obtenerPathRestaurante(consulta[1]);
-	char* escritura = string_new();
-	if(existeDirectorio(path ,1)){
-		CS_LOG_ERROR("No se pudo crear el restaurante %s porque ya existe", consulta[1]);
-	} else {
-		CS_LOG_INFO("Se creo el restaurante %s", consulta[1]);
-		string_append(&path, "/info.AFIP");
-		string_append(&escritura,"CANTIDAD_COCINEROS=");
-		string_append(&escritura,consulta[2]);
-		string_append(&escritura,"\nPOSICION=");
-		string_append(&escritura,consulta[3]);
-		string_append(&escritura,"\nAFINIDAD_COCINEROS=");
-		string_append(&escritura,consulta[4]);
-		string_append(&escritura,"\nPLATOS=");
-		string_append(&escritura,consulta[5]);
-		string_append(&escritura,"\nPRECIO_PLATOS=");
-		string_append(&escritura,consulta[6]);
-		string_append(&escritura,"\nCANTIDAD_HORNOS=");
-		string_append(&escritura,consulta[7]);
-		string_append(&escritura,"\n");
-		FILE* fd = fopen(path, "wt");
-		fwrite(escritura, strlen(escritura), 1, fd);
-		fclose(fd);
-		CS_LOG_INFO("Se creo el archivo \"info.AFIP\" para el restaurant %s", consulta[1]);
-	}
-	free(path);
+	existeDirectorio(path ,1);
+	CS_LOG_INFO("Se creo el restaurante %s", consulta[1]);
+	string_append(&path, "/info.AFIP");
+
+	char* escritura = string_from_format(
+			"CANTIDAD_COCINEROS=%s\n"
+			"POSICION=%s\n"
+			"AFINIDAD_COCINEROS=%s\n"
+			"PLATOS=%s\n"
+			"PRECIO_PLATOS=%s\n"
+			"CANTIDAD_HORNOS=%s\n",
+			consulta[2], consulta[3], consulta[4], consulta[5], consulta[6], consulta[7]
+	);
+
+	FILE* fd = fopen(path, "wt");
+	fwrite(escritura, strlen(escritura), 1, fd);
+	fclose(fd);
+	CS_LOG_INFO("Se creo el archivo \"info.AFIP\" para el restaurant %s", consulta[1]);
+
 	free(escritura);
+	free(path);
 }
 
 void crearReceta(char** consulta){
@@ -413,6 +408,8 @@ t_pos string_array_to_pos(char** posicion){
 	pos.x = atoi(posicion[0]);
 	pos.y = atoi(posicion[1]);
 	liberar_lista(posicion);
+
+	return pos;
 }
 
 int existeDirectorio(char* path, int creacion){
@@ -452,10 +449,6 @@ int tamanioDeBloque(char* bloque){
 }
 
 void liberar_lista(char** lista){
-	int contador = 0;
-	while(lista[contador] != NULL){
-			free(lista[contador]);
-			contador++;
-	}
+	string_iterate_lines(lista, (void*) free);
 	free(lista);
 }

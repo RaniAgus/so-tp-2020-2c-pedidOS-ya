@@ -11,6 +11,7 @@
 #include<cshared/cshared.h>
 #include<semaphore.h>
 #include<sys/mman.h>
+#include<sys/stat.h>
 #include<fcntl.h>
 
 // ------------ COMUNICACIONES ------------ //
@@ -46,6 +47,8 @@ void* atenderConsola();
 void leerConfig();
 void server_recv_msg(t_sfd*);
 void server_log_and_send_reply(t_sfd, t_header, void*);
+void server_send_rta_handshake(t_sfd);
+void server_send_rta_ok_fail(e_msgtype, t_sfd, e_opcode);
 void server_error_handler(e_status);
 
 #endif /* SINDICATO_H_ */
