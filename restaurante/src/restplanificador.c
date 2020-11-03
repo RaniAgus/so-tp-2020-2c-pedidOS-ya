@@ -56,9 +56,7 @@ int rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_receta
 			pcb_nuevo->id, rest_estado_to_str(pcb_nuevo->estado), pcb_nuevo->comida, pcb_nuevo->pedido_id
 	);
 
-	rest_derivar_pcb(pcb_nuevo);
-
-	return 0;
+	return rest_derivar_pcb(pcb_nuevo);
 }
 
 static int rest_generar_pcb_id(void)

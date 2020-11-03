@@ -27,6 +27,20 @@ typedef struct
 	sem_t fin_derivacion;
 }rest_ciclo_t;
 
+typedef struct
+{
+	t_list*			comidas;
+	t_queue* 		queue;
+	pthread_mutex_t mutex_queue;
+}rest_cola_ready_t;
+
+typedef struct
+{
+	rest_ciclo_t*      sem_ciclo;
+	rest_pcb_t*        asignado;
+	rest_cola_ready_t* ready;
+}rest_dispatcher_t;
+
 uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata);
 
 void rest_iniciar_ciclo_cpu(void);

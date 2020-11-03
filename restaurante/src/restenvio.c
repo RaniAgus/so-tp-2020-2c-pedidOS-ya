@@ -38,11 +38,9 @@ void rest_app_connect(void)
 		if(status == STATUS_SUCCESS)
 		{
 			void _recibir_handshake(t_sfd conn, t_header header, void* msg) {
-				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE)
-				{
+				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE) {
 					CS_LOG_INFO("Se estableció conexión con Comanda.");
-				} else
-				{
+				} else {
 					printf("a veces cuando planeas una cosa, te sale otra completamente diferente");
 				}
 			}
