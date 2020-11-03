@@ -25,6 +25,7 @@
 //Commons
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
+#include <commons/string.h>
 
 /**
 * @NAME list_sum
