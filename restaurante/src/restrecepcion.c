@@ -47,7 +47,7 @@ static void rest_recv_msg_routine(void)
 static void rest_recibir_mensaje(t_sfd conn, t_header header, void* msg, char* cliente)
 {
 	char *msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-	CS_LOG_TRACE("(%d)Se recibió el mensaje: %s", conn, msg_str);
+	CS_LOG_DEBUG("(%d)Se recibió el mensaje: %s", conn, msg_str);
 	free(msg_str);
 
 	if(header.opcode == OPCODE_CONSULTA) //Si es consulta, la atiende

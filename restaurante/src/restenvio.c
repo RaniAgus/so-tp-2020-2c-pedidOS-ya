@@ -6,7 +6,7 @@ static pthread_mutex_t  mutex_conexion_app;
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
 
 static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result);
-static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* result);
+static void* rest_recibir_respuesta(e_module src, t_sfd conexion, int8_t msg_type, int8_t* result);
 
 t_rta_obt_rest* rest_obtener_metadata(void)
 {
@@ -58,6 +58,7 @@ void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* re
 {
 	e_status status;
 	t_sfd conexion_sindicato;
+	void* respuesta;
 
 	//Se conecta como cliente
 	status = cs_tcp_client_create(&conexion_sindicato, cs_config_get_string("IP_SINDICATO"), cs_config_get_string("PUERTO_SINDICATO"));
@@ -68,7 +69,10 @@ void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* re
 	}
 	CS_LOG_TRACE("Conectado exitosamente con Sindicato.");
 
-	return rest_enviar_consulta(MODULO_SINDICATO, conexion_sindicato, msg_type, consulta, result);
+	respuesta = rest_enviar_consulta(MODULO_SINDICATO, conexion_sindicato, msg_type, consulta, result);
+	close(conexion_sindicato);
+
+	return respuesta;
 }
 
 t_rta_obt_ped* rest_obtener_pedido(uint32_t pedido_id, int8_t* result)
@@ -142,8 +146,8 @@ static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type
 	status = cs_send_consulta(conexion, msg_type, consulta, dest);
 	if(status == STATUS_SUCCESS)
 	{
-		CS_LOG_DEBUG("Se envió la consulta: %s", consulta_str);
-		rta = rest_recibir_respuesta(conexion, msg_type, result);
+		CS_LOG_DEBUG("Se envió la consulta a %s: %s", cs_enum_module_to_str(dest), consulta_str);
+		rta = rest_recibir_respuesta(dest, conexion, msg_type, result);
 	}
 	else
 	{
@@ -156,7 +160,7 @@ static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type
 	return rta;
 }
 
-static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* result)
+static void* rest_recibir_respuesta(e_module src, t_sfd conexion, int8_t msg_type, int8_t* result)
 {
 	e_status status;
 	void* rta;
@@ -165,7 +169,7 @@ static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* res
 	void _recibir_respuesta(t_sfd conexion, t_header header_recibido, void* respuesta)
 	{
 		char* rta_str = cs_msg_to_str(respuesta, header_recibido.opcode,  header_recibido.msgtype);
-		CS_LOG_DEBUG("Se recibió la respuesta: %s", rta_str);
+		CS_LOG_DEBUG("Se recibió la respuesta de %s: %s", cs_enum_module_to_str(src), rta_str);
 		free(rta_str);
 
 		//Guarda la respuesta para retornarla
