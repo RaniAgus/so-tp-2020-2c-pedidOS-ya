@@ -131,7 +131,6 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 
 void rest_iniciar_ciclo_cpu(void)
 {
-	CS_LOG_TRACE("Inició el ciclo de ejecución");
 	void _hacer_signal_ejecucion(rest_ciclo_t* semaforo) {
 		sem_post(&semaforo->inicio_ejecucion);
 	}
@@ -142,21 +141,28 @@ void rest_iniciar_ciclo_cpu(void)
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_ejecucion);
 
-	CS_LOG_TRACE("Inició el ciclo de derivación");
 	void _hacer_signal_derivacion(rest_ciclo_t* semaforo) {
 		sem_post(&semaforo->inicio_derivacion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_derivacion);
-}
 
-void rest_esperar_fin_ciclo_cpu(void)
-{
 	void _hacer_wait_derivacion(rest_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_derivacion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_derivacion);
-	CS_LOG_TRACE("Finalizó el ciclo de derivación");
-	CS_LOG_TRACE("Finalizó el ciclo de ejecución");
+
+	void _hacer_signal_extraccion(rest_ciclo_t* semaforo) {
+		sem_post(&semaforo->inicio_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_extraccion);
+}
+
+void rest_esperar_fin_ciclo_cpu(void)
+{
+	void _hacer_wait_extraccion(rest_ciclo_t* semaforo) {
+		sem_wait(&semaforo->fin_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_extraccion);
 }
 
 int rest_derivar_pcb(rest_pcb_t* pcb)
@@ -240,8 +246,10 @@ static rest_dispatcher_t* rest_dispatcher_create(rest_cola_ready_t* queue_ready)
 
 	sem_init(&nuevo->sem_ciclo->inicio_ejecucion, 0, 0);
 	sem_init(&nuevo->sem_ciclo->inicio_derivacion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->inicio_extraccion, 0, 0);
 	sem_init(&nuevo->sem_ciclo->fin_ejecucion, 0, 0);
 	sem_init(&nuevo->sem_ciclo->fin_derivacion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->fin_extraccion, 0, 0);
 
 	string_array_push((char***)&array_sem_ciclo_cpu, (char*) nuevo->sem_ciclo);
 
@@ -259,22 +267,6 @@ static void rest_cocinero_routine(rest_dispatcher_t* self)
 	while(true)
 	{
 		sem_wait(&self->sem_ciclo->inicio_ejecucion);
-		if(!self->asignado)
-		{
-			self->asignado = queue_sync_pop(self->ready->queue, &self->ready->mutex_queue, NULL);
-			if(self->asignado)
-			{
-				self->asignado->estado = ESTADO_EXEC;
-				t_paso_receta* siguiente_paso = list_get(self->asignado->pasos_restantes, 0);
-				CS_LOG_INFO("Se empezó a %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
-						, siguiente_paso->paso
-						, self->asignado->id
-						, rest_estado_to_str(self->asignado->estado)
-						, self->asignado->comida
-						, self->asignado->pedido_id
-				);
-			}
-		}
 		if(self->asignado)
 		{
 			//Obtiene el siguiente paso y ejecuta un ciclo de CPU
@@ -310,6 +302,25 @@ static void rest_cocinero_routine(rest_dispatcher_t* self)
 		sem_post(&self->sem_ciclo->fin_derivacion);
 
 		if(!self->asignado) ciclos = 0;
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+		if(!self->asignado)
+		{
+			self->asignado = queue_sync_pop(self->ready->queue, &self->ready->mutex_queue, NULL);
+			if(self->asignado)
+			{
+				self->asignado->estado = ESTADO_EXEC;
+				t_paso_receta* siguiente_paso = list_get(self->asignado->pasos_restantes, 0);
+				CS_LOG_INFO("Se empezó a %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+						, siguiente_paso->paso
+						, self->asignado->id
+						, rest_estado_to_str(self->asignado->estado)
+						, self->asignado->comida
+						, self->asignado->pedido_id
+				);
+			}
+		}
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 
@@ -320,19 +331,6 @@ static void rest_horno_routine(rest_dispatcher_t* self)
 	while(true)
 	{
 		sem_wait(&self->sem_ciclo->inicio_ejecucion);
-		if(!self->asignado)
-		{
-			self->asignado = queue_sync_pop(queue_entrada_salida, &mutex_entrada_salida, NULL);
-			if(self->asignado)
-			{
-				CS_LOG_INFO("El plato entró al horno: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
-						, self->asignado->id
-						, rest_estado_to_str(self->asignado->estado)
-						, self->asignado->comida
-						, self->asignado->pedido_id
-				);
-			}
-		}
 		if(self->asignado)
 		{
 			//Obtiene el siguiente paso y ejecuta un ciclo de CPU
@@ -351,6 +349,23 @@ static void rest_horno_routine(rest_dispatcher_t* self)
 			self->asignado = rest_derivar_si_necesario(self->asignado);
 		}
 		sem_post(&self->sem_ciclo->fin_derivacion);
+
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+		if(!self->asignado)
+		{
+			self->asignado = queue_sync_pop(queue_entrada_salida, &mutex_entrada_salida, NULL);
+			if(self->asignado)
+			{
+				CS_LOG_INFO("El plato entró al horno: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+						, self->asignado->id
+						, rest_estado_to_str(self->asignado->estado)
+						, self->asignado->comida
+						, self->asignado->pedido_id
+				);
+			}
+		}
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 
@@ -361,6 +376,7 @@ static void rest_reposo_routine(rest_dispatcher_t* self)
 	while(true)
 	{
 		sem_wait(&self->sem_ciclo->inicio_ejecucion);
+
 		//Ejecuta un ciclo para todos los platos que estén en reposo
 		void _ejecutar_ciclo(rest_pcb_t* elemento) {
 			t_paso_receta* siguiente_paso = list_get(elemento->pasos_restantes, 0);
@@ -372,9 +388,11 @@ static void rest_reposo_routine(rest_dispatcher_t* self)
 		pthread_mutex_lock(&mutex_blocked);
 		list_iterate(lista_blocked, (void*) _ejecutar_ciclo);
 		pthread_mutex_unlock(&mutex_blocked);
+
 		sem_post(&self->sem_ciclo->fin_ejecucion);
 
 		sem_wait(&self->sem_ciclo->inicio_derivacion);
+
 		//Deriva todos los platos que hayan concluido su reposo, y los quita de la lista
 		int i = 0;
 		void _derivar_si_necesario(rest_pcb_t* elemento) {
@@ -387,7 +405,14 @@ static void rest_reposo_routine(rest_dispatcher_t* self)
 		pthread_mutex_lock(&mutex_blocked);
 		list_iterate(lista_blocked, (void*) _derivar_si_necesario);
 		pthread_mutex_unlock(&mutex_blocked);
+
 		sem_post(&self->sem_ciclo->fin_derivacion);
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+
+		/* No hace nada, no extrae de ninguna queue */
+
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 

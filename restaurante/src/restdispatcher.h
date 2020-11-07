@@ -25,6 +25,8 @@ typedef struct
 	sem_t fin_ejecucion;
 	sem_t inicio_derivacion;
 	sem_t fin_derivacion;
+	sem_t inicio_extraccion;
+	sem_t fin_extraccion;
 }rest_ciclo_t;
 
 typedef struct
