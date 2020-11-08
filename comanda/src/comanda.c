@@ -23,6 +23,8 @@ int main(void) {
 	//inicializo mutex
 	pthread_mutex_init(&mutexMemoriaInterna,NULL);
 	pthread_mutex_init(&mutexLRU,NULL);
+	pthread_mutex_init(&mutexAreaSwap,NULL);
+	pthread_mutex_init(&mutexListaFrames,NULL);
 
 
 	//Lee las direcciones desde el config interno

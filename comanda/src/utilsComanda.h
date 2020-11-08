@@ -26,6 +26,7 @@ uint32_t contadorLRU;
 pthread_mutex_t mutexMemoriaInterna;
 pthread_mutex_t mutexListaFrames;
 pthread_mutex_t mutexLRU;
+pthread_mutex_t mutexAreaSwap;
 
 typedef struct
 {
@@ -41,6 +42,7 @@ typedef struct
 	uint8_t presente;
 	uint32_t LRU;
 	uint8_t modificado;
+	uint8_t usado;
 }t_frame_en_swap;
 
 typedef struct
