@@ -8,6 +8,7 @@ static pthread_mutex_t mutex_restaurantes;
 
 t_pos posicion_default;
 
+//Inicializa los clientes, restaurantes, y lee la posicion default del config.
 void app_conectados_init(void)
 {
 	lista_clientes = list_create();
@@ -20,6 +21,7 @@ void app_conectados_init(void)
 	posicion_default.y = (uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_Y");
 }
 
+//Crea una nueva estructura para administrar un cliente. Recibe el nombre, la posicion, y el socket.
 app_cliente_t* app_cliente_create(char* nombre, t_pos posicion, t_sfd conexion)
 {
 	app_cliente_t* cliente = malloc(sizeof(app_cliente_t));
@@ -33,7 +35,7 @@ app_cliente_t* app_cliente_create(char* nombre, t_pos posicion, t_sfd conexion)
 
 	return cliente;
 }
-
+//Crea una nueva estructura para administrar un restaurante. Recibe el nombre, la posicion, la IP y el socket.
 app_restaurante_t* app_restaurante_create(char* nombre, t_pos posicion, char* ip, char* puerto)
 {
 	app_restaurante_t* restaurante = malloc(sizeof(app_restaurante_t));
@@ -47,6 +49,7 @@ app_restaurante_t* app_restaurante_create(char* nombre, t_pos posicion, char* ip
 	return restaurante;
 }
 
+//Libera la memoria de un restaurante. Usar cuando ya no vayas a utilizar este restaurante y lo quieras borrar.
 void app_restaurante_destroy(app_restaurante_t* restaurante)
 {
 	if(restaurante != NULL) {
@@ -59,6 +62,7 @@ void app_restaurante_destroy(app_restaurante_t* restaurante)
 	}
 }
 
+//Agrega un cliente a la lista de clientes.
 void app_agregar_cliente(app_cliente_t* cliente)
 {
 	pthread_mutex_lock(&mutex_clientes);
@@ -68,6 +72,7 @@ void app_agregar_cliente(app_cliente_t* cliente)
 
 }
 
+//Agrega un restaurante a la lista de restaurantes.
 int app_agregar_restaurante(app_restaurante_t* restaurante)
 {
 	pthread_mutex_lock(&mutex_restaurantes);
@@ -77,6 +82,7 @@ int app_agregar_restaurante(app_restaurante_t* restaurante)
 	return index;
 }
 
+//Desvincula un restaurante de un cliente, en caso de estar vinculado, y lo borra usando app_restaurante_destroy.
 void app_quitar_y_desvincular_restaurante(char* restaurante)
 {
 	pthread_mutex_lock(&mutex_restaurantes);
@@ -97,6 +103,7 @@ void app_quitar_y_desvincular_restaurante(char* restaurante)
 	app_iterar_clientes(_desvincular_restaurante);
 }
 
+//Encuentra un cliente de lista_clientes que tenga el nombre pasado como parametro y le aplica la funcion del segundo parametro.
 void app_obtener_cliente(char* cliente, void(*closure)(app_cliente_t*))
 {
 	bool _find_cliente_by_name(app_cliente_t* element) {
@@ -108,6 +115,7 @@ void app_obtener_cliente(char* cliente, void(*closure)(app_cliente_t*))
 	pthread_mutex_unlock(&mutex_clientes);
 }
 
+//Devuelve true(1) si el cliente está conectado, false(0) si el cliente no esta conectado
 bool app_cliente_esta_conectado(char* cliente)
 {
 	app_cliente_t* encontrado;
@@ -122,6 +130,7 @@ bool app_cliente_esta_conectado(char* cliente)
 	return encontrado ? true : false;
 }
 
+//Recibe un funcion y se la aplica a todos los clientes de lista_clientes. Similar a un map
 void app_iterar_clientes(void(*closure)(app_cliente_t*))
 {
 	pthread_mutex_lock(&mutex_clientes);
@@ -129,6 +138,9 @@ void app_iterar_clientes(void(*closure)(app_cliente_t*))
 	pthread_mutex_unlock(&mutex_clientes);
 }
 
+//Encuentra el restaurante con el nombre recibido por parametro y devuelve una COPIA del mismo.
+//Util si queres realizarle algun efecto a un restaurante, pero aun conservar el restaurante original.
+//Es decir, trata a los restaurante como objetos inmutables.
 app_restaurante_t* app_obtener_copia_restaurante_conectado(char* restaurante)
 {
 	app_restaurante_t* restaurante_obtenido = NULL;
@@ -154,6 +166,7 @@ app_restaurante_t* app_obtener_copia_restaurante_conectado(char* restaurante)
 	return restaurante_obtenido;
 }
 
+//Similar a app_obtener_copia_restaurante_conectado, pero recibe un cliente y devuelve una copia del restaurante vinculado a ese cliente.
 app_restaurante_t* app_obtener_copia_restaurante_vinculado_a_cliente(char* cliente)
 {
 	app_restaurante_t* seleccionado = NULL;
@@ -181,6 +194,7 @@ app_restaurante_t* app_obtener_copia_restaurante_vinculado_a_cliente(char* clien
 	return seleccionado;
 }
 
+//Recibe una funcion y se la aplica a todos los restaurantes. Similar a un map.
 void app_iterar_restaurantes(void(*closure)(app_restaurante_t*))
 {
 	pthread_mutex_lock(&mutex_restaurantes);
@@ -188,6 +202,7 @@ void app_iterar_restaurantes(void(*closure)(app_restaurante_t*))
 	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
+//Devuelve true(1) si el restaurante está conectado, false(0) si el restaurante no esta conectado
 bool app_hay_restaurantes_conectados(void)
 {
 	bool result;
