@@ -143,7 +143,26 @@ e_opcode guardarPedido(t_consulta* consulta){
 	e_opcode respuesta;
 	char* path = obtenerPathRestaurante(consulta->restaurante);
 	if(existeDirectorio(path, 0)){
-
+		if(existePedido(consulta->pedido_id, consulta->restaurante)){
+			respuesta = OPCODE_RESPUESTA_FAIL;
+			CS_LOG_ERROR("Ya existe el pedido %d", consulta->pedido_id);
+		} else {
+			char* escritura = string_from_format(
+						"ESTADO_PEDIDO=Pendiente\n"
+						"LISTA_PLATOS=[]\n"
+						"CANTIDAD_PLATOS=[]\n"
+						"CANTIDAD_LISTA=[]\n"
+						"PRECIO_TOTAL=0\n"
+				);
+			int primerBloque = escribirBloques(escritura, consulta->pedido_id);
+			if(primerBloque){
+				char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
+				escribirInfoPedido(infoPedido, consulta->pedido_id, consulta->restaurante);
+				respuesta = OPCODE_RESPUESTA_OK;
+			} else {
+				respuesta = OPCODE_RESPUESTA_FAIL;
+			}
+		}
 	} else {
 		respuesta = OPCODE_RESPUESTA_FAIL;
 		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
@@ -178,7 +197,7 @@ e_opcode confirmarPedido(t_consulta* consulta){
 	return respuesta;
 }
 
-t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // Esta bien esto?
+t_rta_obt_ped* obtenerPedido(t_consulta* consulta){
 	t_rta_obt_ped* respuesta = malloc(sizeof(t_rta_obt_ped));
 	char* path = obtenerPathRestaurante(consulta->restaurante);
 	if(existeDirectorio(path, 0)){
@@ -189,7 +208,6 @@ t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // Esta bien esto?
 	free(path);
 	return respuesta;
 }
-//e_opcode+t_rta_cons_ped obtener_pedido(t_consulta*);
 
 t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){
 	t_rta_obt_rest* respuesta = NULL;
@@ -204,7 +222,8 @@ t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){
 		char* platos = config_get_string_value(md, "PLATOS");
 		char* precios = config_get_string_value(md, "PRECIO_PLATOS");
 		char** posicion = config_get_array_value(md, "POSICION");
-		t_pos pos = string_array_to_pos(posicion);
+		t_pos pos = cs_string_array_to_pos(posicion);
+		liberar_lista(posicion);
 		cs_rta_obtener_rest_create(cantCocineros, afinidad, platos, precios, pos, cantHornos, cantPedidos);
 		config_destroy(md);
 	} else {
@@ -234,6 +253,8 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){
 	}
 	return respuesta;
 }
+
+
 
 // --------------------------------------------------------- //
 // ----------------- MENSAJES CONSOLA ------------------ //
@@ -280,7 +301,7 @@ void crearReceta(char** consulta){
 
 // --------------------- MANEJO BITMAP --------------------- //
 
-int obtenerYEscribirProximoDisponible(){
+int obtenerYEscribirProximoDisponible(int id_pedido){
 	char* path = string_new();
 
 	string_append(&path, puntoMontaje);
@@ -293,10 +314,10 @@ int obtenerYEscribirProximoDisponible(){
 
 	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadBloques/8, MSB_FIRST);
 
-	for(int i=0; i<cantidadBloques; i++){
+	for(int i=1; i<=cantidadBloques; i++){
 		if(bitarray_test_bit(bitmap, i) == 0){
 			bitarray_set_bit(bitmap ,i);
-			CS_LOG_INFO("Se asigno el bloque %d", i);
+			CS_LOG_INFO("Se asigno el bloque %d al pedido %d", i, id_pedido);
 			msync(punteroABitmap ,cantidadBloques/8 ,0);
 			close(bitmapFile);
 			sem_post(&bitmapSem);
@@ -315,36 +336,25 @@ int obtenerYEscribirProximoDisponible(){
 
 void eliminarBit(int index){
 	char* path = string_new();
-	char* cantBloques;
 
 	string_append(&path, puntoMontaje);
-	string_append(&path, "/TALL_GRASS/Metadata");
-
-	cantBloques = string_duplicate(path);
-	string_append(&cantBloques, "/Metadata.bin");
-	t_config* md = config_create(cantBloques);
-
-	int cantidadDeBloques = config_get_int_value(md, "BLOCKS");
+	string_append(&path, "/Metadata/Bitmap.bin");
 
 	sem_wait(&bitmapSem);
-	string_append(&path, "/Bitmap.bin");
 	int bitmapFile = open(path, O_CREAT | O_RDWR, 0664);
 
-	void* punteroABitmap = mmap(NULL, cantidadDeBloques/8, PROT_READ | PROT_WRITE, MAP_SHARED, bitmapFile, 0);
+	void* punteroABitmap = mmap(NULL, cantidadBloques/8, PROT_READ | PROT_WRITE, MAP_SHARED, bitmapFile, 0);
 
-	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadDeBloques/8, MSB_FIRST);
+	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadBloques/8, MSB_FIRST);
 
 	bitarray_clean_bit(bitmap, index);
 	CS_LOG_INFO("Se desasigno el bloque %d", index );
 
-	msync(punteroABitmap ,cantidadDeBloques/8 ,0);
+	msync(punteroABitmap ,cantidadBloques/8 ,0);
 
 	close(bitmapFile);
 	sem_post(&bitmapSem);
 	bitarray_destroy(bitmap);
-
-	config_destroy(md);
-	free(cantBloques);
 	free(path);
 }
 
@@ -372,6 +382,99 @@ t_rta_obt_rec* leerReceta(char* nombre){
 	free(pasos);
 	free(tiempos);
 	return receta;
+}
+
+// --------------------- PEDIDO --------------------- //
+
+int existePedido(int idPedido, char* nombreRestaurante){
+	char* path = string_from_format("%s/Files/Restaurantes/%s/Pedido%d", puntoMontaje, nombreRestaurante,idPedido);
+	int resultado = false;
+	if(fopen(path,"r") == NULL){
+		resultado = false;
+	} else {
+		resultado = true;
+	}
+	free(path);
+	return resultado;
+}
+
+void escribirInfoPedido(char* infoPedido, int idPedido, char* nombreRestaurante){
+	char* path = string_from_format("%s/Files/Restaurantes/%s/Pedido%d", puntoMontaje, nombreRestaurante,idPedido);
+	int file = open(path, O_CREAT | O_RDWR, 0664);
+	lseek(file, 0, SEEK_END);
+	write(file, infoPedido, strlen(infoPedido));
+	close(file);
+	CS_LOG_INFO("Escribi el Info del pedido %d para el restaurante %s", idPedido, nombreRestaurante);
+	free(path);
+	free(infoPedido);
+}
+
+// --------------------- BLOQUES --------------------- //
+
+int escribirBloques(char* escritura, int id_pedido){
+	int primerBloque = 0;
+	int puntero = 0;
+	int numBloque = obtenerYEscribirProximoDisponible(id_pedido);
+	int proxBloque = obtenerYEscribirProximoDisponible(id_pedido);
+	primerBloque = numBloque;
+	char* escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
+	string_append(&escrituraAux, "\n");
+	string_append(&escrituraAux, string_itoa(proxBloque));
+	escribirBloque(escrituraAux, numBloque, id_pedido);
+	puntero = puntero + strlen(escrituraAux);
+	int cantidadEscrituras = (strlen(escritura) + tamanioBloque - 1)/tamanioBloque;
+	for(int i=0; i<cantidadEscrituras; i++){
+		free(escrituraAux);
+		numBloque = proxBloque;
+		if(i+1 != cantidadEscrituras){
+			proxBloque = obtenerYEscribirProximoDisponible(id_pedido);
+			escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
+			puntero = puntero + strlen(escrituraAux);
+			string_append(&escrituraAux, "\n");
+			string_append(&escrituraAux, string_itoa(proxBloque));
+		} else {
+			escrituraAux = string_substring_from(escritura, puntero);
+		}
+		escribirBloque(escrituraAux, numBloque, id_pedido);
+	}
+	return primerBloque;
+}
+
+void escribirBloque(char* escritura, int numBloque, int id_pedido){
+	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, numBloque);
+	FILE* fd = fopen(path, "wt");
+	fwrite(escritura, strlen(escritura), 1, fd);
+	fclose(fd);
+	CS_LOG_INFO("Escribi el bloque %d para el pedido %d", numBloque, id_pedido);
+	free(path);
+}
+
+char* leerBloques(int initialBlock){
+	char* lectura = string_new();
+	char* lecturaAux = string_new();
+	int nextBlock;
+	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, initialBlock);
+	FILE* f = fopen(path, "r");
+	fseek(f, 0L, SEEK_END);
+	int tamanioArchivo = ftell(f);
+	fseek(f, 0L, SEEK_SET);
+	while(tamanioArchivo > tamanioBloque - tamanioReservado){
+		fread(lecturaAux, tamanioBloque, 1, f);
+		string_append(&lectura, string_substring_until(lecturaAux, tamanioBloque - tamanioReservado));
+		nextBlock = atoi(string_substring_from(lecturaAux, tamanioBloque - tamanioReservado));
+		path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, nextBlock);
+		fclose(f);
+		f = fopen(path, "r");
+		fseek(f, 0L, SEEK_END);
+		tamanioArchivo = ftell(f);
+		fseek(f, 0L, SEEK_SET);
+	}
+	fread(lecturaAux, tamanioArchivo, 1, f);
+	printf("Aux: %s\n",lecturaAux);
+	string_append(&lectura, lecturaAux);
+	fclose(f);
+	printf("Lectura: %s\n", lectura);
+	return lectura;
 }
 
 // --------------------- RESTAURANTE --------------------- //
@@ -402,15 +505,6 @@ uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
 }
 
 // --------------------- AUX --------------------- //
-
-t_pos string_array_to_pos(char** posicion){
-	t_pos pos;
-	pos.x = atoi(posicion[0]);
-	pos.y = atoi(posicion[1]);
-	liberar_lista(posicion);
-
-	return pos;
-}
 
 int existeDirectorio(char* path, int creacion){
 	if(creacion){

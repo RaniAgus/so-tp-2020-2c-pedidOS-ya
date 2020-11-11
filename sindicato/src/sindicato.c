@@ -4,6 +4,7 @@
 int main(void) {
 
 	sem_init(&bitmapSem, 0, 1);
+	tamanioReservado = 4;
 
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	leerConfig();
@@ -12,9 +13,20 @@ int main(void) {
 
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
 
+	/*
+	for(int i=1; i<cantidadBloques+1; i++){
+		eliminarBit(i);
+	}
+	*/
+
+	/*
 	t_consulta* consulta = malloc(sizeof(t_consulta));
 	consulta->restaurante = "MiRestaurante";
-	obtenerRestaurante(consulta);
+	consulta->pedido_id = 1;
+	guardarPedido(consulta);
+	*/
+
+	leerBloques(1);
 
 	pthread_t consola;
 	pthread_create(&consola, NULL, (void*)atenderConsola, NULL);

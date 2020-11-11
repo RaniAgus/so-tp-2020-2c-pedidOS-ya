@@ -247,3 +247,10 @@ t_list* cs_receta_duplicate(t_list* receta)
 
 	return duplicate;
 }
+
+t_pos cs_string_array_to_pos(char** posicion){
+	t_pos pos;
+	pos.x = atoi(posicion[0]);
+	pos.y = atoi(posicion[1]);
+	return pos;
+}
