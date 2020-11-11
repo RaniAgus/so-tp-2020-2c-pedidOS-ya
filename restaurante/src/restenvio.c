@@ -117,18 +117,26 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 	return result == OPCODE_RESPUESTA_OK ? rest_terminar_pedido_si_corresponde(pedido_id) : result;
 }
 
-//TODO: [RESTAURANTE] Testear terminar pedido
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
 	int8_t result;
 	t_rta_obt_ped* pedido = rest_obtener_pedido(pedido_id, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
-		if(cs_platos_sumar_listos(pedido->platos_y_estados) == cs_platos_sumar_totales(pedido->platos_y_estados))
+		switch(cs_platos_estan_listos(pedido->platos_y_estados))
 		{
+		case 1:
+			CS_LOG_TRACE("Se procederá a Terminar: {ID_PEDIDO: %d}", pedido_id);
 			t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
 			rest_consultar_sindicato(TERMINAR_PEDIDO, cons, &result);
 			cs_msg_destroy(cons, OPCODE_CONSULTA, TERMINAR_PEDIDO);
+			break;
+		case 0:
+			CS_LOG_TRACE("No todos los platos están listos para: {ID_PEDIDO: %d}", pedido_id);
+			break;
+		default:
+			CS_LOG_ERROR("La cantidad lista es mayor a la total!! {ID_PEDIDO: %d}", pedido_id);
+			break;
 		}
 		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	}

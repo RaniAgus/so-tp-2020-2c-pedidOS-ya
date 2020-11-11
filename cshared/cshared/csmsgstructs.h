@@ -119,20 +119,12 @@ void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
 void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
 
 /**
-* @NAME cs_platos_sumar_listos
-* @DESC Devuelve la sumatoria de la cantidad lista de platos de un
-* pedido.
+* @NAME cs_platos_estan_listos
+* @DESC Devuelve 1 si todos los platos están listos, 0 si no lo están
+* y -1 en caso de error
 *
 */
-int cs_platos_sumar_listos(t_list* platos);
-
-/**
-* @NAME cs_platos_sumar_totales
-* @DESC Devuelve la sumatoria de la cantidad total de platos de un
-* pedido.
-*
-*/
-int cs_platos_sumar_totales(t_list* platos);
+int cs_platos_estan_listos(t_list* platos);
 
 /**
 * @NAME cs_receta_duplicate
