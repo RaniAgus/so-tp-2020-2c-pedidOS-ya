@@ -470,10 +470,8 @@ char* leerBloques(int initialBlock){
 		fseek(f, 0L, SEEK_SET);
 	}
 	fread(lecturaAux, tamanioArchivo, 1, f);
-	printf("Aux: %s\n",lecturaAux);
-	string_append(&lectura, lecturaAux);
+	string_append(&lectura, string_substring_until(lecturaAux, tamanioArchivo));
 	fclose(f);
-	printf("Lectura: %s\n", lectura);
 	return lectura;
 }
 
