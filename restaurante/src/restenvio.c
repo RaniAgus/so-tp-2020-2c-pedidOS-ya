@@ -6,7 +6,7 @@ static pthread_mutex_t  mutex_conexion_app;
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
 
 static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result);
-static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* result);
+static void* rest_recibir_respuesta(e_module src, t_sfd conexion, int8_t msg_type, int8_t* result);
 
 t_rta_obt_rest* rest_obtener_metadata(void)
 {
@@ -38,11 +38,9 @@ void rest_app_connect(void)
 		if(status == STATUS_SUCCESS)
 		{
 			void _recibir_handshake(t_sfd conn, t_header header, void* msg) {
-				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE)
-				{
+				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE) {
 					CS_LOG_INFO("Se estableció conexión con Comanda.");
-				} else
-				{
+				} else {
 					printf("a veces cuando planeas una cosa, te sale otra completamente diferente");
 				}
 			}
@@ -60,6 +58,7 @@ void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* re
 {
 	e_status status;
 	t_sfd conexion_sindicato;
+	void* respuesta;
 
 	//Se conecta como cliente
 	status = cs_tcp_client_create(&conexion_sindicato, cs_config_get_string("IP_SINDICATO"), cs_config_get_string("PUERTO_SINDICATO"));
@@ -70,7 +69,10 @@ void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* re
 	}
 	CS_LOG_TRACE("Conectado exitosamente con Sindicato.");
 
-	return rest_enviar_consulta(MODULO_SINDICATO, conexion_sindicato, msg_type, consulta, result);
+	respuesta = rest_enviar_consulta(MODULO_SINDICATO, conexion_sindicato, msg_type, consulta, result);
+	close(conexion_sindicato);
+
+	return respuesta;
 }
 
 t_rta_obt_ped* rest_obtener_pedido(uint32_t pedido_id, int8_t* result)
@@ -115,18 +117,26 @@ int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente,
 	return result == OPCODE_RESPUESTA_OK ? rest_terminar_pedido_si_corresponde(pedido_id) : result;
 }
 
-//TODO: [RESTAURANTE] Testear terminar pedido
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
 	int8_t result;
 	t_rta_obt_ped* pedido = rest_obtener_pedido(pedido_id, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
-		if(cs_platos_sumar_listos(pedido->platos_y_estados) == cs_platos_sumar_totales(pedido->platos_y_estados))
+		switch(cs_platos_estan_listos(pedido->platos_y_estados))
 		{
+		case 1:
+			CS_LOG_TRACE("Se procederá a Terminar: {ID_PEDIDO: %d}", pedido_id);
 			t_consulta* cons = cs_msg_term_ped_create(mi_nombre, pedido_id);
 			rest_consultar_sindicato(TERMINAR_PEDIDO, cons, &result);
 			cs_msg_destroy(cons, OPCODE_CONSULTA, TERMINAR_PEDIDO);
+			break;
+		case 0:
+			CS_LOG_TRACE("No todos los platos están listos para: {ID_PEDIDO: %d}", pedido_id);
+			break;
+		default:
+			CS_LOG_ERROR("La cantidad lista es mayor a la total!! {ID_PEDIDO: %d}", pedido_id);
+			break;
 		}
 		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	}
@@ -144,8 +154,8 @@ static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type
 	status = cs_send_consulta(conexion, msg_type, consulta, dest);
 	if(status == STATUS_SUCCESS)
 	{
-		CS_LOG_DEBUG("Se envió la consulta: %s", consulta_str);
-		rta = rest_recibir_respuesta(conexion, msg_type, result);
+		CS_LOG_DEBUG("Se envió la consulta a %s: %s", cs_enum_module_to_str(dest), consulta_str);
+		rta = rest_recibir_respuesta(dest, conexion, msg_type, result);
 	}
 	else
 	{
@@ -158,7 +168,7 @@ static void* rest_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type
 	return rta;
 }
 
-static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* result)
+static void* rest_recibir_respuesta(e_module src, t_sfd conexion, int8_t msg_type, int8_t* result)
 {
 	e_status status;
 	void* rta;
@@ -167,7 +177,7 @@ static void* rest_recibir_respuesta(t_sfd conexion, int8_t msg_type, int8_t* res
 	void _recibir_respuesta(t_sfd conexion, t_header header_recibido, void* respuesta)
 	{
 		char* rta_str = cs_msg_to_str(respuesta, header_recibido.opcode,  header_recibido.msgtype);
-		CS_LOG_DEBUG("Se recibió la respuesta: %s", rta_str);
+		CS_LOG_DEBUG("Se recibió la respuesta de %s: %s", cs_enum_module_to_str(src), rta_str);
 		free(rta_str);
 
 		//Guarda la respuesta para retornarla
