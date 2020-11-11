@@ -132,4 +132,10 @@ int cs_platos_estan_listos(t_list* platos);
 */
 t_list* cs_receta_duplicate(t_list* receta);
 
+/**
+* @NAME cs_string_array_to_pos
+* @DESC Devuelve una posición a partir de un array con las dos coordenadas.
+*/
+t_pos cs_string_array_to_pos(char** posicion);
+
 #endif /* CSHARED_CSMSGSTRUCTS_H_ */

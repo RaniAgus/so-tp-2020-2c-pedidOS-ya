@@ -3,9 +3,6 @@
 
 #include "sindicato.h"
 
-// -------- STRUCT -------- //
-
-
 // -------- LEVANTAR FILESYSTEM -------- //
 
 void crearDirectorioAFIP();
@@ -36,12 +33,23 @@ void crearReceta(char**);
 
 // -------- MANEJO BITMAP -------- //
 
-int obtenerYEscribirProximoDisponible();
+int obtenerYEscribirProximoDisponible(char*);
 void eliminarBit(int);
 
 // -------- RECETA -------- //
 
 t_rta_obt_rec* leerReceta(char*);
+
+// -------- PEDIDO -------- //
+
+int existePedido(int, char*);
+void escribirInfoPedido(char*, int, char*);
+
+// -------- BLOQUES -------- //
+
+int escribirBloques(char*, char*);
+void escribirBloque(char*, int);
+char* leerBloques(int);
 
 // -------- RESTAURANTE -------- //
 
@@ -50,7 +58,6 @@ uint32_t obtenerCantidadPedidos(char*);
 
 // -------- AUX -------- //
 
-t_pos string_array_to_pos(char**);
 int existeDirectorio(char*, int);
 int cantidadDeBloques(char**);
 int tamanioDeBloque(char*);

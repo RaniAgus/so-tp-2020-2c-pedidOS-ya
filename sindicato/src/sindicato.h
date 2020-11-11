@@ -22,6 +22,7 @@ t_sfd escucha;
 // ------------ SINCRO ------------ //
 
 sem_t bitmapSem;
+int tamanioReservado;
 
 // ------------ ARCHIVOS ------------ //
 
