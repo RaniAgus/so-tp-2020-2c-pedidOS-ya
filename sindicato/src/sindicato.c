@@ -13,20 +13,23 @@ int main(void) {
 
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
 
-	/*
+/*
 	for(int i=1; i<cantidadBloques+1; i++){
 		eliminarBit(i);
 	}
-	*/
-
-	/*
+*/
+/*
 	t_consulta* consulta = malloc(sizeof(t_consulta));
 	consulta->restaurante = "MiRestaurante";
 	consulta->pedido_id = 1;
 	guardarPedido(consulta);
-	*/
+*/
 
-	leerBloques(1);
+	printf("Restaurante: \n%s\n", leerBloques(1));
+	printf("---------------------------------\n");
+	printf("Pedido: \n%s\n", leerBloques(15));
+
+
 
 	pthread_t consola;
 	pthread_create(&consola, NULL, (void*)atenderConsola, NULL);

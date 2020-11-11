@@ -154,7 +154,7 @@ e_opcode guardarPedido(t_consulta* consulta){
 						"CANTIDAD_LISTA=[]\n"
 						"PRECIO_TOTAL=0\n"
 				);
-			int primerBloque = escribirBloques(escritura, consulta->pedido_id);
+			int primerBloque = escribirBloques(escritura, string_from_format("Pedido %d",consulta->pedido_id));
 			if(primerBloque){
 				char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
 				escribirInfoPedido(infoPedido, consulta->pedido_id, consulta->restaurante);
@@ -276,10 +276,18 @@ void crearRestaurante(char** consulta){
 			consulta[2], consulta[3], consulta[4], consulta[5], consulta[6], consulta[7]
 	);
 
+	char* infoRes = string_from_format(
+			"SIZE=%d\n"
+			"INITIAL_BLOCK=%d\n",
+			strlen(escritura), escribirBloques(escritura, consulta[1])
+	);
+
 	FILE* fd = fopen(path, "wt");
-	fwrite(escritura, strlen(escritura), 1, fd);
+	fwrite(infoRes, strlen(infoRes), 1, fd);
 	fclose(fd);
 	CS_LOG_INFO("Se creo el archivo \"info.AFIP\" para el restaurant %s", consulta[1]);
+
+	escribirBloques(escritura, string_from_format("Restaurante %s",consulta[1]));
 
 	free(escritura);
 	free(path);
@@ -301,7 +309,7 @@ void crearReceta(char** consulta){
 
 // --------------------- MANEJO BITMAP --------------------- //
 
-int obtenerYEscribirProximoDisponible(int id_pedido){
+int obtenerYEscribirProximoDisponible(char* aQuien){
 	char* path = string_new();
 
 	string_append(&path, puntoMontaje);
@@ -317,7 +325,7 @@ int obtenerYEscribirProximoDisponible(int id_pedido){
 	for(int i=1; i<=cantidadBloques; i++){
 		if(bitarray_test_bit(bitmap, i) == 0){
 			bitarray_set_bit(bitmap ,i);
-			CS_LOG_INFO("Se asigno el bloque %d al pedido %d", i, id_pedido);
+			CS_LOG_INFO("Se asigno el bloque %d al %s", i, aQuien);
 			msync(punteroABitmap ,cantidadBloques/8 ,0);
 			close(bitmapFile);
 			sem_post(&bitmapSem);
@@ -411,23 +419,23 @@ void escribirInfoPedido(char* infoPedido, int idPedido, char* nombreRestaurante)
 
 // --------------------- BLOQUES --------------------- //
 
-int escribirBloques(char* escritura, int id_pedido){
+int escribirBloques(char* escritura, char* aQuien){
 	int primerBloque = 0;
 	int puntero = 0;
-	int numBloque = obtenerYEscribirProximoDisponible(id_pedido);
-	int proxBloque = obtenerYEscribirProximoDisponible(id_pedido);
+	int numBloque = obtenerYEscribirProximoDisponible(aQuien);
+	int proxBloque = obtenerYEscribirProximoDisponible(aQuien);
 	primerBloque = numBloque;
 	char* escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
+	puntero = puntero + strlen(escrituraAux);
 	string_append(&escrituraAux, "\n");
 	string_append(&escrituraAux, string_itoa(proxBloque));
-	escribirBloque(escrituraAux, numBloque, id_pedido);
-	puntero = puntero + strlen(escrituraAux);
+	escribirBloque(escrituraAux, numBloque);
 	int cantidadEscrituras = (strlen(escritura) + tamanioBloque - 1)/tamanioBloque;
 	for(int i=0; i<cantidadEscrituras; i++){
 		free(escrituraAux);
 		numBloque = proxBloque;
 		if(i+1 != cantidadEscrituras){
-			proxBloque = obtenerYEscribirProximoDisponible(id_pedido);
+			proxBloque = obtenerYEscribirProximoDisponible(aQuien);
 			escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
 			puntero = puntero + strlen(escrituraAux);
 			string_append(&escrituraAux, "\n");
@@ -435,17 +443,17 @@ int escribirBloques(char* escritura, int id_pedido){
 		} else {
 			escrituraAux = string_substring_from(escritura, puntero);
 		}
-		escribirBloque(escrituraAux, numBloque, id_pedido);
+		escribirBloque(escrituraAux, numBloque);
 	}
 	return primerBloque;
 }
 
-void escribirBloque(char* escritura, int numBloque, int id_pedido){
+void escribirBloque(char* escritura, int numBloque){
 	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, numBloque);
 	FILE* fd = fopen(path, "wt");
 	fwrite(escritura, strlen(escritura), 1, fd);
 	fclose(fd);
-	CS_LOG_INFO("Escribi el bloque %d para el pedido %d", numBloque, id_pedido);
+	CS_LOG_INFO("Escribi el bloque %d", numBloque);
 	free(path);
 }
 
@@ -457,13 +465,14 @@ char* leerBloques(int initialBlock){
 	FILE* f = fopen(path, "r");
 	fseek(f, 0L, SEEK_END);
 	int tamanioArchivo = ftell(f);
+	int tamanioInicial = tamanioArchivo;
 	fseek(f, 0L, SEEK_SET);
-	while(tamanioArchivo > tamanioBloque - tamanioReservado){
+	while(tamanioArchivo == tamanioInicial){
 		fread(lecturaAux, tamanioBloque, 1, f);
 		string_append(&lectura, string_substring_until(lecturaAux, tamanioBloque - tamanioReservado));
 		nextBlock = atoi(string_substring_from(lecturaAux, tamanioBloque - tamanioReservado));
-		path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, nextBlock);
 		fclose(f);
+		path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, nextBlock);
 		f = fopen(path, "r");
 		fseek(f, 0L, SEEK_END);
 		tamanioArchivo = ftell(f);

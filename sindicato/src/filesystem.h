@@ -33,7 +33,7 @@ void crearReceta(char**);
 
 // -------- MANEJO BITMAP -------- //
 
-int obtenerYEscribirProximoDisponible(int);
+int obtenerYEscribirProximoDisponible(char*);
 void eliminarBit(int);
 
 // -------- RECETA -------- //
@@ -47,8 +47,8 @@ void escribirInfoPedido(char*, int, char*);
 
 // -------- BLOQUES -------- //
 
-int escribirBloques(char*, int);
-void escribirBloque(char*, int, int);
+int escribirBloques(char*, char*);
+void escribirBloque(char*, int);
 char* leerBloques(int);
 
 // -------- RESTAURANTE -------- //
