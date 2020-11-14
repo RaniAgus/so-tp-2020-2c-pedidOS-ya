@@ -13,6 +13,8 @@ void app_inicializar_repartidores(){
 		cantidadDeRepartidores++;
 	}
 
+	//crear variables para el dsps liberar el string_split y lo mismo con cs_config_get_array_value
+
 	for(int i = 0; i<cantidadDeRepartidores; i++){
 		t_repartidor* repartidor = malloc(sizeof(t_repartidor));
 		repartidor->id = i+1;

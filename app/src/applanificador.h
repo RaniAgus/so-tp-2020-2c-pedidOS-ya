@@ -1,6 +1,7 @@
 #ifndef APPLANIFICADOR_H_
 #define APPLANIFICADOR_H_
 
+#include <math.h>
 #include "appconectados.h"
 #include "apprepartidores.h"
 #include "appenvio.h"
@@ -8,9 +9,10 @@
 typedef struct{
 	uint32_t id_pedido;
 	t_repartidor* repartidor;
-	t_pos posicionRepartidor;
 	char* cliente;
+//	t_pos posicionCliente;
 	char* restaurante;
+//	t_pos posicionRestaurante;
 } t_pcb;
 
 void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id);
