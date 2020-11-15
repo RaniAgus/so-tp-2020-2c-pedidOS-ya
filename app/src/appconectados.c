@@ -35,7 +35,7 @@ app_cliente_t* app_cliente_create(char* nombre, t_pos posicion, t_sfd conexion)
 
 	return cliente;
 }
-//Crea una nueva estructura para administrar un restaurante. Recibe el nombre, la posicion, la IP y el socket.
+//Crea una nueva estructura para administrar un restaurante. Recibe el nombre, la posicion, la IP y el puerto donde conectarse para enviar consultas.
 app_restaurante_t* app_restaurante_create(char* nombre, t_pos posicion, char* ip, char* puerto)
 {
 	app_restaurante_t* restaurante = malloc(sizeof(app_restaurante_t));
@@ -130,7 +130,7 @@ bool app_cliente_esta_conectado(char* cliente)
 	return encontrado ? true : false;
 }
 
-//Recibe un funcion y se la aplica a todos los clientes de lista_clientes. Similar a un map
+//Recibe un funcion y se la aplica a todos los clientes de lista_clientes. Es un forEach
 void app_iterar_clientes(void(*closure)(app_cliente_t*))
 {
 	pthread_mutex_lock(&mutex_clientes);
@@ -138,9 +138,22 @@ void app_iterar_clientes(void(*closure)(app_cliente_t*))
 	pthread_mutex_unlock(&mutex_clientes);
 }
 
+//Devuelve la posición del cliente a partir de su ID
+t_pos app_posicion_cliente(char* cliente)
+{
+	t_pos posicion;
+
+	void obtener_posicion(app_cliente_t* encontrado) {
+		posicion = encontrado->posicion;
+	}
+	app_obtener_cliente(cliente, obtener_posicion);
+
+	return posicion;
+}
+
 //Encuentra el restaurante con el nombre recibido por parametro y devuelve una COPIA del mismo.
-//Util si queres realizarle algun efecto a un restaurante, pero aun conservar el restaurante original.
-//Es decir, trata a los restaurante como objetos inmutables.
+//Sirve para hacer una lectura y liberar el mutex lo más rápido posible
+//Es decir, obtengo el lock, me copio la info, libero el lock y hago con esa info lo que necesite
 app_restaurante_t* app_obtener_copia_restaurante_conectado(char* restaurante)
 {
 	app_restaurante_t* restaurante_obtenido = NULL;
@@ -194,7 +207,7 @@ app_restaurante_t* app_obtener_copia_restaurante_vinculado_a_cliente(char* clien
 	return seleccionado;
 }
 
-//Recibe una funcion y se la aplica a todos los restaurantes. Similar a un map.
+//Recibe una funcion y se la aplica a todos los restaurantes. Como un forEach.
 void app_iterar_restaurantes(void(*closure)(app_restaurante_t*))
 {
 	pthread_mutex_lock(&mutex_restaurantes);
@@ -202,7 +215,8 @@ void app_iterar_restaurantes(void(*closure)(app_restaurante_t*))
 	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
-//Devuelve true(1) si el restaurante está conectado, false(0) si el restaurante no esta conectado
+//Devuelve true(1) si hay restaurantes conectados, false(0) si no hay ninguno
+//Sirve para que el cliente se vincule con "Default" cuando no hay conectados
 bool app_hay_restaurantes_conectados(void)
 {
 	bool result;
@@ -212,4 +226,21 @@ bool app_hay_restaurantes_conectados(void)
 	pthread_mutex_unlock(&mutex_restaurantes);
 
 	return result;
+}
+
+//Devuelve la posición del cliente a partir de su nombre
+t_pos app_posicion_restaurante(char* restaurante)
+{
+	t_pos posicion;
+
+	bool _find_restaurante_by_name(app_restaurante_t* element) {
+		return !strcmp(element->nombre, restaurante);
+	}
+
+	pthread_mutex_lock(&mutex_restaurantes);
+	app_restaurante_t* encontrado = list_find(lista_restaurantes, (void*) _find_restaurante_by_name);
+	posicion = encontrado->posicion;
+	pthread_mutex_unlock(&mutex_restaurantes);
+
+	return posicion;
 }

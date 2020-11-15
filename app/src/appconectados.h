@@ -31,6 +31,7 @@ void app_agregar_cliente(app_cliente_t* cliente);
 void app_obtener_cliente(char* cliente, void(*closure)(app_cliente_t*));
 bool app_cliente_esta_conectado(char* cliente);
 void app_iterar_clientes(void(*closure)(app_cliente_t*));
+t_pos app_posicion_cliente(char* cliente);
 
 int   			   app_agregar_restaurante(app_restaurante_t* restaurante);
 void			   app_quitar_y_desvincular_restaurante(char* restaurante);
@@ -38,5 +39,6 @@ app_restaurante_t* app_obtener_copia_restaurante_conectado(char* nombre);
 app_restaurante_t* app_obtener_copia_restaurante_vinculado_a_cliente(char* cliente);
 void 			   app_iterar_restaurantes(void(*closure)(app_restaurante_t*));
 bool			   app_hay_restaurantes_conectados(void);
+t_pos 			   app_posicion_restaurante(char* restaurante);
 
 #endif /* APPCONECTADOS_H_ */
