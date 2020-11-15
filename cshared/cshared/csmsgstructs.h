@@ -1,6 +1,7 @@
 #ifndef CSHARED_CSMSGSTRUCTS_H_
 #define CSHARED_CSMSGSTRUCTS_H_
 
+#include <math.h>
 #include "utils/csstring.h"
 #include "utils/csutils.h"
 
@@ -139,5 +140,8 @@ int cs_platos_sumar_totales(t_list* platos);
 * @DESC Devuelve una copia de todos los pasos de una receta.
 */
 t_list* cs_receta_duplicate(t_list* receta);
+
+double calcular_norma(t_pos vector);
+t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2);
 
 #endif /* CSHARED_CSMSGSTRUCTS_H_ */
