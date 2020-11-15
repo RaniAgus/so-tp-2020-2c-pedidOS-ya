@@ -47,7 +47,7 @@ static void rest_recv_msg_routine(void)
 static void rest_recibir_mensaje(t_sfd conn, t_header header, void* msg, char* cliente)
 {
 	char *msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
-	CS_LOG_TRACE("(%d)Se recibió el mensaje: %s", conn, msg_str);
+	CS_LOG_DEBUG("(%d)Se recibió el mensaje: %s", conn, msg_str);
 	free(msg_str);
 
 	if(header.opcode == OPCODE_CONSULTA) //Si es consulta, la atiende
@@ -199,12 +199,17 @@ static void rest_recibir_confirmar_pedido(t_sfd conn, t_consulta* recibido, char
 				//Crea un PCB para cada plato
 				for(int i = 0; i < plato->cant_total; i++) {
 					if(rest_planificar_plato(plato->comida, recibido->pedido_id, receta->pasos_receta, cliente) == -1) {
-						CS_LOG_ERROR("Error al planificar: %s", plato->comida);
+						CS_LOG_ERROR("No se pudo planificar el plato: %s", plato->comida);
+						resultado = OPCODE_RESPUESTA_FAIL;
 						break;
 					}
 				}
 			}
-			else CS_LOG_ERROR("Error al obtener la receta de: %s", plato->comida);
+			else
+			{
+				CS_LOG_ERROR("Error al obtener la receta del plato: %s", plato->comida);
+				resultado = OPCODE_RESPUESTA_FAIL;
+			}
 
 			cs_msg_destroy(receta, resultado_obtener_receta, OBTENER_RECETA);
 		}
@@ -250,12 +255,9 @@ static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype ms
 	char* respuesta_str = cs_msg_to_str(rta, header.opcode, header.msgtype);
 
 	status = cs_send_respuesta(conn, header, rta);
-	if(status == STATUS_SUCCESS)
-	{
+	if(status == STATUS_SUCCESS) {
 		CS_LOG_DEBUG("Se envió la respuesta: %s", respuesta_str);
-	}
-	else
-	{
+	} else {
 		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s", cs_enum_status_to_str(status), respuesta_str);
 	}
 

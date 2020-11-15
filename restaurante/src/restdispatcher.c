@@ -2,8 +2,6 @@
 
 static int QUANTUM = 0;
 
-static sem_t sem_creado;
-
 static t_list* 	queues_ready;
 
 static rest_ciclo_t**  array_sem_ciclo_cpu;
@@ -14,23 +12,20 @@ static pthread_mutex_t mutex_entrada_salida;
 static t_list*	       lista_blocked;
 static pthread_mutex_t mutex_blocked;
 
-static void rest_cocinero_routine(rest_cola_ready_t* cola_ready);
-static void rest_horno_routine(void);
-static void rest_reposo_routine(void);
-
-static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* asignado);
-
 static rest_cola_ready_t* rest_cola_ready_create(char* comida);
 static rest_cola_ready_t* rest_cola_ready_get(char* comida);
+static rest_dispatcher_t* rest_dispatcher_create(rest_cola_ready_t* queue_ready);
 
-static rest_ciclo_t* rest_crear_elemento_ejecucion(void);
+static void rest_cocinero_routine(rest_dispatcher_t* self);
+static void rest_horno_routine(rest_dispatcher_t* self);
+static void rest_reposo_routine(rest_dispatcher_t* self);
+
+static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* pcb);
 
 static void rest_pcb_destroy(rest_pcb_t* pcb);
 
 uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 {
-	sem_init(&sem_creado, 0, 0);
-
 	//Crea sus estructuras administrativas
 	queues_ready = list_create();
 
@@ -57,9 +52,13 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		}
 
 		pthread_t thread_cocinero;
-		pthread_create(&thread_cocinero, NULL, (void*) rest_cocinero_routine, (void*) queue_cocinero);
+		pthread_create(
+				  &thread_cocinero
+				, NULL
+				, (void*) rest_cocinero_routine
+				, (void*) rest_dispatcher_create(queue_cocinero)
+		);
 		pthread_detach(thread_cocinero);
-		sem_wait(&sem_creado);
 	}
 	string_iterate_lines(metadata->afinidades, _crear_queues);
 
@@ -85,9 +84,13 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		for(int i = cant_cocineros_afines; i < metadata->cant_cocineros; i++)
 		{
 			pthread_t thread_cocinero;
-			pthread_create(&thread_cocinero, NULL, (void*) rest_cocinero_routine, (void*) queue_restantes);
+			pthread_create(
+					  &thread_cocinero
+					, NULL
+					, (void*) rest_cocinero_routine
+					, (void*) rest_dispatcher_create(queue_restantes)
+			);
 			pthread_detach(thread_cocinero);
-			sem_wait(&sem_creado);
 		}
 	}
 
@@ -95,16 +98,24 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 	for(int i = 0; i < metadata->cant_hornos; i++)
 	{
 		pthread_t thread_horno;
-		pthread_create(&thread_horno, NULL, (void*) rest_horno_routine, NULL);
+		pthread_create(
+				  &thread_horno
+				, NULL
+				, (void*) rest_horno_routine
+				, (void*) rest_dispatcher_create(NULL)
+		);
 		pthread_detach(thread_horno);
-		sem_wait(&sem_creado);
 	}
 
 	//Crea el hilo de platos en reposo
 	pthread_t thread_reposo;
-	pthread_create(&thread_reposo, NULL, (void*) rest_reposo_routine, NULL);
+	pthread_create(
+			  &thread_reposo
+			, NULL
+			, (void*) rest_reposo_routine
+			, (void*) rest_dispatcher_create(NULL)
+	);
 	pthread_detach(thread_reposo);
-	sem_wait(&sem_creado);
 
 	//Obtiene el resto de la metadata
 	uint32_t cant_pedidos = metadata->cant_pedidos;
@@ -120,7 +131,6 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 
 void rest_iniciar_ciclo_cpu(void)
 {
-	CS_LOG_TRACE("Inició el ciclo de ejecución");
 	void _hacer_signal_ejecucion(rest_ciclo_t* semaforo) {
 		sem_post(&semaforo->inicio_ejecucion);
 	}
@@ -131,21 +141,28 @@ void rest_iniciar_ciclo_cpu(void)
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_ejecucion);
 
-	CS_LOG_TRACE("Inició el ciclo de derivación");
 	void _hacer_signal_derivacion(rest_ciclo_t* semaforo) {
 		sem_post(&semaforo->inicio_derivacion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_derivacion);
-}
 
-void rest_esperar_fin_ciclo_cpu(void)
-{
 	void _hacer_wait_derivacion(rest_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_derivacion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_derivacion);
-	CS_LOG_TRACE("Finalizó el ciclo de derivación");
-	CS_LOG_TRACE("Finalizó el ciclo de ejecución");
+
+	void _hacer_signal_extraccion(rest_ciclo_t* semaforo) {
+		sem_post(&semaforo->inicio_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_extraccion);
+}
+
+void rest_esperar_fin_ciclo_cpu(void)
+{
+	void _hacer_wait_extraccion(rest_ciclo_t* semaforo) {
+		sem_wait(&semaforo->fin_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_extraccion);
 }
 
 int rest_derivar_pcb(rest_pcb_t* pcb)
@@ -154,8 +171,11 @@ int rest_derivar_pcb(rest_pcb_t* pcb)
 	if(siguiente_paso == NULL)
 	{
 		pcb->estado = ESTADO_EXIT;
-		CS_LOG_INFO("El plato está listo: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-				pcb->id, rest_estado_to_str(pcb->estado), pcb->comida, pcb->pedido_id
+		CS_LOG_INFO("El plato está listo: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+				, pcb->id
+				, rest_estado_to_str(pcb->estado)
+				, pcb->comida
+				, pcb->pedido_id
 		);
 		rest_plato_listo(pcb->conexion, pcb->mutex_conexion, pcb->comida, pcb->pedido_id);
 		rest_pcb_destroy(pcb);
@@ -175,13 +195,12 @@ int rest_derivar_pcb(rest_pcb_t* pcb)
 	} else if(string_equals_ignore_case(siguiente_paso->paso, "Hornear"))
 	{
 		pcb->estado = ESTADO_BLOCK;
-
 		queue_sync_push(queue_entrada_salida, &mutex_entrada_salida, NULL, (void*) pcb);
 	} else
 	{
 		rest_cola_ready_t* queue = rest_cola_ready_get(pcb->comida);
 		if(queue == NULL) {
-			CS_LOG_ERROR("No se pudo derivar el PCB de la comida: %s", pcb->comida);
+			rest_pcb_destroy(pcb);
 			return -1;
 		}
 		pcb->estado = ESTADO_READY;
@@ -207,113 +226,157 @@ static rest_cola_ready_t* rest_cola_ready_create(char* comida)
 	return ready;
 }
 
-static void rest_cocinero_routine(rest_cola_ready_t* queue_ready)
+static rest_cola_ready_t* rest_cola_ready_get(char* comida)
 {
-	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
-	CS_LOG_DEBUG("Se creó un cocinero.");
-	sem_post(&sem_creado);
+	bool _find_by_name(rest_cola_ready_t* queue) {
+		bool _encontrar_comida(char* afinidad) {
+			return !strcmp(afinidad, comida);
+		}
+		return list_find(queue->comidas, (void*)_encontrar_comida) != NULL;
+	}
+	return list_find(queues_ready, (void*) _find_by_name);
+}
 
+static rest_dispatcher_t* rest_dispatcher_create(rest_cola_ready_t* queue_ready)
+{
+	rest_dispatcher_t* nuevo = malloc(sizeof(rest_dispatcher_t));
+
+	//Semaforos
+	nuevo->sem_ciclo = malloc(sizeof(rest_ciclo_t));
+
+	sem_init(&nuevo->sem_ciclo->inicio_ejecucion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->inicio_derivacion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->inicio_extraccion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->fin_ejecucion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->fin_derivacion, 0, 0);
+	sem_init(&nuevo->sem_ciclo->fin_extraccion, 0, 0);
+
+	string_array_push((char***)&array_sem_ciclo_cpu, (char*) nuevo->sem_ciclo);
+
+	nuevo->ready = queue_ready; //Puede ser NULL para la cola de I/O o la de reposo
+	nuevo->asignado = NULL;
+
+	return nuevo;
+}
+
+static void rest_cocinero_routine(rest_dispatcher_t* self)
+{
+	CS_LOG_DEBUG("Se creó un cocinero.");
 	int ciclos = 0;
-	rest_pcb_t* asignado = NULL;
 
 	while(true)
 	{
-		sem_wait(&sem_ciclo->inicio_ejecucion);
-		if(!asignado)
-		{
-			asignado = queue_sync_pop(queue_ready->queue, &queue_ready->mutex_queue, NULL);
-			if(asignado)
-			{
-				asignado->estado = ESTADO_EXEC;
-				t_paso_receta* siguiente_paso = list_get(asignado->pasos_restantes, 0);
-				CS_LOG_INFO("Se empezó a %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-						siguiente_paso->paso, asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
-				);
-			}
-		}
-		if(asignado)
+		sem_wait(&self->sem_ciclo->inicio_ejecucion);
+		if(self->asignado)
 		{
 			//Obtiene el siguiente paso y ejecuta un ciclo de CPU
-			t_paso_receta* siguiente_paso = list_get(asignado->pasos_restantes, 0);
+			t_paso_receta* siguiente_paso = list_get(self->asignado->pasos_restantes, 0);
 			siguiente_paso->tiempo--;
 			CS_LOG_DEBUG("Se está cocinando: {PID: %d} {PASO: %s} {TIEMPO_RESTANTE: %d -> %d}",
-					asignado->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
+					self->asignado->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
 			);
 		}
-		sem_post(&sem_ciclo->fin_ejecucion);
+		sem_post(&self->sem_ciclo->fin_ejecucion);
 
-		sem_wait(&sem_ciclo->inicio_derivacion);
-		if(asignado)
+		sem_wait(&self->sem_ciclo->inicio_derivacion);
+		if(self->asignado)
 		{
 			//Si terminó ese paso, se terminó la ejecución de ese plato
-			asignado = rest_derivar_si_necesario(asignado);
+			self->asignado = rest_derivar_si_necesario(self->asignado);
 
-			//Si hay fin de quantum, se desaloja
-			if(asignado != NULL && ++ciclos == QUANTUM && queue_sync_has_elements(queue_ready->queue, &queue_ready->mutex_queue)) {
-				CS_LOG_INFO("Fin de QUANTUM para: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-						asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
+			//Si hay fin de quantum y hay pcbs en READY, se desaloja
+			if( self->asignado != NULL
+				&& ++ciclos == QUANTUM
+				&& queue_sync_has_elements(self->ready->queue, &self->ready->mutex_queue) )
+			{
+				CS_LOG_INFO("Fin de QUANTUM para: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+						, self->asignado->id
+						, rest_estado_to_str(self->asignado->estado)
+						, self->asignado->comida
+						, self->asignado->pedido_id
 				);
-				rest_derivar_pcb(asignado);
-				asignado = NULL;
+				rest_derivar_pcb(self->asignado);
+				self->asignado = NULL;
 			}
 		}
-		sem_post(&sem_ciclo->fin_derivacion);
+		sem_post(&self->sem_ciclo->fin_derivacion);
 
-		if(!asignado) ciclos = 0;
+		if(!self->asignado) ciclos = 0;
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+		if(!self->asignado)
+		{
+			self->asignado = queue_sync_pop(self->ready->queue, &self->ready->mutex_queue, NULL);
+			if(self->asignado)
+			{
+				self->asignado->estado = ESTADO_EXEC;
+				t_paso_receta* siguiente_paso = list_get(self->asignado->pasos_restantes, 0);
+				CS_LOG_INFO("Se empezó a %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+						, siguiente_paso->paso
+						, self->asignado->id
+						, rest_estado_to_str(self->asignado->estado)
+						, self->asignado->comida
+						, self->asignado->pedido_id
+				);
+			}
+		}
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 
-static void rest_horno_routine(void)
+static void rest_horno_routine(rest_dispatcher_t* self)
 {
-	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
 	CS_LOG_DEBUG("Se creó un horno.");
-	sem_post(&sem_creado);
-
-	rest_pcb_t* asignado = NULL;
 
 	while(true)
 	{
-		sem_wait(&sem_ciclo->inicio_ejecucion);
-		if(!asignado)
-		{
-			asignado = queue_sync_pop(queue_entrada_salida, &mutex_entrada_salida, NULL);
-			if(asignado)
-			{
-				CS_LOG_INFO("El plato entró al horno: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-						asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
-				);
-			}
-		}
-		if(asignado)
+		sem_wait(&self->sem_ciclo->inicio_ejecucion);
+		if(self->asignado)
 		{
 			//Obtiene el siguiente paso y ejecuta un ciclo de CPU
-			t_paso_receta* siguiente_paso = list_get(asignado->pasos_restantes, 0);
+			t_paso_receta* siguiente_paso = list_get(self->asignado->pasos_restantes, 0);
 			siguiente_paso->tiempo--;
 			CS_LOG_DEBUG("Se está horneando: {PID: %d} {PASO: %s} {TIEMPO_RESTANTE: %d -> %d}",
-					asignado->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
+					self->asignado->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
 			);
 		}
-		sem_post(&sem_ciclo->fin_ejecucion);
+		sem_post(&self->sem_ciclo->fin_ejecucion);
 
-		sem_wait(&sem_ciclo->inicio_derivacion);
-		if(asignado)
+		sem_wait(&self->sem_ciclo->inicio_derivacion);
+		if(self->asignado)
 		{
 			//Si terminó ese paso, se terminó la ejecución de ese plato
-			asignado = rest_derivar_si_necesario(asignado);
+			self->asignado = rest_derivar_si_necesario(self->asignado);
 		}
-		sem_post(&sem_ciclo->fin_derivacion);
+		sem_post(&self->sem_ciclo->fin_derivacion);
+
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+		if(!self->asignado)
+		{
+			self->asignado = queue_sync_pop(queue_entrada_salida, &mutex_entrada_salida, NULL);
+			if(self->asignado)
+			{
+				CS_LOG_INFO("El plato entró al horno: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+						, self->asignado->id
+						, rest_estado_to_str(self->asignado->estado)
+						, self->asignado->comida
+						, self->asignado->pedido_id
+				);
+			}
+		}
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 
-static void rest_reposo_routine(void)
+static void rest_reposo_routine(rest_dispatcher_t* self)
 {
-	rest_ciclo_t* sem_ciclo = rest_crear_elemento_ejecucion();
 	CS_LOG_DEBUG("Se creó el thread reposo.");
-	sem_post(&sem_creado);
 
 	while(true)
 	{
-		sem_wait(&sem_ciclo->inicio_ejecucion);
+		sem_wait(&self->sem_ciclo->inicio_ejecucion);
+
 		//Ejecuta un ciclo para todos los platos que estén en reposo
 		void _ejecutar_ciclo(rest_pcb_t* elemento) {
 			t_paso_receta* siguiente_paso = list_get(elemento->pasos_restantes, 0);
@@ -325,9 +388,11 @@ static void rest_reposo_routine(void)
 		pthread_mutex_lock(&mutex_blocked);
 		list_iterate(lista_blocked, (void*) _ejecutar_ciclo);
 		pthread_mutex_unlock(&mutex_blocked);
-		sem_post(&sem_ciclo->fin_ejecucion);
 
-		sem_wait(&sem_ciclo->inicio_derivacion);
+		sem_post(&self->sem_ciclo->fin_ejecucion);
+
+		sem_wait(&self->sem_ciclo->inicio_derivacion);
+
 		//Deriva todos los platos que hayan concluido su reposo, y los quita de la lista
 		int i = 0;
 		void _derivar_si_necesario(rest_pcb_t* elemento) {
@@ -340,69 +405,60 @@ static void rest_reposo_routine(void)
 		pthread_mutex_lock(&mutex_blocked);
 		list_iterate(lista_blocked, (void*) _derivar_si_necesario);
 		pthread_mutex_unlock(&mutex_blocked);
-		sem_post(&sem_ciclo->fin_derivacion);
+
+		sem_post(&self->sem_ciclo->fin_derivacion);
+
+		sem_wait(&self->sem_ciclo->inicio_extraccion);
+
+		/* No hace nada, no extrae de ninguna queue */
+
+		sem_post(&self->sem_ciclo->fin_extraccion);
 	}
 }
 
-static rest_ciclo_t* rest_crear_elemento_ejecucion(void)
-{
-	rest_ciclo_t* nuevo = malloc(sizeof(rest_ciclo_t));
-
-	sem_init(&nuevo->inicio_ejecucion, 0, 0);
-	sem_init(&nuevo->inicio_derivacion, 0, 0);
-	sem_init(&nuevo->fin_ejecucion, 0, 0);
-	sem_init(&nuevo->fin_derivacion, 0, 0);
-
-	string_array_push((char***)&array_sem_ciclo_cpu, (char*) nuevo);
-
-	return nuevo;
-}
-
-static rest_cola_ready_t* rest_cola_ready_get(char* comida)
-{
-	bool _find_by_name(rest_cola_ready_t* queue) {
-		bool _encontrar_comida(char* afinidad) {
-			return !strcmp(afinidad, comida);
-		}
-		return list_find(queue->comidas, (void*)_encontrar_comida) != NULL;
-	}
-	return list_find(queues_ready, (void*) _find_by_name);
-}
-
-static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* asignado)
+static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* pcb)
 {
 	//Si el paso terminó, lo quita de la cima y deriva el plato
-	t_paso_receta* siguiente_paso = list_get(asignado->pasos_restantes, 0);
+	t_paso_receta* siguiente_paso = list_get(pcb->pasos_restantes, 0);
 	if(siguiente_paso->tiempo == 0)
 	{
-		CS_LOG_INFO("Se terminó de %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-			siguiente_paso->paso, asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
+		CS_LOG_INFO("Se terminó de %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+				, siguiente_paso->paso
+				, pcb->id
+				, rest_estado_to_str(pcb->estado)
+				, pcb->comida, pcb->pedido_id
 		);
 
 		void _destruir_paso(t_paso_receta* paso) {
 			free(paso->paso);
 			free(paso);
 		}
-		list_remove_and_destroy_element(asignado->pasos_restantes, 0, (void*) _destruir_paso);
-		siguiente_paso = list_get(asignado->pasos_restantes, 0);
-		if( !siguiente_paso || asignado->estado != ESTADO_EXEC
-		    || string_equals_ignore_case(siguiente_paso->paso, "Reposar")
-		    || string_equals_ignore_case(siguiente_paso->paso, "Hornear") )
+		list_remove_and_destroy_element(pcb->pasos_restantes, 0, (void*) _destruir_paso);
+		siguiente_paso = list_get(pcb->pasos_restantes, 0);
+
+		//Si está en EXEC y el siguiente paso no implica irse a BLOCK, continúa
+		if(siguiente_paso && pcb->estado == ESTADO_EXEC
+				&& strcmp(siguiente_paso->paso, "Reposar")
+				&& strcmp(siguiente_paso->paso, "Hornear") )
 		{
-			rest_derivar_pcb(asignado);
-			asignado = NULL;
-		} else if (asignado->estado == ESTADO_EXEC)
-		{
-			CS_LOG_INFO("Se continuará con el paso %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
-					siguiente_paso->paso, asignado->id, rest_estado_to_str(asignado->estado), asignado->comida, asignado->pedido_id
+			CS_LOG_INFO("Se continuará con el paso %s: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+					, siguiente_paso->paso
+					, pcb->id
+					, rest_estado_to_str(pcb->estado)
+					, pcb->comida
+					, pcb->pedido_id
 			);
+		} else
+		{
+			rest_derivar_pcb(pcb);
+			pcb = NULL;
 		}
 	} else
 	{
-		CS_LOG_TRACE("No es necesario derivar: {%s,%d}", asignado->comida, asignado->pedido_id);
+		CS_LOG_TRACE("No es necesario derivar: {%s,%d}", pcb->comida, pcb->pedido_id);
 	}
 
-	return asignado;
+	return pcb;
 }
 
 static void rest_pcb_destroy(rest_pcb_t* pcb)
