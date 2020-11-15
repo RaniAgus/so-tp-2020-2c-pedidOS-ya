@@ -6,10 +6,6 @@ static t_queue*			pcbs_nuevos;
 static pthread_mutex_t 	pcbs_nuevos_mutex;
 static sem_t 			pcbs_nuevos_sem;
 
-static t_list* 			repartidores_libres;
-static pthread_mutex_t 	repartidores_libres_mutex;
-static sem_t			repartidores_libres_sem;
-
 static void app_asignar_repartidor(t_pcb* pcb);
 
 void app_iniciar_planificador(void)
@@ -25,18 +21,6 @@ void app_iniciar_planificador(void)
 	//Creo el hilo que se encarga de asignar los repartidores a cada pcb nuevo
 	pthread_create(&thread_planificador, NULL, (void*) app_asignar_repartidor, NULL);
 	pthread_detach(thread_planificador);
-
-	//TODO: [APP] Crear e iniciar las listas de ready, bloqueado por descanso y bloqueado por espera
-}
-
-//Al inicio se agregan todos los repartidores creados a la lista de disponibles
-void app_agregar_repartidor_disponible(t_repartidor* repartidor)
-{
-	pthread_mutex_lock(&repartidores_libres_mutex);
-	list_add(repartidores_libres, repartidor);
-	pthread_mutex_unlock(&repartidores_libres_mutex);
-
-	sem_post(&repartidores_libres_sem);
 }
 
 //Al confirmar pedido, se crea el PCB correspondiente y se agrega a la lista de pcbs nuevos
@@ -58,31 +42,6 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
     //Arranca sin repartidor asignado, otro hilo lo extrae de la cola y le asigna uno
     pcb->repartidor = NULL;
     queue_sync_push(pcbs_nuevos, &pcbs_nuevos_mutex, &pcbs_nuevos_sem, pcb);
-}
-
-//Luego de recibir Plato Listo, si el pedido está terminado se avisa al repartidor
-void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
-{
-    CS_LOG_TRACE(
-        "Se va a avisar al repartidor correspondiente que el pedido está terminado: {RESTAURANTE: %s} {ID_PEDIDO: %d}",
-		restaurante, pedido_id
-    );
-
-    //TODO: [APP] Buscar el PCB en la lista de bloqueados por espera, cambiarle el destino a CLIENTE y derivarlo
-}
-
-void app_derivar_pcb(t_pcb* pcb)
-{
-	//TODO: [APP] Derivar según la posición actual y la destino:
-	/*
-	 * 1. si al repartidor le toca descansar, se va a la lista de bloqueados por descanso
-	 * 2. si posición_actual == posicion_destino y el destino es restaurante, obtiene el pedido y...
-	 * 	  a. ...si está listo, se dirige hacia el cliente
-	 * 	  b. ...si no está listo, se va a la lista de bloqueados por espera
-	 * 3. si posición_actual == posicion_destino y el destino es cliente, finaliza el pedido
-	 * 4. si no llegó a su posición destino ni le toca descansar, se va a la lista de ready
-	 *
-	 * */
 }
 
 //********* FUNCIONES PRIVADAS

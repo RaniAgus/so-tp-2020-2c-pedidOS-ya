@@ -2,6 +2,7 @@
 #include "appenvio.h"
 #include "applanificador.h"
 #include "apprecepcion.h"
+#include "apprepartidores.h"
 
 #define MODULE_NAME		 "APP"
 #define CONFIG_FILE_PATH "app.config"
