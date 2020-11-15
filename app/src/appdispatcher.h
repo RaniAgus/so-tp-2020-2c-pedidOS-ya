@@ -3,6 +3,7 @@
 
 #include "appconectados.h"
 #include "appenvio.h"
-#include "apprepartidores.h"
+#include "applanificador.h"
+
 
 #endif /* APPDISPATCHER_H_ */
