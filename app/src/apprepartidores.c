@@ -68,3 +68,41 @@ static void app_agregar_repartidor_libre(t_repartidor* repartidor)
 
 	sem_post(&repartidores_libres_sem);
 }
+
+void app_loggear_posicion(t_repartidor* repartidor) {
+	CS_LOG_DEBUG(
+			"El repartidor id: %d se movio a la posicion [%d,%d]",
+			repartidor->id, repartidor->posicion.x, repartidor->posicion.y);
+}
+
+void app_mover_x_repartidor(t_repartidor* repartidor, t_pos* destino)
+{
+	if(repartidor->posicion.x < destino->x){
+		repartidor->posicion.x ++;
+		app_loggear_posicion(repartidor);
+		}
+	else if(repartidor->posicion.x > destino->x){
+		repartidor->posicion.x --;
+		app_loggear_posicion(repartidor);
+		}
+	else{
+		//Si el repartidor ya esta en el x del destino, que mueva la y.
+		app_mover_y_repartidor(repartidor, destino);
+	}
+}
+
+void app_mover_y_repartidor(t_repartidor* repartidor, t_pos* destino)
+{
+	if(repartidor->posicion.y < destino->y){
+		repartidor->posicion.y ++;
+		app_loggear_posicion(repartidor);
+		}
+	else if(repartidor->posicion.y > destino->y){
+		repartidor->posicion.y --;
+		app_loggear_posicion(repartidor);
+	}
+	else{
+		//Si el repartidor ya esta en el y del destino, que mueva la x.
+		app_mover_x_repartidor(repartidor, destino);
+	}
+}

@@ -7,12 +7,17 @@ static pthread_mutex_t 	pcbs_nuevos_mutex;
 static sem_t 			pcbs_nuevos_sem;
 
 static void app_asignar_repartidor(t_pcb* pcb);
+e_algoritmo app_obtener_algoritmo();
+void inicializar_sem_pcb();
 
 void app_iniciar_planificador(void)
 {
 	pcbs_nuevos = queue_create();
 	pthread_mutex_init(&pcbs_nuevos_mutex, NULL);
 	sem_init(&pcbs_nuevos_sem, 0, 0);
+
+	algoritmo_planificacion = app_obtener_algoritmo();
+	inicializar_sem_pcb();
 
 	repartidores_libres = list_create();
 	pthread_mutex_init(&repartidores_libres_mutex, NULL);
@@ -27,7 +32,7 @@ void app_iniciar_planificador(void)
 void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
 {
     CS_LOG_TRACE(
-        "Se va a crear el PCB: {CLIENTE: %s} {RESTAURANTE: %s} {ID_PEDIDO: %d}", 
+        "Se va a crear el PCB: {CLIENTE: %s} {RESTAURANTE: %s} {ID_PEDIDO: %d}",
         cliente, restaurante, pedido_id
     );
 
@@ -45,6 +50,131 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
 }
 
 //********* FUNCIONES PRIVADAS
+
+e_algoritmo app_obtener_algoritmo()
+{
+	char* algoritmo = cs_config_get_string("ALGORITMO_PLANIFICACION");
+
+	if (strcmp(algoritmo, "FIFO") == 0) {return FIFO;}
+	else if (strcmp(algoritmo, "HRRN") == 0) {return HRRN;}
+	else if (strcmp(algoritmo, "SJFSD") == 0) {return SJFSD;}
+	else {return FIFO;} //En caso que el algoritmo no sea valido, se toma FIFO por defecto.
+}
+
+t_list* pcbs_asignados()
+{
+	bool esta_asignado(t_pcb* pcb){
+		return !pcb->repartidor == NULL;
+	}
+	return list_filter(pcbs_nuevos, (void*) esta_asignado);
+}
+
+bool hay_pedidos_pendientes()
+{
+	bool verifica = false;
+	t_pcb* pcb;
+	int i=0;
+	sem_wait(&pcbs_nuevos_mutex);
+	while(i < list_size(pcbs_nuevos)){
+		pcb = list_get(pcbs_nuevos, i);
+		if (pcb->estado != FIN){
+			verifica = true;
+			break;
+		}
+		i++;
+	}
+	sem_post(&pcbs_nuevos_mutex);
+	return verifica;
+}
+
+void inicializar_sem_pcb()
+{
+	pcb_sem = malloc(list_size(pcbs_nuevos) * sizeof(sem_t));
+
+	for (int i = 0; i < list_size(pcbs_nuevos); i++) {
+		sem_init(&(pcb_sem[i]), 0, 0);
+	}
+}
+
+void activar_hilo_de(int id)
+{
+	sem_post(&pcb_sem[id]);
+}
+
+void app_planificar_FIFO()
+{
+	while(1) {
+		t_pcb* pcb;
+
+		sem_wait(&pcbs_nuevos_sem);
+
+		if(hay_pedidos_pendientes()){
+			sem_wait(&pcbs_nuevos_mutex);
+
+			if(!list_is_empty(pcbs_asignados())){
+				pcb = list_get(pcbs_nuevos, 0);
+				pcb->estado = EJECUTANDO;
+				app_derivar_pcb(pcb);
+				activar_hilo_de(pcb->id_pedido);
+			}
+			else{
+				sem_post(&pcbs_nuevos_mutex);
+			}
+		}
+		else break;
+	}
+}
+
+void app_gestionar_pcb_FIFO(t_pcb* pcb)
+{
+	while(1){
+		sem_wait(&pcb_sem[pcb->id_pedido]);
+
+		if(pcb->estado != FIN){
+			if(pcb->estado == EJECUTANDO){
+				bool alternador = true;
+
+				while (pcb->repartidor->posicion.x != pcb->posicionCliente.x ||
+					   pcb->repartidor->posicion.y != pcb->posicionCliente.y) {
+					if (alternador) app_mover_x_repartidor(pcb->repartidor, pcb->posicionCliente);
+					else app_mover_y_repartidor(pcb->repartidor, pcb->posicionCliente);
+
+					alternador = !alternador;
+
+					usleep(atoi(cs_config_get_string("RETARDO_CICLO_CPU")) * 1000000);
+				}
+			}
+			//ver bloqueo
+		}
+		else break;
+	}
+}
+
+void app_gestionar_pcb_HRRN(t_pcb* pcb){} //TODO
+
+void app_gestionar_pcb_SJFSD(t_pcb* pcb){} //TODO
+
+void app_gestionar_pcb(t_pcb* pcb)
+{
+	switch(algoritmo_planificacion){
+		case FIFO:{
+			app_gestionar_pcb_FIFO(pcb);
+			break;
+		}
+		case HRRN:{
+			app_gestionar_pcb_HRRN(pcb);
+			break;
+		}
+		case SJFSD:{
+			app_gestionar_pcb_SJFSD(pcb);
+			break;
+		}
+		default:{
+			app_gestionar_pcb_FIFO(pcb);
+			break;
+		}
+	}
+}
 
 static void app_asignar_repartidor(t_pcb* pcb)
 {
@@ -88,6 +218,9 @@ static void app_asignar_repartidor(t_pcb* pcb)
 
 		//Deriva el pcb a la queue correspondiente (ready/bloqueado/etc)
 		app_derivar_pcb(pcb);
+
+		//Empieza a planificar el pcb
+		sem_post(&pcbs_nuevos_sem);
 	}
 }
 
