@@ -1,7 +1,6 @@
 #ifndef APPLANIFICADOR_H_
 #define APPLANIFICADOR_H_
 
-#include "appconectados.h"
 #include "apprepartidores.h"
 
 void app_iniciar_planificador(void);

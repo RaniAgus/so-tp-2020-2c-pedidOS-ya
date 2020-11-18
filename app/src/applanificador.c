@@ -7,6 +7,7 @@ static pthread_mutex_t 	pcbs_nuevos_mutex;
 static sem_t 			pcbs_nuevos_sem;
 
 static void app_asignar_repartidor(t_pcb* pcb);
+static t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
 void app_iniciar_planificador(void)
 {
@@ -40,7 +41,6 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
     pcb->destino = DESTINO_RESTAURANTE;
 
     //Arranca sin repartidor asignado, otro hilo lo extrae de la cola y le asigna uno
-    pcb->repartidor = NULL;
     queue_sync_push(pcbs_nuevos, &pcbs_nuevos_mutex, &pcbs_nuevos_sem, pcb);
 }
 
@@ -61,33 +61,48 @@ static void app_asignar_repartidor(t_pcb* pcb)
 				, pcb->id_pedido
 		);
 
-		//Espera a que haya repartidores libres
-		sem_wait(&repartidores_libres_sem);
+		//Extrae repartidor libre
+		t_repartidor* repartidor = app_obtener_repartidor_libre(pcb->posicionRestaurante);
 
-		//Asigna un repartidor más cercano al restaurante (de haber varios, se asigna el más cercano)
-		pthread_mutex_lock(&repartidores_libres_mutex);
-
-		bool menor_distancia (t_repartidor* repartidor1, t_repartidor* repartidor2) {
-			t_pos vector_distancia1 = calcular_vector_distancia(repartidor1->posicion, pcb->posicionRestaurante);
-			t_pos vector_distancia2 = calcular_vector_distancia(repartidor2->posicion, pcb->posicionRestaurante);
-
-			return calcular_norma(vector_distancia1) < calcular_norma(vector_distancia2);
-		}
-		list_sort(repartidores_libres, (void*) menor_distancia);  //Ordeno la lista por menor distancia
-		pcb->repartidor = list_remove(repartidores_libres, 0); //Me quedo con el head de la lista y asi obtengo al repartidor mas cercano disponible
-
-		pthread_mutex_unlock(&repartidores_libres_mutex);
+		//Asigna el PCB al repartidor
+		repartidor->pcb = pcb;
 
 		CS_LOG_DEBUG("Se asignó el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d]} {POS_DESTINO: [%d,%d]}"
-				, pcb->repartidor->id
-				, pcb->repartidor->posicion.x
-				, pcb->repartidor->posicion.y
-				, pcb->posicionRestaurante.x
-				, pcb->posicionRestaurante.y
+				, repartidor->id
+				, repartidor->posicion.x
+				, repartidor->posicion.y
+				, repartidor->pcb->posicionRestaurante.x
+				, repartidor->pcb->posicionRestaurante.y
 		);
 
-		//Deriva el pcb a la queue correspondiente (ready/bloqueado/etc)
-		app_derivar_pcb(pcb);
+		//Deriva el repartidor a la queue correspondiente (ready/bloqueado/etc)
+		app_derivar_repartidor(repartidor);
 	}
+}
+
+static t_repartidor* app_obtener_repartidor_libre(t_pos destino)
+{
+	t_repartidor* repartidor;
+
+	//Espera a que haya repartidores libres
+	sem_wait(&repartidores_libres_sem);
+
+	//Espera si hay otro hilo manipulando la lista
+	pthread_mutex_lock(&repartidores_libres_mutex);
+
+	//Busca al repartidor más cercano al restaurante
+	bool menor_distancia (t_repartidor* repartidor1, t_repartidor* repartidor2) {
+		t_pos vector_distancia1 = calcular_vector_distancia(repartidor1->posicion, destino);
+		t_pos vector_distancia2 = calcular_vector_distancia(repartidor2->posicion, destino);
+
+		return calcular_norma(vector_distancia1) < calcular_norma(vector_distancia2);
+	}
+	list_sort(repartidores_libres, (void*) menor_distancia);  //Ordeno la lista por menor distancia
+	repartidor = list_remove(repartidores_libres, 0); //Me quedo con el head de la lista y asi obtengo al repartidor mas cercano disponible
+
+	//Libera el mutex
+	pthread_mutex_unlock(&repartidores_libres_mutex);
+
+	return repartidor;
 }
 
