@@ -46,7 +46,7 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id);
 void app_agregar_repartidor_libre(t_repartidor* repartidor);
 t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
-static void   app_ready_push(t_pcb* pcb);
+void app_ready_push(t_pcb* pcb);
 t_repartidor* app_ready_pop(void);
 
 void app_derivar_repartidor(t_repartidor* repartidor);
