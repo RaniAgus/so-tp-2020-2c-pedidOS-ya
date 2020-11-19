@@ -51,7 +51,7 @@ void app_iniciar_repartidores(void)
 
 static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino);
 static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino);
-static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior);
+static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino);
 
 t_pos app_destino_repartidor(t_repartidor* repartidor)
 {
@@ -80,10 +80,10 @@ static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino)
 
 	if(repartidor->posicion.x < destino.x) {
 		repartidor->posicion.x ++;
-		loggear_movimiento(repartidor, anterior);
+		loggear_movimiento(repartidor, anterior, destino);
 	} else if(repartidor->posicion.x > destino.x) {
 		repartidor->posicion.x --;
-		loggear_movimiento(repartidor, anterior);
+		loggear_movimiento(repartidor, anterior, destino);
 	} else {
 		//Si el repartidor ya esta en el x del destino, que mueva la y.
 		mover_y_repartidor(repartidor, destino);
@@ -95,23 +95,25 @@ static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
 	t_pos anterior = repartidor->posicion;
 	if(repartidor->posicion.y < destino.y) {
 		repartidor->posicion.y ++;
-		loggear_movimiento(repartidor, anterior);
+		loggear_movimiento(repartidor, anterior, destino);
 	} else if(repartidor->posicion.y > destino.y) {
 		repartidor->posicion.y --;
-		loggear_movimiento(repartidor, anterior);
+		loggear_movimiento(repartidor, anterior, destino);
 	} else {
 		//Si el repartidor ya esta en el y del destino, que mueva la x.
 		mover_x_repartidor(repartidor, destino);
 	}
 }
 
-static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior)
+static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino)
 {
-	CS_LOG_DEBUG("Se movió el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d] -> [%d,%d]}"
+	CS_LOG_DEBUG("Se movió el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d] -> [%d,%d]} {DESTINO: [%d,%d]}"
 			, repartidor->id
 			, anterior.x
 			, anterior.y
 			, repartidor->posicion.x
 			, repartidor->posicion.y
+			, destino.x
+			, destino.y
 	);
 }

@@ -562,8 +562,8 @@ static void app_recibir_plato_listo(t_sfd conexion, t_consulta* consulta)
 		//Obtiene el pedido desde Comanda
 		t_rta_obt_ped* pedido = app_obtener_pedido(consulta->restaurante, consulta->pedido_id, &result);
 
-		//Se fija si está TERMINADO
-		if(pedido->estado_pedido == PEDIDO_TERMINADO) {
+		//Se fija si todos los platos están listos
+		if(cs_platos_estan_listos(pedido->platos_y_estados)) {
 			app_avisar_pedido_terminado(consulta->restaurante, consulta->pedido_id);
 		} else {
 			CS_LOG_TRACE("El pedido NO está terminado, no se dará ningún aviso al repartidor.");
