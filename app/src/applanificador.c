@@ -7,17 +7,12 @@ static pthread_mutex_t 	pcbs_nuevos_mutex;
 static sem_t 			pcbs_nuevos_sem;
 
 static void app_asignar_repartidor(t_pcb* pcb);
-static t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
-void app_iniciar_planificador(void)
+void app_iniciar_planificador_largo_plazo(void)
 {
 	pcbs_nuevos = queue_create();
 	pthread_mutex_init(&pcbs_nuevos_mutex, NULL);
 	sem_init(&pcbs_nuevos_sem, 0, 0);
-
-	repartidores_libres = list_create();
-	pthread_mutex_init(&repartidores_libres_mutex, NULL);
-	sem_init(&repartidores_libres_sem, 0, 0);
 
 	//Creo el hilo que se encarga de asignar los repartidores a cada pcb nuevo
 	pthread_create(&thread_planificador, NULL, (void*) app_asignar_repartidor, NULL);
@@ -78,31 +73,5 @@ static void app_asignar_repartidor(t_pcb* pcb)
 		//Deriva el repartidor a la queue correspondiente (ready/bloqueado/etc)
 		app_derivar_repartidor(repartidor);
 	}
-}
-
-static t_repartidor* app_obtener_repartidor_libre(t_pos destino)
-{
-	t_repartidor* repartidor;
-
-	//Espera a que haya repartidores libres
-	sem_wait(&repartidores_libres_sem);
-
-	//Espera si hay otro hilo manipulando la lista
-	pthread_mutex_lock(&repartidores_libres_mutex);
-
-	//Busca al repartidor más cercano al restaurante
-	bool menor_distancia (t_repartidor* repartidor1, t_repartidor* repartidor2) {
-		t_pos vector_distancia1 = calcular_vector_distancia(repartidor1->posicion, destino);
-		t_pos vector_distancia2 = calcular_vector_distancia(repartidor2->posicion, destino);
-
-		return calcular_norma(vector_distancia1) < calcular_norma(vector_distancia2);
-	}
-	list_sort(repartidores_libres, (void*) menor_distancia);  //Ordeno la lista por menor distancia
-	repartidor = list_remove(repartidores_libres, 0); //Me quedo con el head de la lista y asi obtengo al repartidor mas cercano disponible
-
-	//Libera el mutex
-	pthread_mutex_unlock(&repartidores_libres_mutex);
-
-	return repartidor;
 }
 

@@ -2,6 +2,7 @@
 #include "appenvio.h"
 #include "applanificador.h"
 #include "apprecepcion.h"
+#include "appqueues.h"
 #include "apprepartidores.h"
 
 #define MODULE_NAME		 "APP"
@@ -24,8 +25,9 @@ int main(int argc, char* argv[])
 
 	app_conectados_init();
 	app_recepcion_init();
-	app_inicializar_repartidores();
-	app_iniciar_planificador();
+	app_iniciar_planificador_largo_plazo();
+	app_iniciar_colas_planificacion();
+	app_iniciar_repartidores();
 	app_routine();
 
 	cs_module_close();
