@@ -33,7 +33,9 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
     pcb->posicionCliente = app_posicion_cliente(cliente);
     pcb->restaurante = restaurante;
     pcb->posicionRestaurante = app_posicion_restaurante(restaurante);
-    pcb->destino = DESTINO_RESTAURANTE;
+    pcb->estimacion_anterior = cs_config_get_double("ESTIMACION_INICIAL");
+    pcb->ultima_rafaga = cs_config_get_double("ESTIMACION_INICIAL");
+    pcb->espera = 0;
 
     //Arranca sin repartidor asignado, otro hilo lo extrae de la cola y le asigna uno
     queue_sync_push(pcbs_nuevos, &pcbs_nuevos_mutex, &pcbs_nuevos_sem, pcb);
@@ -61,6 +63,7 @@ static void app_asignar_repartidor(t_pcb* pcb)
 
 		//Asigna el PCB al repartidor
 		repartidor->pcb = pcb;
+		repartidor->destino = DESTINO_RESTAURANTE;
 
 		CS_LOG_DEBUG("Se asignó el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d]} {POS_DESTINO: [%d,%d]}"
 				, repartidor->id

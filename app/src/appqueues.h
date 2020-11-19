@@ -24,19 +24,19 @@ typedef struct {
 	t_pos posicionCliente;
 	char* restaurante;
 	t_pos posicionRestaurante;
-	e_destinos destino;
-} t_pcb;
-
-typedef struct {
-	t_pcb* pcb;
-	uint32_t id;
-	t_pos posicion;
-	int ciclos_sin_descansar;
-	int frecuencia_de_descanso;
-	int tiempo_de_descanso;
 	double estimacion_anterior;
 	double ultima_rafaga;
 	double espera;
+} t_pcb;
+
+typedef struct {
+	uint32_t id;
+	t_pcb* pcb;
+	t_pos posicion;
+	e_destinos destino;
+	int ciclos_sin_descansar;
+	int frecuencia_de_descanso;
+	int tiempo_de_descanso;
 } t_repartidor;
 
 void app_iniciar_colas_planificacion(void);

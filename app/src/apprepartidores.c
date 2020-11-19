@@ -1,8 +1,10 @@
 #include "apprepartidores.h"
 
-static pthread_t* threads_dispatcher;
+static int GRADO_DE_MULTIPROCESAMIENTO;
 
-static void app_dispatcher_routine(void);
+t_pos app_destino_repartidor(t_repartidor* repartidor);
+bool repartidor_llego_a_destino(t_repartidor* repartidor);
+bool app_mover_repartidor(t_repartidor* repartidor, bool alternador);
 
 void app_iniciar_repartidores(void)
 {
@@ -15,15 +17,13 @@ void app_iniciar_repartidores(void)
 		char** posicion = string_split(paresDeCoordenadas[i], "|");
 		t_repartidor* repartidor = malloc(sizeof(t_repartidor));
 
+		repartidor->pcb = NULL;
 		repartidor->id = i+1;
 		repartidor->posicion.x = atoi(posicion[0]);
 		repartidor->posicion.y = atoi(posicion[1]);
 		repartidor->ciclos_sin_descansar = 0;
 		repartidor->frecuencia_de_descanso = atoi(frecuenciasDeDescanso[i]);
 		repartidor->tiempo_de_descanso = atoi(tiemposDeDescanso[i]);
-		repartidor->estimacion_anterior = cs_config_get_double("ESTIMACION_INICIAL");
-		repartidor->ultima_rafaga = cs_config_get_double("ESTIMACION_INICIAL");
-		repartidor->espera = 0;
 
 		//Al inicio se agregan todos los repartidores creados a la lista de libres
 		app_agregar_repartidor_libre(repartidor);
@@ -39,51 +39,79 @@ void app_iniciar_repartidores(void)
 	free(frecuenciasDeDescanso);
 	free(tiemposDeDescanso);
 
-	int gm = cs_config_get_int("GRADO_DE_MULTIPROCESAMIENTO");
-	threads_dispatcher = calloc(gm, sizeof(pthread_t));
+	GRADO_DE_MULTIPROCESAMIENTO = cs_config_get_int("GRADO_DE_MULTIPROCESAMIENTO");
 
-	//TODO: Ver si crear un hilo por procesador o por repartidor
-	for(int i = 0; i < gm; i++) {
-		pthread_create(&threads_dispatcher[i], NULL, (void*) app_dispatcher_routine, NULL);
-		pthread_detach(threads_dispatcher[i]);
+}
+
+/*********************************** RUTINA DEL REPARTIDOR ***********************************/
+
+//TODO: [APP] Ver si crear un hilo por procesador o por repartidor
+
+/********************************** POSICION DEL REPARTIDOR **********************************/
+
+static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino);
+static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino);
+static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior);
+
+t_pos app_destino_repartidor(t_repartidor* repartidor)
+{
+	return repartidor->destino == DESTINO_RESTAURANTE ?
+		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
+}
+
+bool repartidor_llego_a_destino(t_repartidor* repartidor) {
+	t_pos destino = app_destino_repartidor(repartidor);
+	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
+}
+
+bool app_mover_repartidor(t_repartidor* repartidor, bool alternador)
+{
+	if(alternador) {
+		mover_x_repartidor(repartidor, app_destino_repartidor(repartidor));
+	} else {
+		mover_y_repartidor(repartidor, app_destino_repartidor(repartidor));
+	}
+	return !alternador;
+}
+
+static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino)
+{
+	t_pos anterior = repartidor->posicion;
+
+	if(repartidor->posicion.x < destino.x) {
+		repartidor->posicion.x ++;
+		loggear_movimiento(repartidor, anterior);
+	} else if(repartidor->posicion.x > destino.x) {
+		repartidor->posicion.x --;
+		loggear_movimiento(repartidor, anterior);
+	} else {
+		//Si el repartidor ya esta en el x del destino, que mueva la y.
+		mover_y_repartidor(repartidor, destino);
 	}
 }
 
-static t_pos pos_destino(t_repartidor* repartidor)
+static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
 {
-	return repartidor->pcb->destino == DESTINO_RESTAURANTE ? repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
+	t_pos anterior = repartidor->posicion;
+	if(repartidor->posicion.y < destino.y) {
+		repartidor->posicion.y ++;
+		loggear_movimiento(repartidor, anterior);
+	} else if(repartidor->posicion.y > destino.y) {
+		repartidor->posicion.y --;
+		loggear_movimiento(repartidor, anterior);
+	} else {
+		//Si el repartidor ya esta en el y del destino, que mueva la x.
+		mover_x_repartidor(repartidor, destino);
+	}
 }
 
-static void app_dispatcher_routine(void)
+static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior)
 {
-	t_repartidor* repartidor = NULL;
-
-	while(true)
-	{
-		//TODO: Semáforos
-
-		if(repartidor != NULL) {
-			//TODO: Mover
-			repartidor->ciclos_sin_descansar++;
-			repartidor->ultima_rafaga++;
-		}
-
-		//TODO: Semáforos
-
-		if(repartidor != NULL) {
-			if(repartidor->ciclos_sin_descansar == repartidor->frecuencia_de_descanso) {
-				//TODO: Bloquear
-			} else if(calcular_norma(calcular_vector_distancia(repartidor->posicion, pos_destino(repartidor))) == 0) {
-				//TODO: Derivar
-			}
-		}
-
-		//TODO: Semáforos
-
-		if(repartidor == NULL) {
-			repartidor = app_ready_pop();
-		}
-
-		//TODO: Semáforos
-	}
+	CS_LOG_DEBUG("Se movió el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d] -> [%d,%d]}"
+			, repartidor->id
+			, anterior.x
+			, anterior.y
+			, repartidor->posicion.x
+			, repartidor->posicion.y
+	);
 }

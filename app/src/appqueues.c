@@ -63,6 +63,12 @@ void app_agregar_repartidor_libre(t_repartidor* repartidor)
 	list_add(repartidores_libres, repartidor);
 	pthread_mutex_unlock(&repartidores_libres_mutex);
 
+	CS_LOG_DEBUG("El repartidor está disponible: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+			, repartidor->id
+			, repartidor->posicion.x
+			, repartidor->posicion.y
+	);
+
 	sem_post(&repartidores_libres_sem);
 }
 
@@ -94,8 +100,9 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino)
 
 /**************************************** READY ****************************************/
 
-static double proxima_rafaga(t_repartidor* repartidor);
-static double response_ratio(t_repartidor* repartidor);
+static void app_ordenar_ready(void);
+static double proxima_rafaga(t_pcb* pcb);
+static double response_ratio(t_pcb* pcb);
 
 t_repartidor* app_ready_pop(void)
 {
@@ -104,26 +111,13 @@ t_repartidor* app_ready_pop(void)
 	//Espera a que no haya otro hilo usando la cola de ready
 	pthread_mutex_lock(&ready_mutex);
 
-	//Ordena la cola de ready según prioridad
-	bool mayor_prioridad(t_repartidor* repartidor1, t_repartidor* repartidor2) {
-		switch(ALGORITMO_PLANIFICACION)
-		{
-		case SJFSD: //SJF ordena según la estimación menor
-			return proxima_rafaga(repartidor1) <= proxima_rafaga(repartidor2);
-		case HRRN: //HRRN ordena según el response ratio mayor
-			return response_ratio(repartidor1) >= response_ratio(repartidor2);
-		default: //FIFO no reordena nada
-			return true;
-		}
-	}
-	list_sort(ready_queue, (void*)mayor_prioridad);
-
-	//Quita el primer elemento de la lista
+	//Ordena la cola de ready según prioridad y quita el primer elemento
+	app_ordenar_ready();
 	repartidor = list_remove(ready_queue, 0);
 
 	//Actualiza la espera de los demás repartidores (sirve para HRRN)
 	void actualizar_espera(t_repartidor* pcb) {
-		repartidor->espera++;
+		repartidor->pcb->espera++;
 	}
 	list_iterate(ready_queue, (void*)actualizar_espera);
 
@@ -132,9 +126,9 @@ t_repartidor* app_ready_pop(void)
 
 	//Actualiza la información del repartidor extraído (sirve para SJF y HRRN)
 	if(repartidor != NULL) {
-		repartidor->estimacion_anterior = proxima_rafaga(repartidor);
-		repartidor->ultima_rafaga = 0;
-		repartidor->espera = 0;
+		repartidor->pcb->estimacion_anterior = proxima_rafaga(repartidor->pcb);
+		repartidor->pcb->ultima_rafaga = 0;
+		repartidor->pcb->espera = 0;
 	}
 
 	return repartidor;
@@ -160,11 +154,26 @@ static e_algoritmo app_obtener_algoritmo(void)
 	return cs_string_to_enum(cs_config_get_string("ALGORITMO_PLANIFICACION"), e_algoritmo_to_str);
 }
 
-static double proxima_rafaga(t_repartidor* repartidor) {
-	return repartidor->ultima_rafaga * ALPHA + repartidor->estimacion_anterior * (1 - ALPHA);
+static void app_ordenar_ready(void)
+{
+	bool mayor_prioridad(t_repartidor* repartidor1, t_repartidor* repartidor2) {
+		switch(ALGORITMO_PLANIFICACION)
+		{
+		case SJFSD: //SJF ordena según la estimación menor
+			return proxima_rafaga(repartidor1->pcb) <= proxima_rafaga(repartidor2->pcb);
+		case HRRN: //HRRN ordena según el response ratio mayor
+			return response_ratio(repartidor1->pcb) >= response_ratio(repartidor2->pcb);
+		default: //FIFO no reordena nada
+			return true;
+		}
+	}
+	list_sort(ready_queue, (void*)mayor_prioridad);
 }
 
-static double response_ratio(t_repartidor* repartidor) {
-	return 1 + repartidor->espera / proxima_rafaga(repartidor);
+static double proxima_rafaga(t_pcb* pcb) {
+	return pcb->ultima_rafaga * ALPHA + pcb->estimacion_anterior * (1 - ALPHA);
 }
 
+static double response_ratio(t_pcb* pcb) {
+	return 1 + pcb->espera / proxima_rafaga(pcb);
+}
