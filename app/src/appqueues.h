@@ -42,13 +42,13 @@ typedef struct {
 void app_iniciar_colas_planificacion(void);
 
 void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id);
+void app_derivar_repartidor(t_repartidor* repartidor);
+bool repartidor_llego_a_destino(t_repartidor* repartidor);
 
 void app_agregar_repartidor_libre(t_repartidor* repartidor);
 t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
-void app_ready_push(t_pcb* pcb);
 t_repartidor* app_ready_pop(void);
 
-void app_derivar_repartidor(t_repartidor* repartidor);
 
 #endif /* APPCORE_H_ */

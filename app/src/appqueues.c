@@ -11,9 +11,11 @@ static sem_t		   repartidores_libres_sem;
 
 static t_list* 			ready_queue;
 static pthread_mutex_t	ready_mutex;
-//TODO: [APP] Ver si hay que agregar semáforo a la cola de ready
 
-//TODO: [APP] Crear e iniciar las listas de bloqueado por descanso y bloqueado por espera
+static t_list*			repartidores_esperando;
+static pthread_mutex_t	repartidores_esperando_mutex;
+
+//TODO: [APP] Crear e iniciar las lista de bloqueado por espera
 
 static e_algoritmo app_obtener_algoritmo(void);
 
@@ -28,31 +30,68 @@ void app_iniciar_colas_planificacion(void)
 
 	ready_queue = list_create();
 	pthread_mutex_init(&ready_mutex, NULL);
+
+	repartidores_esperando = list_create();
+	pthread_mutex_init(&repartidores_esperando_mutex, NULL);
 }
 
-//Luego de recibir Plato Listo, si el pedido está terminado se avisa al repartidor
 void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
 {
-    CS_LOG_TRACE(
-        "Se va a avisar al repartidor correspondiente que el pedido está terminado: {RESTAURANTE: %s} {ID_PEDIDO: %d}",
-		restaurante, pedido_id
-    );
+	t_repartidor* repartidor;
 
-    //TODO: [APP] Buscar el PCB en la lista de bloqueados por espera, cambiarle el destino a CLIENTE y derivarlo
+	//Busca al repartidor según el pedido
+    pthread_mutex_lock(&repartidores_esperando_mutex);
+    bool encontrar_pedido(t_repartidor* repartidor) {
+    	return !strcmp(repartidor->pcb->restaurante, restaurante) && repartidor->pcb->id_pedido == pedido_id;
+    }
+    repartidor = list_remove_by_condition(repartidores_esperando, encontrar_pedido);
+    pthread_mutex_unlock(&repartidores_esperando_mutex);
+
+    //Si lo encuentra, le cambia el destino a CLIENTE y lo deriva a la queue que corresponda
+    if(repartidor != NULL)
+    {
+    	repartidor->destino = DESTINO_CLIENTE;
+    	CS_LOG_DEBUG("El repartidor se moverá hacia el cliente: {ID: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+    			, repartidor->id
+				, restaurante
+				, pedido_id
+		);
+    	app_derivar_repartidor(repartidor);
+    } else
+    {
+    	CS_LOG_DEBUG("El repartidor no ha llegado aún al Restaurante: {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+    			, restaurante
+				, pedido_id
+		);
+    }
+}
+
+bool repartidor_llego_a_destino(t_repartidor* repartidor) {
+	t_pos destino = app_destino_repartidor(repartidor);
+	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
 }
 
 void app_derivar_repartidor(t_repartidor* repartidor)
 {
-	//TODO: [APP] Derivar según la posición actual y la destino:
-	/*
-	 * 1. si al repartidor le toca descansar, se va a la lista de bloqueados por descanso
-	 * 2. si posición_actual == posicion_destino y el destino es restaurante, obtiene el pedido y...
-	 * 	  a. ...si está listo, se dirige hacia el cliente
-	 * 	  b. ...si no está listo, se va a la lista de bloqueados por espera
-	 * 3. si posición_actual == posicion_destino y el destino es cliente, finaliza el pedido
-	 * 4. si no llegó a su posición destino ni le toca descansar, se va a la lista de ready
-	 *
-	 * */
+	if(repartidor_llego_a_destino(repartidor))
+	{
+		if(repartidor->destino == DESTINO_RESTAURANTE)
+		{
+			/* TODO: [APP] Obtener pedido
+			 * a. Si está listo, se dirige hacia el cliente
+			 * b. Si no está listo, se va a la lista de bloqueados por espera
+			 * */
+		} else
+		{
+			/* TODO: [APP] Finalizar pedido */
+		}
+	} else
+	{
+		//Lo agrega a la lista de ready
+		pthread_mutex_lock(&ready_mutex);
+		list_add(ready_queue, repartidor);
+		pthread_mutex_unlock(&ready_mutex);
+	}
 }
 
 /********************************** REPARTIDORES LIBRES **********************************/
@@ -132,13 +171,6 @@ t_repartidor* app_ready_pop(void)
 	}
 
 	return repartidor;
-}
-
-void app_ready_push(t_pcb* pcb)
-{
-	pthread_mutex_lock(&ready_mutex);
-	list_add(ready_queue, pcb);
-	pthread_mutex_unlock(&ready_mutex);
 }
 
 /********************************** FUNCIONES PRIVADAS **********************************/

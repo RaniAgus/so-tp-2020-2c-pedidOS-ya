@@ -3,11 +3,12 @@
 static int GRADO_DE_MULTIPROCESAMIENTO;
 
 t_pos app_destino_repartidor(t_repartidor* repartidor);
-bool repartidor_llego_a_destino(t_repartidor* repartidor);
 bool app_mover_repartidor(t_repartidor* repartidor, bool alternador);
 
 void app_iniciar_repartidores(void)
 {
+	GRADO_DE_MULTIPROCESAMIENTO = cs_config_get_int("GRADO_DE_MULTIPROCESAMIENTO");
+
 	char** paresDeCoordenadas = cs_config_get_array_value("REPARTIDORES");
 	char** frecuenciasDeDescanso = cs_config_get_array_value("FRECUENCIA_DE_DESCANSO");
 	char** tiemposDeDescanso = cs_config_get_array_value("TIEMPO_DE_DESCANSO");
@@ -39,13 +40,12 @@ void app_iniciar_repartidores(void)
 	free(frecuenciasDeDescanso);
 	free(tiemposDeDescanso);
 
-	GRADO_DE_MULTIPROCESAMIENTO = cs_config_get_int("GRADO_DE_MULTIPROCESAMIENTO");
-
 }
 
 /*********************************** RUTINA DEL REPARTIDOR ***********************************/
 
 //TODO: [APP] Ver si crear un hilo por procesador o por repartidor
+
 
 /********************************** POSICION DEL REPARTIDOR **********************************/
 
@@ -57,11 +57,6 @@ t_pos app_destino_repartidor(t_repartidor* repartidor)
 {
 	return repartidor->destino == DESTINO_RESTAURANTE ?
 		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
-}
-
-bool repartidor_llego_a_destino(t_repartidor* repartidor) {
-	t_pos destino = app_destino_repartidor(repartidor);
-	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
 }
 
 bool app_mover_repartidor(t_repartidor* repartidor, bool alternador)
