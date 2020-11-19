@@ -9,11 +9,14 @@
 #define CONFIG_FILE_PATH "app.config"
 #define LOG_FILE_KEY	 "ARCHIVO_LOG"
 
-void app_routine(void) //TODO: Cambiar!!
+void app_routine(void)
 {
-	sem_t aux;
-	sem_init(&aux, 0, 0);
-	sem_wait(&aux);
+	while(true)
+	{
+		app_iniciar_ciclo_cpu();
+		sleep(cs_config_get_int("RETARDO_CICLO_CPU"));
+		app_esperar_fin_ciclo_cpu();
+	}
 }
 
 int main(int argc, char* argv[])

@@ -1,8 +1,12 @@
 #include "apprepartidores.h"
 
 static int GRADO_DE_MULTIPROCESAMIENTO;
+pthread_t* hilos_procesadores;
 
-t_pos app_destino_repartidor(t_repartidor* repartidor);
+//TODO: Lista de repartidores descansando + mutex
+//TODO: Lista de semáforos de los procesadores
+
+static void app_rutina_procesador(/*acá iria el struct raro con los semáforos*/);
 bool app_mover_repartidor(t_repartidor* repartidor, bool alternador);
 
 void app_iniciar_repartidores(void)
@@ -40,11 +44,34 @@ void app_iniciar_repartidores(void)
 	free(frecuenciasDeDescanso);
 	free(tiemposDeDescanso);
 
+	hilos_procesadores = calloc(GRADO_DE_MULTIPROCESAMIENTO, sizeof(pthread_t));
+	for(int i = 0; i < GRADO_DE_MULTIPROCESAMIENTO; i++) {
+
+		/*ácá creás el struct raro con los semáforos, y le pasás ese puntero al hilo*/
+		pthread_create(&hilos_procesadores[i], NULL, (void*)app_rutina_procesador, NULL);
+	}
+
 }
 
 /*********************************** RUTINA DEL REPARTIDOR ***********************************/
 
-//TODO: [APP] Ver si crear un hilo por procesador o por repartidor
+void app_iniciar_ciclo_cpu(void)
+{
+
+}
+
+void app_esperar_fin_ciclo_cpu(void)
+{
+
+}
+
+static void app_rutina_procesador(/*acá iria el struct raro con los semáforos*/)
+{
+	while(true)
+	{
+
+	}
+}
 
 
 /********************************** POSICION DEL REPARTIDOR **********************************/
@@ -52,12 +79,6 @@ void app_iniciar_repartidores(void)
 static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino);
 static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino);
 static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino);
-
-t_pos app_destino_repartidor(t_repartidor* repartidor)
-{
-	return repartidor->destino == DESTINO_RESTAURANTE ?
-		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
-}
 
 bool app_mover_repartidor(t_repartidor* repartidor, bool alternador)
 {

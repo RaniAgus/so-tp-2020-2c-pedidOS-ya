@@ -44,7 +44,7 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
     bool encontrar_pedido(t_repartidor* repartidor) {
     	return !strcmp(repartidor->pcb->restaurante, restaurante) && repartidor->pcb->id_pedido == pedido_id;
     }
-    repartidor = list_remove_by_condition(repartidores_esperando, encontrar_pedido);
+    repartidor = list_remove_by_condition(repartidores_esperando, (void*)encontrar_pedido);
     pthread_mutex_unlock(&repartidores_esperando_mutex);
 
     //Si lo encuentra, le cambia el destino a CLIENTE y lo deriva a la queue que corresponda
@@ -64,11 +64,6 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
 				, pedido_id
 		);
     }
-}
-
-bool repartidor_llego_a_destino(t_repartidor* repartidor) {
-	t_pos destino = app_destino_repartidor(repartidor);
-	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
 }
 
 void app_derivar_repartidor(t_repartidor* repartidor)
@@ -92,6 +87,17 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 		list_add(ready_queue, repartidor);
 		pthread_mutex_unlock(&ready_mutex);
 	}
+}
+
+bool repartidor_llego_a_destino(t_repartidor* repartidor) {
+	t_pos destino = app_destino_repartidor(repartidor);
+	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
+}
+
+t_pos app_destino_repartidor(t_repartidor* repartidor)
+{
+	return repartidor->destino == DESTINO_RESTAURANTE ?
+		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
 }
 
 /********************************** REPARTIDORES LIBRES **********************************/
