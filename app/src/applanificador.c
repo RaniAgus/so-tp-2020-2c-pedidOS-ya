@@ -1,13 +1,5 @@
 #include "applanificador.h"
 
-static pthread_t thread_planificador;
-
-static t_queue*			pcbs_nuevos;
-static pthread_mutex_t 	pcbs_nuevos_mutex;
-static sem_t 			pcbs_nuevos_sem;
-
-static void app_asignar_repartidor(t_pcb* pcb);
-
 void app_iniciar_planificador_largo_plazo(void)
 {
 	pcbs_nuevos = queue_create();
@@ -43,7 +35,7 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
 
 //********* FUNCIONES PRIVADAS
 
-static void app_asignar_repartidor(t_pcb* pcb)
+void app_asignar_repartidor(t_pcb* pcb)
 {
 	while(true)
 	{

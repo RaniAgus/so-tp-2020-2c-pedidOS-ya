@@ -39,15 +39,46 @@ typedef struct {
 	int tiempo_de_descanso;
 } t_repartidor;
 
+t_list*			repartidores_libres;
+t_list* 		ready_queue;
+t_list*			repartidores_esperando;
+t_list*	       	repartidores_descansando;
+
+pthread_mutex_t repartidores_libres_mutex;
+pthread_mutex_t	ready_mutex;
+pthread_mutex_t	repartidores_esperando_mutex;
+pthread_mutex_t repartidores_descansando_mutex;
+
+sem_t		   	repartidores_libres_sem;
+
+typedef enum { FIFO, HRRN, SJFSD } e_algoritmo;
+
+e_algoritmo 	ALGORITMO_PLANIFICACION;
+
+double      	ALPHA;
+
+e_algoritmo app_obtener_algoritmo(void);
+
 void app_iniciar_colas_planificacion(void);
 
-void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id);
+void app_agregar_repartidor_esperando(t_repartidor* repartidor);
+void app_liberar_repartidor(t_repartidor* repartidor);
 void app_derivar_repartidor(t_repartidor* repartidor);
+void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id);
 t_pos app_destino_repartidor(t_repartidor* repartidor);
 bool repartidor_llego_a_destino(t_repartidor* repartidor);
 
 void app_agregar_repartidor_libre(t_repartidor* repartidor);
 t_repartidor* app_obtener_repartidor_libre(t_pos destino);
+
+bool toca_descansar(t_repartidor* repartidor);
+void app_agregar_repartidor_descansando(t_repartidor* repartidor);
+void descansa(t_repartidor repartidor);
+void app_reviso_repartidores_descansados();
+
+double proxima_rafaga(t_pcb* pcb);
+double response_ratio(t_pcb* pcb);
+void app_ordenar_ready(void);
 
 t_repartidor* app_ready_pop(void);
 

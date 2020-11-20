@@ -1,24 +1,5 @@
 #include "appqueues.h"
 
-typedef enum { FIFO, HRRN, SJFSD } e_algoritmo;
-
-static e_algoritmo ALGORITMO_PLANIFICACION;
-static double      ALPHA;
-
-static t_list* 		   repartidores_libres;
-static pthread_mutex_t repartidores_libres_mutex;
-static sem_t		   repartidores_libres_sem;
-
-static t_list* 			ready_queue;
-static pthread_mutex_t	ready_mutex;
-
-static t_list*			repartidores_esperando;
-static pthread_mutex_t	repartidores_esperando_mutex;
-
-//TODO: [APP] Crear e iniciar las lista de bloqueado por espera
-
-static e_algoritmo app_obtener_algoritmo(void);
-
 void app_iniciar_colas_planificacion(void)
 {
 	ALGORITMO_PLANIFICACION = app_obtener_algoritmo();
@@ -66,19 +47,43 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
     }
 }
 
+
+void app_liberar_repartidor(t_repartidor* repartidor)
+{
+	repartidor->pcb = NULL;
+	repartidor->destino = NULL;
+
+	pthread_mutex_lock(&repartidores_libres_mutex);
+	list_add(repartidores_libres, repartidor);
+	pthread_mutex_unlock(&repartidores_libres_mutex);
+}
+
 void app_derivar_repartidor(t_repartidor* repartidor)
 {
 	if(repartidor_llego_a_destino(repartidor))
 	{
 		if(repartidor->destino == DESTINO_RESTAURANTE)
 		{
-			/* TODO: [APP] Obtener pedido
-			 * a. Si está listo, se dirige hacia el cliente
-			 * b. Si no está listo, se va a la lista de bloqueados por espera
-			 * */
+			//Obtiene el pedido
+			int8_t resultado;
+			t_rta_obt_ped* pedido;
+
+			pedido = app_obtener_pedido(repartidor->pcb->restaurante, repartidor->pcb->id_pedido, &resultado);
+
+			if (pedido->estado_pedido == OPCODE_RESPUESTA_OK) {
+				repartidor->destino = DESTINO_CLIENTE;
+				app_derivar_repartidor(repartidor);
+			}
+			else {
+				//Se va a la lista de bloqueados por espera
+				app_agregar_repartidor_esperando(repartidor);
+			}
 		} else
 		{
-			/* TODO: [APP] Finalizar pedido */
+			//TODO: revisar que hacer con lo que devuelve app_finalizar_pedido, de momento no hago nada
+			app_finalizar_pedido(repartidor->pcb->restaurante, repartidor->pcb->id_pedido, repartidor->pcb->cliente);
+			//Libera al repartidor
+			app_liberar_repartidor(repartidor);
 		}
 	} else
 	{
@@ -89,7 +94,8 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 	}
 }
 
-bool repartidor_llego_a_destino(t_repartidor* repartidor) {
+bool repartidor_llego_a_destino(t_repartidor* repartidor)
+{
 	t_pos destino = app_destino_repartidor(repartidor);
 	return repartidor->posicion.x == destino.x && repartidor->posicion.y == destino.y;
 }
@@ -98,6 +104,77 @@ t_pos app_destino_repartidor(t_repartidor* repartidor)
 {
 	return repartidor->destino == DESTINO_RESTAURANTE ?
 		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
+}
+
+/********************************** REPARTIDORES BLOQUEADOS POR DESCANSO **********************************/
+
+bool toca_descansar(t_repartidor* repartidor)
+{
+	return (repartidor->ciclos_sin_descansar == repartidor->frecuencia_de_descanso);
+}
+
+void app_agregar_repartidor_descansando(t_repartidor* repartidor)
+{
+	bool encontrar_repartidor(t_repartidor* elemento){return elemento->id == repartidor->id;}
+
+	pthread_mutex_lock(&ready_mutex);
+	list_remove_by_condition(ready_queue, encontrar_repartidor);
+	pthread_mutex_unlock(&ready_mutex);
+
+	pthread_mutex_lock(&repartidores_descansando_mutex);
+	list_add(repartidores_descansando, repartidor);
+	pthread_mutex_unlock(&repartidores_descansando_mutex);
+
+	CS_LOG_DEBUG("El repartidor está bloqueado por descanso: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+			, repartidor->id
+			, repartidor->posicion.x
+			, repartidor->posicion.y
+	);
+}
+
+void descansa(t_repartidor* repartidor)
+{
+	repartidor->ciclos_sin_descansar --;
+}
+
+void app_reviso_repartidores_descansados()
+{
+	pthread_mutex_lock(&repartidores_descansando_mutex);
+
+	int i = 0;
+
+	void ya_descanso(t_repartidor* repartidor) {
+		if (repartidor->ciclos_sin_descansar == 0) {
+			list_remove(repartidores_descansando, i);
+			app_derivar_repartidor(repartidor);
+		}
+		else i ++;
+	}
+
+	list_iterate(repartidores_descansando, ya_descanso);
+	pthread_mutex_unlock(&repartidores_descansando_mutex);
+
+}
+
+/********************************** REPARTIDORES BLOQUEADOS POR ESPERA **********************************/
+
+void app_agregar_repartidor_esperando(t_repartidor* repartidor)
+{
+	bool encontrar_repartidor(t_repartidor* elemento){return elemento->id == repartidor->id;}
+
+	pthread_mutex_lock(&ready_mutex);
+	list_remove_by_condition(ready_queue, encontrar_repartidor);
+	pthread_mutex_unlock(&ready_mutex);
+
+	pthread_mutex_lock(&repartidores_esperando_mutex);
+	list_add(repartidores_esperando, repartidor);
+	pthread_mutex_unlock(&repartidores_esperando_mutex);
+
+	CS_LOG_DEBUG("El repartidor está bloqueado por espera: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+			, repartidor->id
+			, repartidor->posicion.x
+			, repartidor->posicion.y
+	);
 }
 
 /********************************** REPARTIDORES LIBRES **********************************/
@@ -145,10 +222,6 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino)
 
 /**************************************** READY ****************************************/
 
-static void app_ordenar_ready(void);
-static double proxima_rafaga(t_pcb* pcb);
-static double response_ratio(t_pcb* pcb);
-
 t_repartidor* app_ready_pop(void)
 {
 	t_repartidor* repartidor;
@@ -181,7 +254,7 @@ t_repartidor* app_ready_pop(void)
 
 /********************************** FUNCIONES PRIVADAS **********************************/
 
-static e_algoritmo app_obtener_algoritmo(void)
+e_algoritmo app_obtener_algoritmo(void)
 {
 	const char* algoritmos_str[] = {"FIFO", "HRRN", "SJF-SD", NULL};
 
@@ -192,7 +265,7 @@ static e_algoritmo app_obtener_algoritmo(void)
 	return cs_string_to_enum(cs_config_get_string("ALGORITMO_PLANIFICACION"), e_algoritmo_to_str);
 }
 
-static void app_ordenar_ready(void)
+void app_ordenar_ready(void)
 {
 	bool mayor_prioridad(t_repartidor* repartidor1, t_repartidor* repartidor2) {
 		switch(ALGORITMO_PLANIFICACION)
@@ -208,10 +281,10 @@ static void app_ordenar_ready(void)
 	list_sort(ready_queue, (void*)mayor_prioridad);
 }
 
-static double proxima_rafaga(t_pcb* pcb) {
+double proxima_rafaga(t_pcb* pcb) {
 	return pcb->ultima_rafaga * ALPHA + pcb->estimacion_anterior * (1 - ALPHA);
 }
 
-static double response_ratio(t_pcb* pcb) {
+double response_ratio(t_pcb* pcb) {
 	return 1 + pcb->espera / proxima_rafaga(pcb);
 }

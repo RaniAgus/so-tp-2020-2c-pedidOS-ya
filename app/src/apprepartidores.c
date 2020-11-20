@@ -1,17 +1,11 @@
 #include "apprepartidores.h"
 
-static int GRADO_DE_MULTIPROCESAMIENTO;
-pthread_t* hilos_procesadores;
-
-//TODO: Lista de repartidores descansando + mutex
-//TODO: Lista de semáforos de los procesadores
-
-static void app_rutina_procesador(/*acá iria el struct raro con los semáforos*/);
-bool app_mover_repartidor(t_repartidor* repartidor, bool alternador);
-
 void app_iniciar_repartidores(void)
 {
 	GRADO_DE_MULTIPROCESAMIENTO = cs_config_get_int("GRADO_DE_MULTIPROCESAMIENTO");
+
+	repartidores_descansando = list_create();
+	pthread_mutex_init(&repartidores_descansando_mutex, NULL);
 
 	char** paresDeCoordenadas = cs_config_get_array_value("REPARTIDORES");
 	char** frecuenciasDeDescanso = cs_config_get_array_value("FRECUENCIA_DE_DESCANSO");
@@ -47,7 +41,7 @@ void app_iniciar_repartidores(void)
 	hilos_procesadores = calloc(GRADO_DE_MULTIPROCESAMIENTO, sizeof(pthread_t));
 	for(int i = 0; i < GRADO_DE_MULTIPROCESAMIENTO; i++) {
 
-		/*ácá creás el struct raro con los semáforos, y le pasás ese puntero al hilo*/
+		array_sem_ciclo_cpu = (app_ciclo_t**)string_array_new();
 		pthread_create(&hilos_procesadores[i], NULL, (void*)app_rutina_procesador, NULL);
 	}
 
@@ -57,28 +51,78 @@ void app_iniciar_repartidores(void)
 
 void app_iniciar_ciclo_cpu(void)
 {
+	void _hacer_signal_ejecucion(app_ciclo_t* semaforo) {
+		sem_post(&semaforo->inicio_ejecucion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_ejecucion);
 
+	list_iterate(repartidores_descansando, descansa);
+
+	void _hacer_wait_ejecucion(app_ciclo_t* semaforo) {
+		sem_wait(&semaforo->fin_ejecucion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_ejecucion);
+
+	void _hacer_signal_derivacion(app_ciclo_t* semaforo) {
+		sem_post(&semaforo->inicio_derivacion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_derivacion);
+
+	app_reviso_repartidores_descansados();
+
+	void _hacer_wait_derivacion(app_ciclo_t* semaforo) {
+		sem_wait(&semaforo->fin_derivacion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_derivacion);
+
+	void _hacer_signal_extraccion(app_ciclo_t* semaforo) {
+		sem_post(&semaforo->inicio_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_extraccion);
 }
 
 void app_esperar_fin_ciclo_cpu(void)
 {
-
+	void _hacer_wait_extraccion(app_ciclo_t* semaforo) {
+		sem_wait(&semaforo->fin_extraccion);
+	}
+	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_wait_extraccion);
 }
 
-static void app_rutina_procesador(/*acá iria el struct raro con los semáforos*/)
+void app_rutina_procesador(app_ciclo_t*  semaforo)
 {
+	t_repartidor* repartidor = NULL;
+
 	while(true)
 	{
+		sem_wait(&semaforo->inicio_ejecucion);
+		if(repartidor != NULL)
+		{
+			app_mover_repartidor(repartidor, 1);
+			repartidor->ciclos_sin_descansar ++;
+		}
+		sem_post(&semaforo->fin_ejecucion);
 
+		sem_wait(&semaforo->inicio_derivacion);
+		if(toca_descansar(repartidor)){
+			app_agregar_repartidor_descansando(repartidor);
+		}
+		if(repartidor_llego_a_destino(repartidor))
+		{
+			app_derivar_repartidor(repartidor);
+		}
+		sem_post(&semaforo->fin_derivacion);
+
+		sem_wait(&semaforo->inicio_extraccion);
+		if(repartidor == NULL)
+		{
+			repartidor = app_ready_pop();
+		}
+		sem_post(&semaforo->fin_extraccion);
 	}
 }
 
-
 /********************************** POSICION DEL REPARTIDOR **********************************/
-
-static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino);
-static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino);
-static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino);
 
 bool app_mover_repartidor(t_repartidor* repartidor, bool alternador)
 {
@@ -90,7 +134,7 @@ bool app_mover_repartidor(t_repartidor* repartidor, bool alternador)
 	return !alternador;
 }
 
-static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino)
+void mover_x_repartidor(t_repartidor* repartidor, t_pos destino)
 {
 	t_pos anterior = repartidor->posicion;
 
@@ -106,7 +150,7 @@ static void mover_x_repartidor(t_repartidor* repartidor, t_pos destino)
 	}
 }
 
-static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
+void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
 {
 	t_pos anterior = repartidor->posicion;
 	if(repartidor->posicion.y < destino.y) {
@@ -121,7 +165,7 @@ static void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
 	}
 }
 
-static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino)
+void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino)
 {
 	CS_LOG_DEBUG("Se movió el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d] -> [%d,%d]} {DESTINO: [%d,%d]}"
 			, repartidor->id
@@ -133,3 +177,4 @@ static void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos d
 			, destino.y
 	);
 }
+
