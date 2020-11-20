@@ -17,9 +17,7 @@ int8_t app_finalizar_pedido(char* restaurante, uint32_t pedido_id, char* cliente
 	if(result == OPCODE_RESPUESTA_OK)
 	{
 		void _enviar_mensaje_al_cliente(app_cliente_t* encontrado) {
-			pthread_mutex_lock(&encontrado->mutex_conexion);
 			app_enviar_consulta(MODULO_CLIENTE, encontrado->conexion, FINALIZAR_PEDIDO, finalizar_pedido, &result);
-			pthread_mutex_unlock(&encontrado->mutex_conexion);
 		}
 		app_obtener_cliente(cliente, _enviar_mensaje_al_cliente);
 	}
@@ -62,20 +60,28 @@ void app_confirmar_pedido(char* restaurante, uint32_t pedido_id, int8_t* result)
 }
 
 //"Pasamano" de: CONSULTAR_PLATOS, CREAR_PEDIDO, ANIADIR_PLATO, CONFIRMAR_PEDIDO
-void* app_consultar_restaurante(char* ip, char* puerto, int8_t msg_type, t_consulta* consulta, int8_t* result_ptr)
+void* app_consultar_restaurante(char* restaurante, int8_t msg_type, t_consulta* consulta, int8_t* result_ptr)
 {
-	e_status status;
-	t_sfd conexion_restaurante;
+	char *ip, *puerto;
+	if(app_address_restaurante(restaurante, &ip, &puerto))
+	{
+		e_status status;
+		t_sfd conexion_restaurante;
 
-	//Se conecta como cliente
-	status = cs_tcp_client_create(&conexion_restaurante, ip, puerto);
-	if(status != STATUS_SUCCESS) {
-		CS_LOG_ERROR("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
-	} else {
-		CS_LOG_TRACE("Conectado exitosamente con Restaurante %s:%s", ip, puerto);
+		//Se conecta como cliente
+		status = cs_tcp_client_create(&conexion_restaurante, ip, puerto);
+		if(status != STATUS_SUCCESS) {
+			CS_LOG_ERROR("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
+		} else {
+			CS_LOG_TRACE("Conectado exitosamente con Restaurante %s:%s", ip, puerto);
+		}
+
+		return app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
+	} else
+	{
+		*result_ptr = OPCODE_RESPUESTA_FAIL;
+		return NULL;
 	}
-
-	return app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
 }
 
 // Funciones locales
