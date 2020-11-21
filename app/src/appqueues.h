@@ -73,7 +73,7 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
 bool toca_descansar(t_repartidor* repartidor);
 void app_agregar_repartidor_descansando(t_repartidor* repartidor);
-void descansa(t_repartidor repartidor);
+void descansa(t_repartidor* repartidor);
 void app_reviso_repartidores_descansados();
 
 double proxima_rafaga(t_pcb* pcb);

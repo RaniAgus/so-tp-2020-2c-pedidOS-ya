@@ -20,6 +20,7 @@ void app_iniciar_repartidores(void)
 		repartidor->id = i+1;
 		repartidor->posicion.x = atoi(posicion[0]);
 		repartidor->posicion.y = atoi(posicion[1]);
+		repartidor->destino = 0;
 		repartidor->ciclos_sin_descansar = 0;
 		repartidor->frecuencia_de_descanso = atoi(frecuenciasDeDescanso[i]);
 		repartidor->tiempo_de_descanso = atoi(tiemposDeDescanso[i]);
@@ -43,8 +44,8 @@ void app_iniciar_repartidores(void)
 
 		array_sem_ciclo_cpu = (app_ciclo_t**)string_array_new();
 		pthread_create(&hilos_procesadores[i], NULL, (void*)app_rutina_procesador, NULL);
+		pthread_detach(hilos_procesadores[i]);
 	}
-
 }
 
 /*********************************** RUTINA DEL REPARTIDOR ***********************************/
@@ -56,7 +57,7 @@ void app_iniciar_ciclo_cpu(void)
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_ejecucion);
 
-	list_iterate(repartidores_descansando, descansa);
+	list_iterate(repartidores_descansando, (void*)descansa);
 
 	void _hacer_wait_ejecucion(app_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_ejecucion);

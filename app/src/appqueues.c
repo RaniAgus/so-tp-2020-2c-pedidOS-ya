@@ -51,7 +51,7 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
 void app_liberar_repartidor(t_repartidor* repartidor)
 {
 	repartidor->pcb = NULL;
-	repartidor->destino = NULL;
+	repartidor->destino = 0;
 
 	pthread_mutex_lock(&repartidores_libres_mutex);
 	list_add(repartidores_libres, repartidor);
@@ -115,10 +115,10 @@ bool toca_descansar(t_repartidor* repartidor)
 
 void app_agregar_repartidor_descansando(t_repartidor* repartidor)
 {
-	bool encontrar_repartidor(t_repartidor* elemento){return elemento->id == repartidor->id;}
+	bool encontrar_repartidor(t_repartidor* elemento) {return elemento->id == repartidor->id;}
 
 	pthread_mutex_lock(&ready_mutex);
-	list_remove_by_condition(ready_queue, encontrar_repartidor);
+	list_remove_by_condition(ready_queue, (void*) encontrar_repartidor);
 	pthread_mutex_unlock(&ready_mutex);
 
 	pthread_mutex_lock(&repartidores_descansando_mutex);
@@ -151,7 +151,7 @@ void app_reviso_repartidores_descansados()
 		else i ++;
 	}
 
-	list_iterate(repartidores_descansando, ya_descanso);
+	list_iterate(repartidores_descansando, (void*) ya_descanso);
 	pthread_mutex_unlock(&repartidores_descansando_mutex);
 
 }
@@ -163,7 +163,7 @@ void app_agregar_repartidor_esperando(t_repartidor* repartidor)
 	bool encontrar_repartidor(t_repartidor* elemento){return elemento->id == repartidor->id;}
 
 	pthread_mutex_lock(&ready_mutex);
-	list_remove_by_condition(ready_queue, encontrar_repartidor);
+	list_remove_by_condition(ready_queue, (void*) encontrar_repartidor);
 	pthread_mutex_unlock(&ready_mutex);
 
 	pthread_mutex_lock(&repartidores_esperando_mutex);
