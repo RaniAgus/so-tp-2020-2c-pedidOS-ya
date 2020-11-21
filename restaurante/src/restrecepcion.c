@@ -86,10 +86,10 @@ static void rest_recibir_handshake_cliente(t_sfd conn, t_handshake_cli* recibido
 	respuesta = cs_rta_handshake_cli_create();
 
 	// Si el cliente no se encuentra, se agrega
-	if(!rest_cliente_find(recibido->nombre))
+	if(!rest_cliente_is_connected(recibido->nombre))
 	{
 		CS_LOG_TRACE("(%d)No se encontró a %s entre la lista de Clientes, se agregará a la misma.", conn, recibido->nombre);
-		rest_cliente_add( rest_cliente_create(recibido->nombre, conn) );
+		rest_cliente_connect(recibido->nombre, conn);
 
 		//Después de agregar, se envía la RESPUESTA_OK
 		rest_enviar_respuesta(conn, OPCODE_RESPUESTA_OK, HANDSHAKE_CLIENTE, respuesta);
