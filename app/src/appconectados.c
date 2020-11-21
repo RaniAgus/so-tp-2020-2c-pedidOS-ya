@@ -58,16 +58,6 @@ void app_conectar_restaurante(char* nombre, t_pos posicion, char* ip, char* puer
 //Desvincula un restaurante de un cliente, en caso de estar vinculado, y lo borra usando app_restaurante_destroy.
 void app_desconectar_restaurante(char* restaurante)
 {
-	//Quita al restaurante de la tabla de conectados y destruye su info
-	pthread_mutex_lock(&mutex_restaurantes);
-	void _destruir_info(app_restaurante_t* info_restaurante) {
-		free(info_restaurante->ip_escucha);
-		free(info_restaurante->puerto_escucha);
-		free(info_restaurante);
-	}
-	dictionary_remove_and_destroy(tabla_restaurantes, restaurante, (void*)_destruir_info);
-	pthread_mutex_unlock(&mutex_restaurantes);
-
 	//Itera la lista de clientes y desvincula el Restaurante si éste está vinculado
 	void _desvincular_restaurante(char* key, app_cliente_t* cliente) {
 		if(cliente->rest_vinculado != NULL && string_equals_ignore_case(cliente->rest_vinculado, restaurante))
@@ -78,6 +68,16 @@ void app_desconectar_restaurante(char* restaurante)
 		}
 	}
 	app_iterar_clientes(_desvincular_restaurante);
+
+	//Quita al restaurante de la tabla de conectados y destruye su info
+	pthread_mutex_lock(&mutex_restaurantes);
+	void _destruir_info(app_restaurante_t* info_restaurante) {
+		free(info_restaurante->ip_escucha);
+		free(info_restaurante->puerto_escucha);
+		free(info_restaurante);
+	}
+	dictionary_remove_and_destroy(tabla_restaurantes, restaurante, (void*)_destruir_info);
+	pthread_mutex_unlock(&mutex_restaurantes);
 }
 
 //Encuentra un cliente de lista_clientes que tenga el nombre pasado como parametro y le aplica la funcion del segundo parametro.
@@ -156,7 +156,9 @@ char* app_obtener_restaurante_vinculado_a_cliente(char* cliente)
 	{
 		//Obtiene el nombre del restaurante vinculado
 		void _get_restaurante(app_cliente_t* encontrado) {
-			restaurante = string_duplicate(encontrado->rest_vinculado);
+			if(encontrado->rest_vinculado) {
+				restaurante = string_duplicate(encontrado->rest_vinculado);
+			}
 		}
 		app_obtener_cliente(cliente, _get_restaurante);
 	} else

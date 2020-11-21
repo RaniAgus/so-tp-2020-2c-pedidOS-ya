@@ -2,7 +2,6 @@
 #define APPCONECTADOS_H_
 
 #include <cshared/cshared.h>
-#include <commons/collections/dictionary.h>
 
 typedef struct
 {
