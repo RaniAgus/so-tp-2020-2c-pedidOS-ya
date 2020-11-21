@@ -12,10 +12,8 @@ void rest_clientes_init(void)
 void rest_cliente_connect(char* nombre, t_sfd conexion)
 {
 	rest_cliente_t* cliente = malloc(sizeof(rest_cliente_t));
-
 	cliente->conexion = conexion;
-	cliente->mutex_conexion = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(cliente->mutex_conexion, NULL);
+	pthread_mutex_init(&cliente->mutex_conexion, NULL);
 
 	pthread_mutex_lock(&mutex_clientes);
 	dictionary_put(tabla_clientes, nombre, cliente);
@@ -24,11 +22,15 @@ void rest_cliente_connect(char* nombre, t_sfd conexion)
 	CS_LOG_TRACE("Se agregó el Cliente: {ID: %s}", nombre);
 }
 
-void rest_cliente_get(char* cliente, void(*closure)(rest_cliente_t*))
+rest_cliente_t* rest_cliente_get(char* cliente)
 {
+	rest_cliente_t* info_cliente;
+
 	pthread_mutex_lock(&mutex_clientes);
-	closure(dictionary_get(tabla_clientes, cliente));
+	info_cliente = dictionary_get(tabla_clientes, cliente);
 	pthread_mutex_unlock(&mutex_clientes);
+
+	return info_cliente;
 }
 
 bool rest_cliente_is_connected(char* cliente)

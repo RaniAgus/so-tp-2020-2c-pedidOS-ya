@@ -3,8 +3,8 @@
 static uint32_t        id_pedido;
 static pthread_mutex_t mutex_id_pedido;
 
-static int				plato_control_block_id;
-static pthread_mutex_t	mutex_plato_control_block_id;
+static int              plato_control_block_id;
+static pthread_mutex_t  mutex_plato_control_block_id;
 
 static int rest_generar_pcb_id(void);
 
@@ -36,20 +36,14 @@ int rest_planificar_plato(char* comida, uint32_t pedido_id, t_list* pasos_receta
 	pcb_nuevo->comida = strdup(comida);
 	pcb_nuevo->pedido_id = pedido_id;
 	pcb_nuevo->pasos_restantes = cs_receta_duplicate(pasos_receta);
-	if(cliente)
+	if(cliente != NULL)
 	{
+		pcb_nuevo->cliente = strdup(cliente);
 		CS_LOG_TRACE("El plato proviene de un Cliente.");
-		void _get_conn(rest_cliente_t* encontrado) {
-			pcb_nuevo->conexion = encontrado->conexion;
-			pcb_nuevo->mutex_conexion = encontrado->mutex_conexion;
-		}
-		rest_cliente_get(cliente, _get_conn);
-	}
-	else
+	} else
 	{
-		CS_LOG_TRACE("El plato proviene de la App.");
-		pcb_nuevo->mutex_conexion = NULL;
-		pcb_nuevo->conexion = -1;
+		pcb_nuevo->cliente = NULL;
+		CS_LOG_TRACE("El plato proviene de la App");
 	}
 
 	CS_LOG_INFO("Se creó un nuevo plato: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}",
