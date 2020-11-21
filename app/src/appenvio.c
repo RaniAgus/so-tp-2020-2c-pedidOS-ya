@@ -16,10 +16,10 @@ int8_t app_finalizar_pedido(char* restaurante, uint32_t pedido_id, char* cliente
 	app_consultar_comanda(FINALIZAR_PEDIDO, finalizar_pedido, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
-		void _enviar_mensaje_al_cliente(app_cliente_t* encontrado) {
-			app_enviar_consulta(MODULO_CLIENTE, encontrado->conexion, FINALIZAR_PEDIDO, finalizar_pedido, &result);
-		}
-		app_obtener_cliente(cliente, _enviar_mensaje_al_cliente);
+		app_cliente_t* info_cliente = app_obtener_cliente(cliente);
+		pthread_mutex_lock(&info_cliente->mutex_conexion);
+		app_enviar_consulta(MODULO_CLIENTE, info_cliente->conexion, FINALIZAR_PEDIDO, finalizar_pedido, &result);
+		pthread_mutex_unlock(&info_cliente->mutex_conexion);
 	}
 
 	cs_msg_destroy(finalizar_pedido, OPCODE_CONSULTA, FINALIZAR_PEDIDO);

@@ -14,13 +14,15 @@ typedef struct
 {
 	t_pos posicion;
 	t_sfd conexion;
+	pthread_mutex_t mutex_conexion;
 	char* rest_vinculado;
+	pthread_mutex_t mutex_rest_vinculado;
 }app_cliente_t;
 
 void  app_conectados_init(void);
 
 void  app_conectar_cliente(char* nombre, t_pos posicion, t_sfd conexion);
-void  app_obtener_cliente(char* cliente, void(*closure)(app_cliente_t*));
+app_cliente_t* app_obtener_cliente(char* cliente);
 bool  app_cliente_esta_conectado(char* cliente);
 void  app_iterar_clientes(void(*closure)(char*, app_cliente_t*));
 t_pos app_posicion_cliente(char* cliente);

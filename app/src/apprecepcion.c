@@ -222,15 +222,15 @@ static void app_recibir_seleccionar_restaurante(t_sfd conexion, t_consulta* cons
 		//Busca si el restaurante está conectado
 		if(app_restaurante_esta_conectado(consulta->restaurante))
 		{
-			void _vincular_restaurante(app_cliente_t* info_cliente) {
-				if(info_cliente->rest_vinculado != NULL) {
-					CS_LOG_TRACE("Se desvincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
-					free(info_cliente->rest_vinculado);
-				}
-				info_cliente->rest_vinculado = string_duplicate(consulta->restaurante);
-				CS_LOG_TRACE("Se vincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
+			app_cliente_t* info_cliente = app_obtener_cliente(cliente);
+			pthread_mutex_lock(&info_cliente->mutex_rest_vinculado);
+			if(info_cliente->rest_vinculado != NULL) {
+				CS_LOG_TRACE("Se desvincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
+				free(info_cliente->rest_vinculado);
 			}
-			app_obtener_cliente(cliente, _vincular_restaurante);
+			info_cliente->rest_vinculado = string_duplicate(consulta->restaurante);
+			CS_LOG_TRACE("Se vincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
+			pthread_mutex_unlock(&info_cliente->mutex_rest_vinculado);
 
 			//Después de vincular, se retorna una RESPUESTA_OK
 			app_enviar_respuesta(conexion, OPCODE_RESPUESTA_OK, SELECCIONAR_RESTAURANTE, NULL);

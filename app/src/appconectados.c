@@ -81,11 +81,15 @@ void app_desconectar_restaurante(char* restaurante)
 }
 
 //Encuentra un cliente de lista_clientes que tenga el nombre pasado como parametro y le aplica la funcion del segundo parametro.
-void app_obtener_cliente(char* cliente, void(*closure)(app_cliente_t*))
+app_cliente_t* app_obtener_cliente(char* cliente)
 {
+	app_cliente_t* info_cliente;
+
 	pthread_mutex_lock(&mutex_clientes);
-	closure(dictionary_get(tabla_clientes, cliente));
+	info_cliente = dictionary_get(tabla_clientes, cliente);
 	pthread_mutex_unlock(&mutex_clientes);
+
+	return info_cliente;
 }
 
 //Devuelve true(1) si el cliente está conectado, false(0) si el cliente no esta conectado
@@ -97,7 +101,7 @@ bool app_cliente_esta_conectado(char* cliente)
 	encontro_cliente = dictionary_has_key(tabla_clientes, cliente);
 	pthread_mutex_unlock(&mutex_clientes);
 
-	return encontro_cliente;
+	return encontro_cliente ? true : false;
 }
 
 //Recibe un funcion y se la aplica a todos los clientes de lista_clientes. Es un forEach
@@ -111,14 +115,8 @@ void app_iterar_clientes(void(*closure)(char*, app_cliente_t*))
 //Devuelve la posición del cliente a partir de su ID
 t_pos app_posicion_cliente(char* cliente)
 {
-	t_pos posicion;
-
-	void obtener_posicion(app_cliente_t* encontrado) {
-		posicion = encontrado->posicion;
-	}
-	app_obtener_cliente(cliente, obtener_posicion);
-
-	return posicion;
+	app_cliente_t* encontrado = app_obtener_cliente(cliente);
+	return encontrado->posicion;
 }
 
 bool app_restaurante_esta_conectado(char* restaurante)
@@ -155,12 +153,13 @@ char* app_obtener_restaurante_vinculado_a_cliente(char* cliente)
 	if(app_hay_restaurantes_conectados())
 	{
 		//Obtiene el nombre del restaurante vinculado
-		void _get_restaurante(app_cliente_t* encontrado) {
-			if(encontrado->rest_vinculado) {
-				restaurante = string_duplicate(encontrado->rest_vinculado);
-			}
+		app_cliente_t* info_cliente = app_obtener_cliente(cliente);
+		pthread_mutex_lock(&info_cliente->mutex_rest_vinculado);
+		if(info_cliente->rest_vinculado) {
+			restaurante = string_duplicate(info_cliente->rest_vinculado);
 		}
-		app_obtener_cliente(cliente, _get_restaurante);
+		pthread_mutex_unlock(&info_cliente->mutex_rest_vinculado);
+
 	} else
 	{
 		//Si no hay, retorna el Default
