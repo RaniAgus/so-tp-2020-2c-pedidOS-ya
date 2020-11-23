@@ -21,9 +21,9 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
 
     t_pcb* pcb = malloc(sizeof(t_pcb));
     pcb->id_pedido = pedido_id;
-    pcb->cliente = cliente;
+    pcb->cliente = string_duplicate(cliente);
     pcb->posicionCliente = app_posicion_cliente(cliente);
-    pcb->restaurante = restaurante;
+    pcb->restaurante = string_duplicate(restaurante);
     pcb->posicionRestaurante = app_posicion_restaurante(restaurante);
     pcb->estimacion_anterior = cs_config_get_double("ESTIMACION_INICIAL");
     pcb->ultima_rafaga = cs_config_get_double("ESTIMACION_INICIAL");

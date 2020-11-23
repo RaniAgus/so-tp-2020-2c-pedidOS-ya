@@ -70,7 +70,7 @@ void app_iniciar_repartidores(void)
 		sem_init(&semaforos->fin_extraccion, 0, 0);
 
 		string_array_push((void*)&array_sem_ciclo_cpu, (void*)semaforos);
-		pthread_create(&hilos_procesadores[i], NULL, (void*)app_rutina_procesador, NULL);
+		pthread_create(&hilos_procesadores[i], NULL, (void*)app_rutina_procesador, semaforos);
 		pthread_detach(hilos_procesadores[i]);
 	}
 }
@@ -129,27 +129,31 @@ void app_esperar_fin_ciclo_cpu(void)
 void app_rutina_procesador(app_ciclo_t* semaforo)
 {
 	t_repartidor* repartidor = NULL;
+	bool alternador = true;
 
 	while(true)
 	{
 		sem_wait(&semaforo->inicio_ejecucion);
 		if(repartidor != NULL)
 		{
-			app_mover_repartidor(repartidor, 1);
+			alternador = app_mover_repartidor(repartidor, alternador);
 			repartidor->ciclos_sin_descansar++;
 			repartidor->pcb->ultima_rafaga++;
 		}
 		sem_post(&semaforo->fin_ejecucion);
 
 		sem_wait(&semaforo->inicio_derivacion);
-		if(toca_descansar(repartidor))
+		if(repartidor != NULL)
 		{
-			app_agregar_repartidor_descansando(repartidor);
-			repartidor = NULL;
-		} else if(repartidor_llego_a_destino(repartidor))
-		{
-			app_derivar_repartidor(repartidor);
-			repartidor = NULL;
+			if(toca_descansar(repartidor))
+			{
+				app_agregar_repartidor_descansando(repartidor);
+				repartidor = NULL;
+			} else if(repartidor_llego_a_destino(repartidor))
+			{
+				app_derivar_repartidor(repartidor);
+				repartidor = NULL;
+			}
 		}
 		sem_post(&semaforo->fin_derivacion);
 

@@ -46,7 +46,7 @@ static e_algoritmo app_obtener_algoritmo(void)
 		return algoritmos_str[value];
 	}
 
-	return cs_string_to_enum(cs_config_get_string("ALGORITMO_PLANIFICACION"), e_algoritmo_to_str);
+	return cs_string_to_enum(cs_config_get_string("ALGORITMO_DE_PLANIFICACION"), e_algoritmo_to_str);
 }
 
 /********************************** DERIVAR **********************************/
@@ -57,26 +57,46 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 	{
 		if(repartidor->destino == DESTINO_RESTAURANTE)
 		{
-			//Obtiene el pedido
-			int8_t resultado;
-			t_rta_obt_ped* pedido;
-
-			pedido = app_obtener_pedido(repartidor->pcb->restaurante, repartidor->pcb->id_pedido, &resultado);
-			if(resultado == OPCODE_RESPUESTA_OK && cs_platos_estan_listos(pedido->platos_y_estados))
+			if(!string_equals_ignore_case(repartidor->pcb->restaurante, "Default"))
 			{
-				repartidor->destino = DESTINO_CLIENTE;
-				app_derivar_repartidor(repartidor);
+				//Obtiene el pedido
+				int8_t resultado;
+				t_rta_obt_ped* pedido;
+
+				pedido = app_obtener_pedido(repartidor->pcb->restaurante, repartidor->pcb->id_pedido, &resultado);
+				if(resultado == OPCODE_RESPUESTA_OK && cs_platos_estan_listos(pedido->platos_y_estados))
+				{
+					CS_LOG_DEBUG("El pedido está listo, se moverá al cliente: {REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+							, repartidor->id
+							, repartidor->pcb->restaurante
+							, repartidor->pcb->id_pedido
+					);
+
+					repartidor->destino = DESTINO_CLIENTE;
+					app_derivar_repartidor(repartidor);
+				} else
+				{
+					//Se va a la lista de bloqueados por espera
+					app_agregar_repartidor_esperando(repartidor);
+
+					if(resultado == OPCODE_RESPUESTA_FAIL) {
+						CS_LOG_WARNING("No se pudo obtener el pedido, se dejó al repartidor en espera");
+					}
+				}
+
+				cs_msg_destroy(pedido, resultado, OBTENER_PEDIDO);
 			} else
 			{
-				//Se va a la lista de bloqueados por espera
-				app_agregar_repartidor_esperando(repartidor);
+				//Si es el restaurante default, se mueve hacia el cliente
+				CS_LOG_DEBUG("El pedido está listo, se moverá al cliente: {REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+						, repartidor->id
+						, repartidor->pcb->restaurante
+						, repartidor->pcb->id_pedido
+				);
 
-				if(resultado == OPCODE_RESPUESTA_FAIL) {
-					CS_LOG_WARNING("No se pudo obtener el pedido, se dejó al repartidor en espera");
-				}
+				repartidor->destino = DESTINO_CLIENTE;
+				app_derivar_repartidor(repartidor);
 			}
-
-			cs_msg_destroy(pedido, resultado, OBTENER_PEDIDO);
 		} else
 		{
 			int8_t resultado = app_finalizar_pedido(

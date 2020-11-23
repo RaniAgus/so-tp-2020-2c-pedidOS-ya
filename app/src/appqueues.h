@@ -39,7 +39,7 @@ typedef struct {
 	int tiempo_de_descanso;
 } t_repartidor;
 
-typedef enum { FIFO, HRRN, SJFSD } e_algoritmo;
+typedef enum { FIFO = 0, HRRN, SJFSD } e_algoritmo;
 
 void app_iniciar_colas_planificacion(void);
 

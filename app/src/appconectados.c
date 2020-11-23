@@ -6,7 +6,7 @@ static pthread_mutex_t mutex_clientes;
 static t_dictionary* tabla_restaurantes;
 static pthread_mutex_t mutex_restaurantes;
 
-t_pos posicion_default;
+t_pos POSICION_DEFAULT;
 
 //Inicializa los clientes, restaurantes, y lee la posicion default del config.
 void app_conectados_init(void)
@@ -17,8 +17,8 @@ void app_conectados_init(void)
 	pthread_mutex_init(&mutex_clientes, NULL);
 	pthread_mutex_init(&mutex_restaurantes, NULL);
 
-	posicion_default.x = (uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_X");
-	posicion_default.y = (uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_Y");
+	POSICION_DEFAULT.x = (uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_X");
+	POSICION_DEFAULT.y = (uint32_t)cs_config_get_int("POSICION_REST_DEFAULT_Y");
 }
 
 //Agrega un cliente a la lista de clientes.
@@ -195,10 +195,13 @@ t_pos app_posicion_restaurante(char* restaurante)
 {
 	t_pos posicion;
 
-	pthread_mutex_lock(&mutex_restaurantes);
-	app_restaurante_t* encontrado = dictionary_get(tabla_restaurantes, restaurante);
-	posicion = encontrado->posicion;
-	pthread_mutex_unlock(&mutex_restaurantes);
+	if(!string_equals_ignore_case(restaurante, "Default"))
+	{
+		pthread_mutex_lock(&mutex_restaurantes);
+		app_restaurante_t* encontrado = dictionary_get(tabla_restaurantes, restaurante);
+		posicion = encontrado->posicion;
+		pthread_mutex_unlock(&mutex_restaurantes);
+	} else posicion = POSICION_DEFAULT;
 
 	return posicion;
 }
