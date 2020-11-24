@@ -38,7 +38,7 @@ else
         echo "Nuevo alpha: $2"
         echo "Nueva estimacion inicial: $3"
     elif [ "$1" == "sjf" ];then
-        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=SJF/" $BIN$FILE
+        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=SJF-SD/" $BIN$FILE
         sed -i "7s/.*/ALPHA=$2/" $BIN$FILE
         sed -i "8s/.*/ESTIMACION_INICIAL=$3/" $BIN$FILE
         echo "Nuevo algoritmo de planificacion: SJF"
