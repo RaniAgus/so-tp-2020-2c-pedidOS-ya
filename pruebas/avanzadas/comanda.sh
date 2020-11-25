@@ -1,14 +1,14 @@
 source pedidosya.config
 
 echo "---------- [   CONFIGURACIÓN DE COMANDA   ] ----------"
-./config.sh com serv $PUERTO_COMANDA
-./config.sh com mem 128
-./config.sh com swp 4096
-./config.sh com lru
+./comanda/config.sh serv $PUERTO_COMANDA
+./comanda/config.sh mem 128
+./comanda/config.sh swp 4096
+./comanda/config.sh lru
 echo "---------- [   CONFIGURACIÓN DE CLIENTE   ] ----------"
-./config.sh cli $IP_COMANDA $PUERTO_COMANDA
+./cliente/config.sh $IP_COMANDA $PUERTO_COMANDA
 echo "------------------------------------------------------"
 read -p ">> Presiona enter para configurar la siguiente prueba"
 echo "---------- [   CONFIGURACIÓN DE COMANDA   ] ----------"
-./config.sh com serv $PUERTO_COMANDA
-./config.sh com clk
+./comanda/config.sh serv $PUERTO_COMANDA
+./comanda/config.sh clk
