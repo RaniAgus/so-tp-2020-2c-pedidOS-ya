@@ -1,34 +1,49 @@
 source pedidosya.config
 
+echo "---------- [  CONFIGURACIÓN DE SINDICATO  ] ----------"
+./sindicato/config.sh serv $PUERTO_SINDICATO
+echo "---------- [   CONFIGURACIÓN DE COMANDA   ] ----------"
+./comanda/config.sh serv $PUERTO_COMANDA
+./comanda/config.sh mem 4096
+./comanda/config.sh swp 4096
+./comanda/config.sh lru
 echo "---------- [     CONFIGURACIÓN DE APP     ] ----------"
-./config.sh app com $IP_COMANDA $PUERTO_COMANDA
-./config.sh app serv $PUERTO_APP
-./config.sh app cpu 4
-./config.sh app gm 2
-./config.sh app fifo
-./config.sh app rep "[7|3,3|5]" [20,8] [1,2]
-./config.sh app pl [Milanesa]
-./config.sh app pos 5 5
+./app/config.sh com $IP_COMANDA $PUERTO_COMANDA
+./app/config.sh serv $PUERTO_APP
+./app/config.sh cpu 4
+./app/config.sh gm 2
+./app/config.sh fifo
+./app/config.sh rep "[7|3,3|5]" [20,8] [1,2]
+./app/config.sh pl [Milanesa]
+./app/config.sh pos 5 5
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
-./config.sh res sin $IP_SINDICATO $PUERTO_SINDICATO
-./config.sh res serv $PUERTO_RESTAURANTE
-./config.sh res LaParri
-./config.sh res rr 2
-./config.sh res cpu 2 # Valor original: ??
+./restaurante/config.sh sin $IP_SINDICATO $PUERTO_SINDICATO
+./restaurante/config.sh serv $PUERTO_RESTAURANTE
+./restaurante/config.sh cpu 5 # Valor original: ??
+
+read -p ">> Presiona enter para configurar el siguiente restaurante (la parri)"
+echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
+./restaurante/config.sh LaParri
+./restaurante/config.sh rr 2
+
+read -p ">> Presiona enter para configurar el siguiente restaurante (milanga palace)"
+echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
+./restaurante/config.sh MilangaPalace
+./restaurante/config.sh fifo
 
 read -p ">> Presiona enter para configurar el siguiente restaurante (green life)"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
-./config.sh res GreenLife
-./config.sh res fifo
+./restaurante/config.sh GreenLife
+./restaurante/config.sh fifo
 
 echo "---------- [   CONFIGURACIÓN DE CLIENTE   ] ----------"
-./config.sh cli $IP_APP $PUERTO_APP
+./cliente/config.sh $IP_APP $PUERTO_APP
 read -p ">> Presiona enter para configurar al Cliente1"
-./config.sh cli 1
-./config.sh cli pos 2 2
+./cliente/config.sh 1
+./cliente/config.sh pos 2 2
 read -p ">> Presiona enter para configurar al Cliente2"
-./config.sh cli 2
-./config.sh cli pos 6 6
+./cliente/config.sh 2
+./cliente/config.sh pos 6 6
 read -p ">> Presiona enter para configurar al Cliente3"
-./config.sh cli 3
-./config.sh cli pos 8 9
+./cliente/config.sh 3
+./cliente/config.sh pos 8 9
