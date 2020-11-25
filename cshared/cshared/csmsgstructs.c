@@ -246,7 +246,24 @@ t_list* cs_receta_duplicate(t_list* receta)
 	return duplicate;
 }
 
-t_pos cs_string_array_to_pos(char** posicion){
+double calcular_norma(t_pos vector)
+{
+	double a = pow(vector.x, 2);
+	double b = pow(vector.y, 2);
+	double norma = sqrt(a + b);
+	return norma;
+}
+
+t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2)
+{
+	t_pos distancia;
+	distancia.x = posicion1.x - posicion2.x;
+	distancia.y = posicion1.y - posicion2.y;
+	return distancia;
+}
+
+t_pos cs_string_array_to_pos(char** posicion)
+{
 	t_pos pos;
 	pos.x = atoi(posicion[0]);
 	pos.y = atoi(posicion[1]);

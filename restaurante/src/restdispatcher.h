@@ -7,16 +7,11 @@
 typedef struct
 {
 	int id;
-
 	rest_estado_e estado;
 	t_list* pasos_restantes;
-
 	char* comida;
 	uint32_t pedido_id;
-
-	t_sfd conexion;
-	pthread_mutex_t* mutex_conexion;
-
+	char* cliente;
 }rest_pcb_t;
 
 typedef struct
@@ -31,8 +26,8 @@ typedef struct
 
 typedef struct
 {
-	t_list*			comidas;
-	t_queue* 		queue;
+	t_list*         comidas;
+	t_queue*        queue;
 	pthread_mutex_t mutex_queue;
 }rest_cola_ready_t;
 

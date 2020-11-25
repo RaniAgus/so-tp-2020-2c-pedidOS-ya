@@ -11,6 +11,8 @@
 
 //UTN Commons
 #include <commons/bitarray.h>
+#include <commons/collections/list.h>
+#include <commons/collections/queue.h>
 
 //C Shared Utils
 #include "utils/csutils.h"

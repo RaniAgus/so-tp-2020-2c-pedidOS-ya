@@ -16,12 +16,10 @@ int8_t app_finalizar_pedido(char* restaurante, uint32_t pedido_id, char* cliente
 	app_consultar_comanda(FINALIZAR_PEDIDO, finalizar_pedido, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
-		void _enviar_mensaje_al_cliente(app_cliente_t* encontrado) {
-			pthread_mutex_lock(&encontrado->mutex_conexion);
-			app_enviar_consulta(MODULO_CLIENTE, encontrado->conexion, FINALIZAR_PEDIDO, finalizar_pedido, &result);
-			pthread_mutex_unlock(&encontrado->mutex_conexion);
-		}
-		app_obtener_cliente(cliente, _enviar_mensaje_al_cliente);
+		app_cliente_t* info_cliente = app_obtener_cliente(cliente);
+		pthread_mutex_lock(&info_cliente->mutex_conexion);
+		app_enviar_consulta(MODULO_CLIENTE, info_cliente->conexion, FINALIZAR_PEDIDO, finalizar_pedido, &result);
+		pthread_mutex_unlock(&info_cliente->mutex_conexion);
 	}
 
 	cs_msg_destroy(finalizar_pedido, OPCODE_CONSULTA, FINALIZAR_PEDIDO);
@@ -62,20 +60,36 @@ void app_confirmar_pedido(char* restaurante, uint32_t pedido_id, int8_t* result)
 }
 
 //"Pasamano" de: CONSULTAR_PLATOS, CREAR_PEDIDO, ANIADIR_PLATO, CONFIRMAR_PEDIDO
-void* app_consultar_restaurante(char* ip, char* puerto, int8_t msg_type, t_consulta* consulta, int8_t* result_ptr)
+void* app_consultar_restaurante(char* restaurante, int8_t msg_type, t_consulta* consulta, int8_t* result_ptr)
 {
-	e_status status;
-	t_sfd conexion_restaurante;
+	void* respuesta = NULL;
 
-	//Se conecta como cliente
-	status = cs_tcp_client_create(&conexion_restaurante, ip, puerto);
-	if(status != STATUS_SUCCESS) {
-		CS_LOG_ERROR("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
-	} else {
-		CS_LOG_TRACE("Conectado exitosamente con Restaurante %s:%s", ip, puerto);
+	char *ip, *puerto;
+	if(app_address_restaurante(restaurante, &ip, &puerto))
+	{
+		e_status status;
+		t_sfd conexion_restaurante;
+
+		//Se conecta como cliente
+		status = cs_tcp_client_create(&conexion_restaurante, ip, puerto);
+		if(status != STATUS_SUCCESS) {
+			CS_LOG_ERROR("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
+		} else {
+			CS_LOG_TRACE("Conectado exitosamente con Restaurante %s:%s", ip, puerto);
+		}
+
+		respuesta =  app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
+
+		close(conexion_restaurante);
+		free(ip);
+		free(puerto);
+	} else
+	{
+		*result_ptr = OPCODE_RESPUESTA_FAIL;
+		CS_LOG_ERROR("No se encontró como conectado: {RESTAURANTE: %s}", restaurante);
 	}
 
-	return app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
+	return respuesta;
 }
 
 // Funciones locales
@@ -84,6 +98,7 @@ static void* app_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t
 {
 	e_status status;
 	t_sfd conexion_comanda;
+	void* respuesta;
 
 	//Se conecta como cliente
 	status = cs_tcp_client_create(&conexion_comanda,
@@ -97,7 +112,10 @@ static void* app_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t
 	}
 	CS_LOG_TRACE("Conectado exitosamente con Comanda.");
 
-	return app_enviar_consulta(MODULO_COMANDA, conexion_comanda, msg_type, consulta, result_ptr);
+	respuesta = app_enviar_consulta(MODULO_COMANDA, conexion_comanda, msg_type, consulta, result_ptr);
+	close(conexion_comanda);
+
+	return respuesta;
 }
 
 static void* app_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type, t_consulta* consulta, int8_t* result_ptr)

@@ -38,7 +38,7 @@ else
         echo "Nuevo alpha: $2"
         echo "Nueva estimacion inicial: $3"
     elif [ "$1" == "sjf" ];then
-        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=SJF/" $BIN$FILE
+        sed -i "6s/.*/ALGORITMO_DE_PLANIFICACION=SJF-SD/" $BIN$FILE
         sed -i "7s/.*/ALPHA=$2/" $BIN$FILE
         sed -i "8s/.*/ESTIMACION_INICIAL=$3/" $BIN$FILE
         echo "Nuevo algoritmo de planificacion: SJF"
@@ -51,5 +51,12 @@ else
         echo "Nuevos repartidores: $2"
         echo "Nuevas frecuencias de descanso: $3"
         echo "Nuevos tiempos de descanso: $4"
+    elif [ "$1" == "pl" ];then
+        sed -i "13s/.*/PLATOS_DEFAULT=$2/" $BIN$FILE
+        echo "Nuevos platos default: $2"
+    elif [ "$1" == "pos" ];then
+        sed -i "14s/.*/POSICION_REST_DEFAULT_X=$2/" $BIN$FILE
+        sed -i "15s/.*/POSICION_REST_DEFAULT_Y=$3/" $BIN$FILE
+        echo "Nueva posicion default: [$2,$3]"
     fi
 fi

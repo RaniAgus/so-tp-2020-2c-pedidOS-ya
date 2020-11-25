@@ -2,14 +2,14 @@
 
 static int QUANTUM = 0;
 
-static t_list* 	queues_ready;
+static t_list*         queues_ready;
 
 static rest_ciclo_t**  array_sem_ciclo_cpu;
 
-static t_queue* 	   queue_entrada_salida;
+static t_queue*        queue_entrada_salida;
 static pthread_mutex_t mutex_entrada_salida;
 
-static t_list*	       lista_blocked;
+static t_list*         lista_blocked;
 static pthread_mutex_t mutex_blocked;
 
 static rest_cola_ready_t* rest_cola_ready_create(char* comida);
@@ -177,7 +177,7 @@ int rest_derivar_pcb(rest_pcb_t* pcb)
 				, pcb->comida
 				, pcb->pedido_id
 		);
-		rest_plato_listo(pcb->conexion, pcb->mutex_conexion, pcb->comida, pcb->pedido_id);
+		rest_plato_listo(pcb->cliente, pcb->comida, pcb->pedido_id);
 		rest_pcb_destroy(pcb);
 
 		return 1;

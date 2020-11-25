@@ -17,13 +17,19 @@ e_status cs_logger_init(const char* file, const char* program_name);
 * @NAME cs_logger_delete (versión de log_destroy de commons/log.h)
 * @DESC Destruye la instancia de logger interna.
 */
-void   		  cs_logger_delete(void);
+void   	cs_logger_delete(void);
 
 /**
 * @NAME cs_logger_set_level
 * @DESC Cambia el nivel de log interno (antes de iniciar el log).
 */
-void		 cs_logger_set_level(t_log_level level);
+void	cs_logger_set_level(t_log_level level);
+
+/**
+* @NAME cs_logger_set_level
+* @DESC Activa o desactiva la consola para el log interno (antes de iniciar el log).
+*/
+void cs_logger_set_console(int value);
 
 /**
 * @NAME cs_logger_get_mutex

@@ -1,6 +1,6 @@
 #include "restenvio.h"
 
-static t_sfd 			conexion_app;
+static t_sfd            conexion_app;
 static pthread_mutex_t  mutex_conexion_app;
 
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
@@ -93,23 +93,30 @@ t_rta_obt_rec* rest_obtener_receta(char* comida, int8_t* result)
 	return receta;
 }
 
-int8_t rest_plato_listo(t_sfd conexion, pthread_mutex_t* mutex_conexion_cliente, char* comida, uint32_t pedido_id)
+int8_t rest_plato_listo(char* cliente, char* comida, uint32_t pedido_id)
 {
 	int8_t result;
 	t_consulta* plato_listo = cs_msg_plato_listo_create(comida, mi_nombre, pedido_id);
 	rest_consultar_sindicato(PLATO_LISTO, plato_listo, &result);
 	if(result == OPCODE_RESPUESTA_OK)
 	{
-		if(conexion == -1)
+		if(cliente == NULL)
 		{
 			pthread_mutex_lock(&mutex_conexion_app);
 			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, plato_listo, &result);
 			pthread_mutex_unlock(&mutex_conexion_app);
 		} else
 		{
-			pthread_mutex_lock(mutex_conexion_cliente);
-			rest_enviar_consulta(MODULO_CLIENTE, conexion, PLATO_LISTO, plato_listo, &result);
-			pthread_mutex_unlock(mutex_conexion_cliente);
+			rest_cliente_t* info = rest_cliente_get(cliente);
+			if(info != NULL)
+			{
+				pthread_mutex_lock(&info->mutex_conexion);
+				rest_enviar_consulta(MODULO_CLIENTE, info->conexion, PLATO_LISTO, plato_listo, &result);
+				pthread_mutex_unlock(&info->mutex_conexion);
+			} else
+			{
+				CS_LOG_WARNING("No se pudo encontrar al cliente para enviar PLATO_LISTO: {ID_CLIENTE: %s}", cliente);
+			}
 		}
 	}
 	cs_msg_destroy(plato_listo, OPCODE_CONSULTA, PLATO_LISTO);

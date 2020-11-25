@@ -1,9 +1,9 @@
 #include "apprecepcion.h"
 
 static pthread_t hilo_escucha;
-static t_sfd	 conexion_escucha;
+static t_sfd     conexion_escucha;
 
-static uint32_t  	   id_default;
+static uint32_t        id_default;
 static pthread_mutex_t mutex_id_default;
 
 static void app_rutina_recepcion_de_mensajes(void);
@@ -36,7 +36,7 @@ void app_recepcion_init(void)
 		);
 		close(conexion_comanda);
 	} else {
-		PRINT_ERROR(status);
+		CS_LOG_ERROR("%s -- No se pudo conectar con Comanda. Finalizando...", cs_enum_status_to_str(status));
 		exit(-1);
 	}
 
@@ -83,16 +83,16 @@ static void app_recibir_mensaje(t_sfd conexion, t_header header, void* mensaje, 
 	{
 		switch(header.msgtype)
 		{
-		case HANDSHAKE_CLIENTE:		  app_recibir_handshake_cliente      (conexion, mensaje); break;
+		case HANDSHAKE_CLIENTE:       app_recibir_handshake_cliente      (conexion, mensaje); break;
 		case HANDSHAKE_RESTAURANTE:   app_recibir_handshake_restaurante  (conexion, mensaje); break;
 		case CONSULTAR_RESTAURANTES:  app_recibir_consultar_restaurantes (conexion, mensaje); break;
 		case SELECCIONAR_RESTAURANTE: app_recibir_seleccionar_restaurante(conexion, mensaje, cliente); break;
-		case CONSULTAR_PLATOS:		  app_recibir_consultar_platos       (conexion, mensaje, cliente); break;
-		case CREAR_PEDIDO:			  app_recibir_crear_pedido           (conexion, mensaje, cliente); break;
-		case ANIADIR_PLATO:			  app_recibir_aniadir_plato          (conexion, mensaje, cliente); break;
-		case CONFIRMAR_PEDIDO:		  app_recibir_confirmar_pedido       (conexion, mensaje, cliente); break;
-		case CONSULTAR_PEDIDO:		  app_recibir_consultar_pedido       (conexion, mensaje, cliente); break;
-		case PLATO_LISTO:			  app_recibir_plato_listo            (conexion, mensaje); break;
+		case CONSULTAR_PLATOS:        app_recibir_consultar_platos       (conexion, mensaje, cliente); break;
+		case CREAR_PEDIDO:            app_recibir_crear_pedido           (conexion, mensaje, cliente); break;
+		case ANIADIR_PLATO:           app_recibir_aniadir_plato          (conexion, mensaje, cliente); break;
+		case CONFIRMAR_PEDIDO:        app_recibir_confirmar_pedido       (conexion, mensaje, cliente); break;
+		case CONSULTAR_PEDIDO:        app_recibir_consultar_pedido       (conexion, mensaje, cliente); break;
+		case PLATO_LISTO:             app_recibir_plato_listo            (conexion, mensaje); break;
 		default:
 			/* La App NO recibe:
 			 * OBTENER RESTAURANTE
@@ -128,7 +128,7 @@ static void app_recibir_handshake_cliente(t_sfd conexion_cliente, t_handshake_cl
 		CS_LOG_TRACE("(%d)No se encontró a %s entre la lista de Clientes, se agregará a la misma.",
 				conexion_cliente, handshake_cliente->nombre
 		);
-		app_agregar_cliente( app_cliente_create(handshake_cliente->nombre, handshake_cliente->posicion, conexion_cliente) );
+		app_conectar_cliente(handshake_cliente->nombre, handshake_cliente->posicion, conexion_cliente);
 
 		//Después de agregar, se envía la RESPUESTA_OK
 		app_enviar_respuesta(conexion_cliente, OPCODE_RESPUESTA_OK, HANDSHAKE_CLIENTE, respuesta);
@@ -160,9 +160,9 @@ static void app_recibir_handshake_restaurante(t_sfd conexion_restaurante, t_hand
 	e_status status;
 
 	//Se agrega a la lista de restaurantes y se envía RESPUESTA_OK
-	int index = app_agregar_restaurante(app_restaurante_create(handsh->nombre, handsh->posicion, handsh->ip, handsh->puerto));
-	CS_LOG_TRACE("Se agregó el Restaurante nro.%d: {NOMBRE: %s} {POS: (%d,%d)} {IP_PUERTO: %s:%s}",
-			index, handsh->nombre, handsh->posicion.x, handsh->posicion.y, handsh->ip, handsh->puerto
+	app_conectar_restaurante(handsh->nombre, handsh->posicion, handsh->ip, handsh->puerto);
+	CS_LOG_TRACE("Se agregó el Restaurante: {NOMBRE: %s} {POS: (%d,%d)} {IP_PUERTO: %s:%s}",
+			handsh->nombre, handsh->posicion.x, handsh->posicion.y, handsh->ip, handsh->puerto
 	);
 
 	status = app_enviar_respuesta(conexion_restaurante, OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE, NULL);
@@ -183,7 +183,7 @@ static void app_recibir_handshake_restaurante(t_sfd conexion_restaurante, t_hand
 	CS_LOG_TRACE("(%d)Se cerró la conexión con el Restaurante.", conexion_restaurante);
 
 	//Se desvinculan todos los clientes del Restaurante
-	app_quitar_y_desvincular_restaurante(handsh->nombre);
+	app_desconectar_restaurante(handsh->nombre);
 	cs_msg_destroy(handsh, OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE);
 
 	//Se cierra el socket después de atender las consultas del Restaurante
@@ -196,8 +196,8 @@ static void app_recibir_consultar_restaurantes(t_sfd conexion, t_consulta* consu
 	rta = cs_rta_consultar_rest_create(string_array_new());
 
 	// Itera la lista de Restaurantes, agregando los nombres al array
-	void _get_restaurantes(app_restaurante_t* element) {
-		string_array_push(&rta->restaurantes, strdup(element->nombre));
+	void _get_restaurantes(char* nombre, app_restaurante_t* _) {
+		string_array_push(&rta->restaurantes, strdup(nombre));
 	}
 	app_iterar_restaurantes(_get_restaurantes);
 
@@ -219,20 +219,18 @@ static void app_recibir_seleccionar_restaurante(t_sfd conexion, t_consulta* cons
 	//Se tiene que haber identificado el Cliente enviando un HANDSHAKE_CLIENTE primero!
 	if(cliente != NULL)
 	{
-		//Busca el restaurante en la lista
-		app_restaurante_t* restaurante = app_obtener_copia_restaurante_conectado(consulta->restaurante);
-		//Si se encontró, se vincula al cliente
-		if(restaurante != NULL)
+		//Busca si el restaurante está conectado
+		if(app_restaurante_esta_conectado(consulta->restaurante))
 		{
-			void _vincular_restaurante(app_cliente_t* cliente) {
-				if(cliente->rest_vinculado != NULL) {
-					CS_LOG_TRACE("Se desvincularon: %s <-> %s", cliente->nombre, cliente->rest_vinculado->nombre);
-					app_restaurante_destroy(cliente->rest_vinculado);
-				}
-				cliente->rest_vinculado = restaurante;
-				CS_LOG_TRACE("Se vincularon: %s <-> %s", cliente->nombre, cliente->rest_vinculado->nombre);
+			app_cliente_t* info_cliente = app_obtener_cliente(cliente);
+			pthread_mutex_lock(&info_cliente->mutex_rest_vinculado);
+			if(info_cliente->rest_vinculado != NULL) {
+				CS_LOG_TRACE("Se desvincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
+				free(info_cliente->rest_vinculado);
 			}
-			app_obtener_cliente(cliente, _vincular_restaurante);
+			info_cliente->rest_vinculado = string_duplicate(consulta->restaurante);
+			CS_LOG_TRACE("Se vincularon: %s <-> %s", cliente, info_cliente->rest_vinculado);
+			pthread_mutex_unlock(&info_cliente->mutex_rest_vinculado);
 
 			//Después de vincular, se retorna una RESPUESTA_OK
 			app_enviar_respuesta(conexion, OPCODE_RESPUESTA_OK, SELECCIONAR_RESTAURANTE, NULL);
@@ -264,21 +262,16 @@ static void app_recibir_consultar_platos(t_sfd conexion, t_consulta* consulta, c
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		app_restaurante_t* restaurante_vinculado = app_obtener_copia_restaurante_vinculado_a_cliente(cliente);
+		char* restaurante_vinculado = app_obtener_restaurante_vinculado_a_cliente(cliente);
 
 		if(restaurante_vinculado != NULL)
 		{
 			// Si se encontró el restaurante y NO es Default, se envía el mensaje al Restaurante
 			// y se obtiene la respuesta
-			if(strcmp(restaurante_vinculado->nombre, "Default"))
+			if(!string_equals_ignore_case(restaurante_vinculado, "Default"))
 			{
-				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado->nombre);
-
-				respuesta = app_consultar_restaurante(
-						restaurante_vinculado->ip_escucha,
-						restaurante_vinculado->puerto_escucha,
-						CONSULTAR_PLATOS, consulta, &result
-				);
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado);
+				respuesta = app_consultar_restaurante(restaurante_vinculado, CONSULTAR_PLATOS, consulta, &result);
 			}
 			else //Si es Default, se obtienen los platos desde config
 			{
@@ -299,8 +292,7 @@ static void app_recibir_consultar_platos(t_sfd conexion, t_consulta* consulta, c
 		}
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PLATOS, se cerrará la conexión.", conexion);
-		app_restaurante_destroy(restaurante_vinculado);
-
+		free(restaurante_vinculado);
 	} else
 	{
 		CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PLATOS!!");
@@ -320,20 +312,16 @@ static void app_recibir_crear_pedido(t_sfd conexion, t_consulta* consulta, char*
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		app_restaurante_t* restaurante_vinculado = app_obtener_copia_restaurante_vinculado_a_cliente(cliente);
+		char* restaurante_vinculado = app_obtener_restaurante_vinculado_a_cliente(cliente);
 
 		if(restaurante_vinculado)
 		{
-			if(strcmp(restaurante_vinculado->nombre, "Default"))
+			if(!string_equals_ignore_case(restaurante_vinculado, "Default"))
 			{
-				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado->nombre);
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado);
 
 				//Si se encontró un Restaurante no-Default, se envía el mensaje al Restaurante, recibiendo el ID
-				respuesta = app_consultar_restaurante(
-						restaurante_vinculado->ip_escucha,
-						restaurante_vinculado->puerto_escucha,
-						CREAR_PEDIDO, consulta, &result
-				);
+				respuesta = app_consultar_restaurante(restaurante_vinculado, CREAR_PEDIDO, consulta, &result);
 			}
 			else //Si se encontró el Default, se genera un ID único
 			{
@@ -344,7 +332,7 @@ static void app_recibir_crear_pedido(t_sfd conexion, t_consulta* consulta, char*
 				pthread_mutex_unlock(&mutex_id_default);
 			}
 			//Envía GUARDAR_PEDIDO a la Comanda
-			app_guardar_pedido(restaurante_vinculado->nombre, respuesta->pedido_id, &result);
+			app_guardar_pedido(restaurante_vinculado, respuesta->pedido_id, &result);
 
 			//Retorna la respuesta al cliente
 			app_enviar_respuesta(conexion, result, CREAR_PEDIDO, respuesta);
@@ -357,7 +345,7 @@ static void app_recibir_crear_pedido(t_sfd conexion, t_consulta* consulta, char*
 		}
 
 		CS_LOG_TRACE("(%d)Se atendió CREAR PEDIDO, se cerrará la conexión.", conexion);
-		app_restaurante_destroy(restaurante_vinculado);
+		free(restaurante_vinculado);
 
 	} else
 	{
@@ -377,21 +365,17 @@ static void app_recibir_aniadir_plato(t_sfd conexion, t_consulta* consulta, char
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		app_restaurante_t* restaurante_vinculado = app_obtener_copia_restaurante_vinculado_a_cliente(cliente);
+		char* restaurante_vinculado = app_obtener_restaurante_vinculado_a_cliente(cliente);
 
 		if(restaurante_vinculado != NULL)
 		{
 			//Si se encontró el Restaurante y no es Default:
-			if(strcmp(restaurante_vinculado->nombre, "Default"))
+			if(!string_equals_ignore_case(restaurante_vinculado, "Default"))
 			{
-				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado->nombre);
-
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado);
+				
 				//Se envía el mensaje al Restaurante, recibiendo solo OK/FAIL
-				app_consultar_restaurante(
-						restaurante_vinculado->ip_escucha,
-						restaurante_vinculado->puerto_escucha,
-						ANIADIR_PLATO, consulta, &result
-				);
+				app_consultar_restaurante(restaurante_vinculado, ANIADIR_PLATO, consulta, &result);
 			}
 			else //Si se encontró y es Default, se omite este paso
 			{
@@ -402,7 +386,7 @@ static void app_recibir_aniadir_plato(t_sfd conexion, t_consulta* consulta, char
 			//Si el Restaurante no retornó ningún error, informa a Comanda, guardando el resultado
 			if(result == OPCODE_RESPUESTA_OK)
 			{
-				app_guardar_plato(consulta->comida, restaurante_vinculado->nombre, consulta->pedido_id, &result);
+				app_guardar_plato(consulta->comida, restaurante_vinculado, consulta->pedido_id, &result);
 			}
 
 			//Retorna la respuesta al cliente (informando si hubo error o no)
@@ -415,7 +399,7 @@ static void app_recibir_aniadir_plato(t_sfd conexion, t_consulta* consulta, char
 		}
 
 		CS_LOG_TRACE("(%d)Se atendió AÑADIR PLATO, se cerrará la conexión.", conexion);
-		app_restaurante_destroy(restaurante_vinculado);
+		free(restaurante_vinculado);
 	} else
 	{
 		CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
@@ -434,28 +418,24 @@ static void app_recibir_confirmar_pedido(t_sfd conexion, t_consulta* consulta, c
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		app_restaurante_t* restaurante_vinculado = app_obtener_copia_restaurante_vinculado_a_cliente(cliente);
+		char* restaurante_vinculado = app_obtener_restaurante_vinculado_a_cliente(cliente);
 
 		if(restaurante_vinculado != NULL) //Si se encontró el Restaurante:
 		{
 			//Obtiene el pedido desde Comanda, para saber si existe y no se borró de la memoria
-			t_rta_obt_ped* pedido = app_obtener_pedido(restaurante_vinculado->nombre, consulta->pedido_id, &result);
+			t_rta_obt_ped* pedido = app_obtener_pedido(restaurante_vinculado, consulta->pedido_id, &result);
 			cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 
 			//En caso de existir, evalúa según el Restaurante:
 			if(result == OPCODE_RESPUESTA_OK)
 			{
 				//Si no es Default, reenvía la consulta al Restaurante
-				if(strcmp(restaurante_vinculado->nombre, "Default"))
+				if(!string_equals_ignore_case(restaurante_vinculado, "Default"))
 				{
-					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado->nombre);
+					CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado);
 
 					//Se envía el mensaje al Restaurante, recibiendo solo OK/FAIL
-					app_consultar_restaurante(
-							restaurante_vinculado->ip_escucha,
-							restaurante_vinculado->puerto_escucha,
-							CONFIRMAR_PEDIDO, consulta, &result
-					);
+					app_consultar_restaurante(restaurante_vinculado, CONFIRMAR_PEDIDO, consulta, &result);
 				}
 				else //Si es Default, omite este paso
 				{
@@ -470,10 +450,10 @@ static void app_recibir_confirmar_pedido(t_sfd conexion, t_consulta* consulta, c
 				{
 					/* Se genera el PCB (Pedido Control Block) del Pedido en cuestión y se deja
 					 * en el ciclo de planificación. */
-					app_crear_pcb(cliente, restaurante_vinculado->nombre, consulta->pedido_id);
+					app_crear_pcb(cliente, restaurante_vinculado, consulta->pedido_id);
 
 					//Se informa a Comanda
-					app_confirmar_pedido(restaurante_vinculado->nombre, consulta->pedido_id, &result);
+					app_confirmar_pedido(restaurante_vinculado, consulta->pedido_id, &result);
 				}
 			}
 
@@ -487,7 +467,7 @@ static void app_recibir_confirmar_pedido(t_sfd conexion, t_consulta* consulta, c
 		}
 
 		CS_LOG_TRACE("(%d)Se atendió CONFIRMAR PEDIDO, se cerrará la conexión.", conexion);
-		app_restaurante_destroy(restaurante_vinculado);
+		free(restaurante_vinculado);
 	} else
 	{
 		CS_LOG_ERROR("Falta identificar al cliente antes de CONFIRMAR PEDIDO!!");
@@ -507,23 +487,24 @@ static void app_recibir_consultar_pedido(t_sfd conexion, t_consulta* consulta, c
 		CS_LOG_TRACE("Buscando al Restaurante vinculado con %s...", cliente);
 
 		//Busca el restaurante a partir del cliente
-		app_restaurante_t* restaurante_vinculado = app_obtener_copia_restaurante_vinculado_a_cliente(cliente);
+		char* restaurante_vinculado = app_obtener_restaurante_vinculado_a_cliente(cliente);
 
 		if(restaurante_vinculado != NULL) //Si se encontró el Restaurante
 		{
-			if(strcmp(restaurante_vinculado->nombre, "Default")) {
-				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado->nombre);
+			if(!string_equals_ignore_case(restaurante_vinculado, "Default")) {
+				CS_LOG_TRACE("Se vinculó: %s <-> %s", cliente, restaurante_vinculado);
 			} else {
 				CS_LOG_TRACE("No hay restaurantes conectados, se vinculó con Default");
 			}
+
 			//Obtiene el pedido desde Comanda
-			t_rta_obt_ped* pedido = app_obtener_pedido(restaurante_vinculado->nombre, consulta->pedido_id, &result);
+			t_rta_obt_ped* pedido = app_obtener_pedido(restaurante_vinculado, consulta->pedido_id, &result);
 
 			if(result == OPCODE_RESPUESTA_OK)
 			{
 				//Crea la respuesta Consultar Pedido
 				respuesta = malloc(sizeof(t_rta_cons_ped));
-				respuesta->restaurante = restaurante_vinculado->nombre;
+				respuesta->restaurante = restaurante_vinculado;
 				respuesta->estado_pedido = pedido->estado_pedido;
 				respuesta->platos_y_estados = pedido->platos_y_estados;
 			}
@@ -541,7 +522,7 @@ static void app_recibir_consultar_pedido(t_sfd conexion, t_consulta* consulta, c
 		}
 
 		CS_LOG_TRACE("(%d)Se atendió CONSULTAR PEDIDO, se cerrará la conexión.", conexion);
-		app_restaurante_destroy(restaurante_vinculado);
+		free(restaurante_vinculado);
 	} else
 	{
 		CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PEDIDO!!");
@@ -562,8 +543,8 @@ static void app_recibir_plato_listo(t_sfd conexion, t_consulta* consulta)
 		//Obtiene el pedido desde Comanda
 		t_rta_obt_ped* pedido = app_obtener_pedido(consulta->restaurante, consulta->pedido_id, &result);
 
-		//Se fija si está TERMINADO
-		if(pedido->estado_pedido == PEDIDO_TERMINADO) {
+		//Se fija si todos los platos están listos
+		if(cs_platos_estan_listos(pedido->platos_y_estados)) {
 			app_avisar_pedido_terminado(consulta->restaurante, consulta->pedido_id);
 		} else {
 			CS_LOG_TRACE("El pedido NO está terminado, no se dará ningún aviso al repartidor.");
