@@ -5,20 +5,11 @@
 #include "appenvio.h"
 
 typedef enum {
-	NUEVO,
-	LISTO,
-	BLOQUEADO,
-	EJECUTANDO,
-	FIN
-} e_estados;
-
-typedef enum {
 	DESTINO_CLIENTE,
 	DESTINO_RESTAURANTE
 } e_destinos;
 
 typedef struct {
-	e_estados estado;
 	uint32_t id_pedido;
 	char* cliente;
 	t_pos posicionCliente;

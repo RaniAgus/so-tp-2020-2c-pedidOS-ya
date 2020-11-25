@@ -36,7 +36,7 @@ void app_recepcion_init(void)
 		);
 		close(conexion_comanda);
 	} else {
-		PRINT_ERROR(status);
+		CS_LOG_ERROR("%s -- No se pudo conectar con Comanda. Finalizando...", cs_enum_status_to_str(status));
 		exit(-1);
 	}
 

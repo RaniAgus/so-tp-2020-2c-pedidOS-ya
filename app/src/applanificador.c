@@ -14,11 +14,6 @@ void app_iniciar_planificador_largo_plazo(void)
 //Al confirmar pedido, se crea el PCB correspondiente y se agrega a la lista de pcbs nuevos
 void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
 {
-    CS_LOG_TRACE(
-        "Se va a crear el PCB: {CLIENTE: %s} {RESTAURANTE: %s} {ID_PEDIDO: %d}", 
-        cliente, restaurante, pedido_id
-    );
-
     t_pcb* pcb = malloc(sizeof(t_pcb));
     pcb->id_pedido = pedido_id;
     pcb->cliente = string_duplicate(cliente);
@@ -28,6 +23,11 @@ void app_crear_pcb(char* cliente, char* restaurante, uint32_t pedido_id)
     pcb->estimacion_anterior = cs_config_get_double("ESTIMACION_INICIAL");
     pcb->ultima_rafaga = cs_config_get_double("ESTIMACION_INICIAL");
     pcb->espera = 0;
+
+    CS_LOG_TRACE(
+        "Se creó un PCB: {ESTADO: NUEVO} {CLIENTE: %s} {RESTAURANTE: %s} {ID_PEDIDO: %d}",
+        cliente, restaurante, pedido_id
+    );
 
     //Arranca sin repartidor asignado, otro hilo lo extrae de la cola y le asigna uno
     queue_sync_push(pcbs_nuevos, &pcbs_nuevos_mutex, &pcbs_nuevos_sem, pcb);
@@ -57,12 +57,14 @@ void app_asignar_repartidor(t_pcb* pcb)
 		repartidor->pcb = pcb;
 		repartidor->destino = DESTINO_RESTAURANTE;
 
-		CS_LOG_DEBUG("Se asignó el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d]} {POS_DESTINO: [%d,%d]}"
+		CS_LOG_INFO("Se asignó el pedido al repartidor: {REPARTIDOR: %d, POS: [%d,%d]} {RESTAURANTE: %d, POS: [%d,%d]}  {PEDIDO_ID: %d}"
 				, repartidor->id
 				, repartidor->posicion.x
 				, repartidor->posicion.y
+				, repartidor->pcb->restaurante
 				, repartidor->pcb->posicionRestaurante.x
 				, repartidor->pcb->posicionRestaurante.y
+				, repartidor->pcb->id_pedido
 		);
 
 		//Deriva el repartidor a la queue correspondiente (ready/bloqueado/etc)

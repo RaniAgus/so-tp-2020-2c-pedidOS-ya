@@ -88,6 +88,10 @@ void app_iniciar_ciclo_cpu(void)
 
 	void descansar(t_repartidor* repartidor) {
 		repartidor->ciclos_sin_descansar --;
+		CS_LOG_DEBUG("El repartidor está descansando: {REPARTIDOR: %d; DESCANSO: %d/%d}"
+				, repartidor->tiempo_de_descanso - repartidor->ciclos_sin_descansar
+				, repartidor->tiempo_de_descanso
+		);
 	}
 	list_iterate(repartidores_descansando, (void*)descansar);
 
@@ -136,9 +140,9 @@ void app_rutina_procesador(app_ciclo_t* semaforo)
 		sem_wait(&semaforo->inicio_ejecucion);
 		if(repartidor != NULL)
 		{
-			alternador = app_mover_repartidor(repartidor, alternador);
 			repartidor->ciclos_sin_descansar++;
 			repartidor->pcb->ultima_rafaga++;
+			alternador = app_mover_repartidor(repartidor, alternador);
 		}
 		sem_post(&semaforo->fin_ejecucion);
 
@@ -161,6 +165,13 @@ void app_rutina_procesador(app_ciclo_t* semaforo)
 		if(repartidor == NULL)
 		{
 			repartidor = app_ready_pop();
+			if(repartidor) CS_LOG_INFO("El repartidor pasó a EXEC: {REPARTIDOR: %d, POS: [%d,%d]} {PEDIDO: %d; RESTAURANTE: %s}"
+					, repartidor->id
+					, repartidor->posicion.x
+					, repartidor->posicion.y
+					, repartidor->pcb->id_pedido
+					, repartidor->pcb->restaurante
+			);
 		}
 		sem_post(&semaforo->fin_extraccion);
 	}
@@ -211,7 +222,7 @@ void mover_y_repartidor(t_repartidor* repartidor, t_pos destino)
 
 void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino)
 {
-	CS_LOG_DEBUG("Se movió el repartidor: {ID: %d} {POS_REPARTIDOR: [%d,%d] -> [%d,%d]} {DESTINO: [%d,%d]}"
+	CS_LOG_INFO("El repartidor se movió: {REPARTIDOR: %d; POS: [%d,%d] -> [%d,%d]; DESTINO: [%d,%d]; CICLOS: %d/%d}"
 			, repartidor->id
 			, anterior.x
 			, anterior.y
@@ -219,6 +230,8 @@ void loggear_movimiento(t_repartidor* repartidor, t_pos anterior, t_pos destino)
 			, repartidor->posicion.y
 			, destino.x
 			, destino.y
+			, repartidor->ciclos_sin_descansar
+			, repartidor->frecuencia_de_descanso
 	);
 }
 
@@ -235,10 +248,12 @@ void app_agregar_repartidor_descansando(t_repartidor* repartidor)
 	list_add(repartidores_descansando, repartidor);
 	pthread_mutex_unlock(&repartidores_descansando_mutex);
 
-	CS_LOG_DEBUG("El repartidor está bloqueado por descanso: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+	CS_LOG_INFO("El repartidor pasó a BLOQUEADO para descansar: {REPARTIDOR: %d; POS: [%d,%d]; CICLOS: %d/%d}"
 			, repartidor->id
 			, repartidor->posicion.x
 			, repartidor->posicion.y
+			, repartidor->ciclos_sin_descansar
+			, repartidor->frecuencia_de_descanso
 	);
 }
 
@@ -250,6 +265,12 @@ void app_reviso_repartidores_descansados(void)
 	void ya_descanso(t_repartidor* repartidor) {
 		if(repartidor->ciclos_sin_descansar == 0)
 		{
+			CS_LOG_DEBUG("El repartidor terminó de descansar: {REPARTIDOR: %d; DESCANSO: %d/%d} {PEDIDO: %d; RESTAURANTE: %s}"
+				, repartidor->tiempo_de_descanso - repartidor->ciclos_sin_descansar
+				, repartidor->tiempo_de_descanso
+				, repartidor->pcb->id_pedido
+				, repartidor->pcb->restaurante
+			);
 			list_remove(repartidores_descansando, i);
 			app_derivar_repartidor(repartidor);
 		}

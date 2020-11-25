@@ -15,8 +15,8 @@ static pthread_mutex_t repartidores_esperando_mutex;
 
 static e_algoritmo app_obtener_algoritmo(void);
 
+static void app_mover_repartidor_a_cliente(t_repartidor* repartidor);
 static void app_liberar_repartidor(t_repartidor* repartidor);
-static void app_destruir_pcb(t_pcb* pcb);
 
 static void   app_ordenar_ready(void);
 static double proxima_rafaga(t_pcb* pcb);
@@ -57,6 +57,17 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 	{
 		if(repartidor->destino == DESTINO_RESTAURANTE)
 		{
+			CS_LOG_INFO("El repartidor llegó al restaurante y pasó a BLOQUEADO esperando pedido listo: "
+					"{REPARTIDOR: %d; POS: [%d,%d]} {RESTAURANTE: %s; POS: [%d,%d]} {PEDIDO_ID: %d}"
+					, repartidor->id
+					, repartidor->posicion.x
+					, repartidor->posicion.y
+					, repartidor->pcb->restaurante
+					, repartidor->pcb->posicionRestaurante.x
+					, repartidor->pcb->posicionRestaurante.y
+					, repartidor->pcb->id_pedido
+			);
+
 			if(!string_equals_ignore_case(repartidor->pcb->restaurante, "Default"))
 			{
 				//Obtiene el pedido
@@ -66,21 +77,14 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 				pedido = app_obtener_pedido(repartidor->pcb->restaurante, repartidor->pcb->id_pedido, &resultado);
 				if(resultado == OPCODE_RESPUESTA_OK && cs_platos_estan_listos(pedido->platos_y_estados))
 				{
-					CS_LOG_DEBUG("El pedido está listo, se moverá al cliente: {REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
-							, repartidor->id
-							, repartidor->pcb->restaurante
-							, repartidor->pcb->id_pedido
-					);
-
-					repartidor->destino = DESTINO_CLIENTE;
-					app_derivar_repartidor(repartidor);
+					app_mover_repartidor_a_cliente(repartidor);
 				} else
 				{
 					//Se va a la lista de bloqueados por espera
 					app_agregar_repartidor_esperando(repartidor);
 
 					if(resultado == OPCODE_RESPUESTA_FAIL) {
-						CS_LOG_WARNING("No se pudo obtener el pedido, se dejó al repartidor en espera");
+						CS_LOG_WARNING("No se pudo obtener el pedido, se dejó al repartidor en espera.");
 					}
 				}
 
@@ -88,17 +92,22 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 			} else
 			{
 				//Si es el restaurante default, se mueve hacia el cliente
-				CS_LOG_DEBUG("El pedido está listo, se moverá al cliente: {REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
-						, repartidor->id
-						, repartidor->pcb->restaurante
-						, repartidor->pcb->id_pedido
-				);
-
-				repartidor->destino = DESTINO_CLIENTE;
-				app_derivar_repartidor(repartidor);
+				app_mover_repartidor_a_cliente(repartidor);
 			}
 		} else
 		{
+			CS_LOG_INFO("El repartidor llegó al cliente y se entregó el pedido, pasó a EXIT: "
+					"{REPARTIDOR: %d; POS: [%d,%d]} {CLIENTE: %s, POS: [%d,%d]} {PEDIDO: %d, RESTAURANTE: %s}"
+					, repartidor->id
+					, repartidor->posicion.x
+					, repartidor->posicion.y
+					, repartidor->pcb->cliente
+					, repartidor->pcb->posicionCliente.x
+					, repartidor->pcb->posicionCliente.y
+					, repartidor->pcb->restaurante
+					, repartidor->pcb->id_pedido
+			);
+
 			int8_t resultado = app_finalizar_pedido(
 					  repartidor->pcb->restaurante
 					, repartidor->pcb->id_pedido
@@ -109,7 +118,7 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 			app_liberar_repartidor(repartidor);
 
 			if(resultado == OPCODE_RESPUESTA_FAIL) {
-				CS_LOG_WARNING("No se pudo finalizar el pedido correctamente.");
+				CS_LOG_WARNING("Ocurrió un error al finalizar el pedido. Se liberó al repartidor de todos modos.");
 			}
 		}
 	} else
@@ -133,25 +142,26 @@ t_pos app_destino_repartidor(t_repartidor* repartidor)
 		repartidor->pcb->posicionRestaurante : repartidor->pcb->posicionCliente;
 }
 
-static void app_liberar_repartidor(t_repartidor* repartidor)
+static void app_mover_repartidor_a_cliente(t_repartidor* repartidor)
 {
-	CS_LOG_DEBUG("Se entregó el pedido: {RESTAURANTE: %s} {ID_PEDIDO: %d} {CLIENTE: %s}"
+	CS_LOG_INFO("El pedido está listo, se moverá el repartidor al cliente: {ID_REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+			, repartidor->id
 			, repartidor->pcb->restaurante
 			, repartidor->pcb->id_pedido
-			, repartidor->pcb->cliente
 	);
 
-	app_destruir_pcb(repartidor->pcb);
+	repartidor->destino = DESTINO_CLIENTE;
+	app_derivar_repartidor(repartidor);
+}
+
+static void app_liberar_repartidor(t_repartidor* repartidor)
+{
+	free(repartidor->pcb->cliente);
+	free(repartidor->pcb->restaurante);
+	free(repartidor->pcb);
 	repartidor->pcb = NULL;
 
 	app_agregar_repartidor_libre(repartidor);
-}
-
-static void app_destruir_pcb(t_pcb* pcb)
-{
-	free(pcb->cliente);
-	free(pcb->restaurante);
-	free(pcb);
 }
 
 /********************************** REPARTIDORES LIBRES **********************************/
@@ -162,7 +172,7 @@ void app_agregar_repartidor_libre(t_repartidor* repartidor)
 	list_add(repartidores_libres, repartidor);
 	pthread_mutex_unlock(&repartidores_libres_mutex);
 
-	CS_LOG_DEBUG("El repartidor está disponible: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+	CS_LOG_DEBUG("El repartidor está disponible: {REPARTIDOR: %d; POS: [%d,%d]}"
 			, repartidor->id
 			, repartidor->posicion.x
 			, repartidor->posicion.y
@@ -261,7 +271,7 @@ void app_agregar_repartidor_esperando(t_repartidor* repartidor)
 	list_add(repartidores_esperando, repartidor);
 	pthread_mutex_unlock(&repartidores_esperando_mutex);
 
-	CS_LOG_DEBUG("El repartidor está bloqueado por espera: {ID: %d} {POS_REPARTIDOR: [%d,%d]}"
+	CS_LOG_DEBUG("El repartidor está BLOQUEADO esperando que el plato esté listo: {REPARTIDOR: %d; POS: [%d,%d]}"
 			, repartidor->id
 			, repartidor->posicion.x
 			, repartidor->posicion.y
@@ -283,13 +293,7 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
     //Si lo encuentra, le cambia el destino a CLIENTE y lo deriva a la queue que corresponda
     if(repartidor != NULL)
     {
-    	repartidor->destino = DESTINO_CLIENTE;
-    	CS_LOG_DEBUG("El repartidor se moverá hacia el cliente: {ID: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
-    			, repartidor->id
-				, restaurante
-				, pedido_id
-		);
-    	app_derivar_repartidor(repartidor);
+		app_mover_repartidor_a_cliente(repartidor);
     } else
     {
     	CS_LOG_DEBUG("El repartidor no ha llegado aún al Restaurante: {RESTAURANTE: %s} {ID_PEDIDO: %d}"
