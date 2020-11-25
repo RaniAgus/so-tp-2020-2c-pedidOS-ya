@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 {
 	for(int i = 1; i<argc; i++)
 	{
-		if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
+		if(string_starts_with(argv[i],"-")) cs_parse_argument(argv[i]);
 	}
 
 	e_status status;

@@ -21,7 +21,7 @@ void app_routine(void)
 
 int main(int argc, char* argv[])
 {
-	for(int i = 1; i < argc; i++) if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
+	for(int i = 1; i < argc; i++) if(string_starts_with(argv[i],"-")) cs_parse_argument(argv[i]);
 
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	CS_LOG_TRACE("Iniciado correctamente");

@@ -41,7 +41,7 @@ void restaurante_routine(void)
 
 int main(int argc, char* argv[])
 {
-	for(int i = 1; i < argc; i++) if(string_starts_with(argv[i],"--")) cs_parse_argument(argv[i]);
+	for(int i = 1; i < argc; i++) if(string_starts_with(argv[i],"-")) cs_parse_argument(argv[i]);
 
 	restaurante_init();
 	restaurante_routine();
