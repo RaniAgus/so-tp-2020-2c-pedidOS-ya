@@ -32,6 +32,7 @@ int main(void) {
 
 	//Inicializo memoria
 	contadorLRU= 0;
+	punteroClock = 0;
 	int tamMemoria= cs_config_get_int("TAMANIO_MEMORIA");
 	int tamSwap=cs_config_get_int("TAMANIO_SWAP");
 	memoriaPrincipal = malloc(tamMemoria);

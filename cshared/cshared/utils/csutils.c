@@ -1,7 +1,7 @@
 #include "csutils.h"
 
 //************************* LISTS *************************
-
+static void* list_fold_elements(t_link_element* element, void* seed, void*(*operation)(void*, void*));
 double list_sum(t_list* self, double(*element_value)(void*)) {
 	t_link_element* element = self->head;
 	double sumatory = 0;

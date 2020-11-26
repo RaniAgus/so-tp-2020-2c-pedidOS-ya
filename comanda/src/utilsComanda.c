@@ -184,13 +184,15 @@ t_frame_en_swap* buscarUM() {
 	int inicio = punteroClock;
 	uint32_t bitModificadoBuscado = 0;
 
-	while(encontrado != NULL) {
+	while(encontrado == NULL) {
 		do {
 			t_frame_en_memoria* siguienteFrame = list_get(listaFramesMemoria, punteroClock);
 			bool mismoFrame(t_frame_en_swap* potencialFrameEnSwap) {
 				return potencialFrameEnSwap->presente && potencialFrameEnSwap->frameAsignado == siguienteFrame;
 			}
 			t_frame_en_swap* potencialFrame = list_find(listaFramesEnSwap, mismoFrame);
+			CS_LOG_TRACE("y el frame a reemplazar tiene presente tiene modificado = %i, usado = %i",potencialFrame->modificado,potencialFrame->usado);
+
 
 			if(bitModificadoBuscado == 0) {
 				if(potencialFrame->modificado == 0 && potencialFrame->usado == 0) {
@@ -204,7 +206,7 @@ t_frame_en_swap* buscarUM() {
 				}
 			}
 			punteroClock = (punteroClock + 1) % list_size(listaFramesMemoria);
-		} while(punteroClock != inicio || encontrado != NULL);
+		} while(punteroClock != inicio && encontrado == NULL);
 		bitModificadoBuscado = !bitModificadoBuscado;
 	}
 
@@ -220,7 +222,13 @@ t_frame_en_memoria* liberameUnFrameEnMemoria() {
 			CS_LOG_TRACE("EL LRU esta en %i, el min es %i",frame2->LRU, frame1->LRU);
 			return frame1->LRU - frame2->LRU;
 		}
-		frameAReemplazar = list_get_min_by(listaFramesEnSwap, (void*) compararLRU);
+
+		bool estaPresente(t_frame_en_swap* unFrameEnSwap){
+			return unFrameEnSwap->presente;
+		}
+		t_list* framesEnSwapPresentes = list_filter(listaFramesEnSwap, (void*) estaPresente);
+		frameAReemplazar = list_get_min_by(framesEnSwapPresentes, (void*) compararLRU);
+		list_destroy(framesEnSwapPresentes);
 	} else {
 		CS_LOG_INFO("Voy a reemplazar por Clock Modificado");
 		frameAReemplazar = buscarUM();
