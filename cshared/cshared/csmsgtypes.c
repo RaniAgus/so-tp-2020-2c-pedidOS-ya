@@ -1,4 +1,4 @@
-#include "csmsg.h"
+#include "csmsgtypes.h"
 
 static void _rta_destroy(void* msg, int8_t msg_type);
 

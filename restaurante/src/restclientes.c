@@ -1,54 +1,43 @@
 #include "restclientes.h"
 
-static t_list* 		   lista_clientes;
+static t_dictionary*   tabla_clientes;
 static pthread_mutex_t mutex_clientes;
 
 void rest_clientes_init(void)
 {
-	lista_clientes = list_create();
+	tabla_clientes = dictionary_create();
 	pthread_mutex_init(&mutex_clientes, NULL);
 }
 
-rest_cliente_t* rest_cliente_create(char* nombre, t_sfd conexion)
+void rest_cliente_connect(char* nombre, t_sfd conexion)
 {
 	rest_cliente_t* cliente = malloc(sizeof(rest_cliente_t));
-
-	cliente->nombre = strdup(nombre);
 	cliente->conexion = conexion;
-	cliente->mutex_conexion = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(cliente->mutex_conexion, NULL);
-
-	return cliente;
-}
-
-void rest_cliente_add(rest_cliente_t* cliente)
-{
-	pthread_mutex_lock(&mutex_clientes);
-	list_add(lista_clientes, (void*) cliente);
-	CS_LOG_TRACE("Se agregó el Cliente: {%s}", cliente->nombre);
-	pthread_mutex_unlock(&mutex_clientes);
-}
-
-void rest_cliente_get(char* cliente, void(*closure)(rest_cliente_t*))
-{
-	bool _find_cliente_by_name(rest_cliente_t* element) {
-		return !strcmp(element->nombre, cliente);
-	}
+	pthread_mutex_init(&cliente->mutex_conexion, NULL);
 
 	pthread_mutex_lock(&mutex_clientes);
-	closure(list_find(lista_clientes, (void*) _find_cliente_by_name));
+	dictionary_put(tabla_clientes, nombre, cliente);
 	pthread_mutex_unlock(&mutex_clientes);
+
+	CS_LOG_TRACE("Se agregó el Cliente: {ID: %s}", nombre);
 }
 
-bool rest_cliente_find(char* cliente)
+rest_cliente_t* rest_cliente_get(char* cliente)
 {
-	bool _find_cliente_by_name(rest_cliente_t* element) {
-		return !strcmp(element->nombre, cliente);
-	}
+	rest_cliente_t* info_cliente;
 
 	pthread_mutex_lock(&mutex_clientes);
-	rest_cliente_t* encontrado = list_find(lista_clientes, (void*) _find_cliente_by_name);
+	info_cliente = dictionary_get(tabla_clientes, cliente);
 	pthread_mutex_unlock(&mutex_clientes);
 
-	return encontrado ? true : false;
+	return info_cliente;
+}
+
+bool rest_cliente_is_connected(char* cliente)
+{
+	pthread_mutex_lock(&mutex_clientes);
+	bool esta_conectado = dictionary_has_key(tabla_clientes, cliente);
+	pthread_mutex_unlock(&mutex_clientes);
+
+	return esta_conectado ? true : false;
 }

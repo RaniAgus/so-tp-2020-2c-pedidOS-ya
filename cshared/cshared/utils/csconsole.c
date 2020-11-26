@@ -56,9 +56,10 @@ char** _get_tokens_array(char* line, int* argc)
 
 	if(token != NULL)
 	{
+		argv = string_array_new();
+
 		(*argc)++;
-		argv = realloc(argv, sizeof(char*) * (*argc));
-		argv[(*argc) - 1] = string_duplicate(token);
+		string_array_push(&argv, string_duplicate(token));
 
 		while(buff[0] != '\0')
 		{
@@ -66,13 +67,9 @@ char** _get_tokens_array(char* line, int* argc)
 			if(token == NULL) break;
 
 			(*argc)++;
-			argv = realloc(argv, sizeof(char*) * (*argc));
-			argv[(*argc) - 1] = string_duplicate(token);
+			string_array_push(&argv, string_duplicate(token));
 		}
 	}
-
-	argv = realloc(argv, sizeof(char*) * ((*argc) + 1));
-	argv[(*argc)] = NULL;
 
 	return argv;
 }

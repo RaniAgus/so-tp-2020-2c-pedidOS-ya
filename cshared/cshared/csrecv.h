@@ -1,9 +1,8 @@
 #ifndef CONN_RECV_H_
 #define CONN_RECV_H_
 
-#include "utils/cserror.h"
-#include "csmsg.h"
-#include "csconn.h"
+#include "utils/cssockets.h"
+#include "csmsgtypes.h"
 
 /**
 * @NAME cs_recv_msg

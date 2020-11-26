@@ -1,8 +1,9 @@
-#ifndef CSHARED_CSSTRUCTS_H_
-#define CSHARED_CSSTRUCTS_H_
+#ifndef CSHARED_CSMSGSTRUCTS_H_
+#define CSHARED_CSMSGSTRUCTS_H_
 
+#include <math.h>
 #include "utils/csstring.h"
-#include "utils/cslist.h"
+#include "utils/csutils.h"
 
 typedef enum
 {
@@ -119,20 +120,12 @@ void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
 void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
 
 /**
-* @NAME cs_platos_sumar_listos
-* @DESC Devuelve la sumatoria de la cantidad lista de platos de un
-* pedido.
+* @NAME cs_platos_estan_listos
+* @DESC Devuelve 1 si todos los platos están listos, 0 si no lo están
+* y -1 en caso de error
 *
 */
-int cs_platos_sumar_listos(t_list* platos);
-
-/**
-* @NAME cs_platos_sumar_totales
-* @DESC Devuelve la sumatoria de la cantidad total de platos de un
-* pedido.
-*
-*/
-int cs_platos_sumar_totales(t_list* platos);
+int cs_platos_estan_listos(t_list* platos);
 
 /**
 * @NAME cs_receta_duplicate
@@ -140,4 +133,13 @@ int cs_platos_sumar_totales(t_list* platos);
 */
 t_list* cs_receta_duplicate(t_list* receta);
 
-#endif /* CSHARED_CSSTRUCTS_H_ */
+double calcular_norma(t_pos vector);
+t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2);
+
+/**
+* @NAME cs_string_array_to_pos
+* @DESC Devuelve una posición a partir de un array con las dos coordenadas.
+*/
+t_pos cs_string_array_to_pos(char** posicion);
+
+#endif /* CSHARED_CSMSGSTRUCTS_H_ */

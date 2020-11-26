@@ -1,4 +1,4 @@
-#include "csstructs.h"
+#include "csmsgstructs.h"
 
 static const char* ESTADO_PEDIDO_STR[] =
 {
@@ -213,22 +213,20 @@ void cs_menu_to_string(t_list* menu, char** comidas, char** precios)
 	(*precios)[strlen(*precios) - 1] = ']';
 }
 
-int cs_platos_sumar_listos(t_list* platos)
+
+int cs_platos_estan_listos(t_list* platos)
 {
-	double _sumar_listos(t_plato* plato){
-		return (double)plato->cant_lista;
+	int terminado = 1;
+	for(t_link_element* element = platos->head; element != NULL; element = element->next)
+	{
+		t_plato* plato = element->data;
+		if(plato->cant_lista < plato->cant_total) {
+			terminado = 0;
+		} else if(plato->cant_lista > plato->cant_total) {
+			return -1;
+		}
 	}
-
-	return (int)list_sum(platos, (void*) _sumar_listos);
-}
-
-int cs_platos_sumar_totales(t_list* platos)
-{
-	double _sumar_totales(t_plato* plato){
-		return (double)plato->cant_total;
-	}
-
-	return (int)list_sum(platos, (void*) _sumar_totales);
+	return terminado;
 }
 
 t_list* cs_receta_duplicate(t_list* receta)
@@ -246,4 +244,28 @@ t_list* cs_receta_duplicate(t_list* receta)
 	list_iterate(receta, (void*) _duplicar_pasos);
 
 	return duplicate;
+}
+
+double calcular_norma(t_pos vector)
+{
+	double a = pow(vector.x, 2);
+	double b = pow(vector.y, 2);
+	double norma = sqrt(a + b);
+	return norma;
+}
+
+t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2)
+{
+	t_pos distancia;
+	distancia.x = posicion1.x - posicion2.x;
+	distancia.y = posicion1.y - posicion2.y;
+	return distancia;
+}
+
+t_pos cs_string_array_to_pos(char** posicion)
+{
+	t_pos pos;
+	pos.x = atoi(posicion[0]);
+	pos.y = atoi(posicion[1]);
+	return pos;
 }
