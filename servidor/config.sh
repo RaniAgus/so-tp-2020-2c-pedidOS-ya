@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BIN=""
-FILE="server.config"
+FILE="servidor/server.config"
 MODULE=""
 if [ $# -lt 1 ];then
     echo "Expected:"

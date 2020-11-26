@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BIN=""
-FILE="restaurante.config"
+FILE="restaurante/restaurante.config"
 if [ $# -lt 1 ];then
     echo "Expected:"
     echo "./config.sh serv [PUERTO_ESCUCHA]"

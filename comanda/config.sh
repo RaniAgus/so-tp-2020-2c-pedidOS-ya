@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BIN=""
-FILE="comanda.config"
+FILE="comanda/comanda.config"
 if [ $# -lt 1 ];then
     echo "Expected:"
     echo "./config.sh serv [PUERTO_ESCUCHA]"

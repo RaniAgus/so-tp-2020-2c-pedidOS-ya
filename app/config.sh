@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BIN=""
-FILE="app.config"
+FILE="app/app.config"
 if [ $# -lt 1 ];then
     echo "Expected:"
     echo "./config.sh com [IP_COMANDA] [PUERTO_COMANDA]"

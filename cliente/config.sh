@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BIN=""
-FILE="cliente.config"
+FILE="cliente/cliente.config"
 IP=""
 PORT=""
 CLIENT_ID=""
@@ -12,8 +12,9 @@ if [ $# -lt 1 ];then
     echo "./config.sh [ID_CLIENTE]"
 else
     if [ $# -eq 1 ];then
-        sed -i "3s/.*/ARCHIVO_LOG=cliente$1.log/"
+        sed -i "3s/.*/ARCHIVO_LOG=cliente$1.log/" $BIN$FILE
         sed -i "6s/.*/ID_CLIENTE=Cliente$1/" $BIN$FILE
+        echo "Nuevo id cliente: Cliente$1"
     elif [ $# -eq 2 ];then
         sed -i "1s/.*/IP=$1/" $BIN$FILE
         sed -i "2s/.*/PUERTO=$2/" $BIN$FILE
