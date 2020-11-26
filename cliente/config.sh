@@ -18,6 +18,7 @@ else
     elif [ $# -eq 2 ];then
         sed -i "1s/.*/IP=$1/" $BIN$FILE
         sed -i "2s/.*/PUERTO=$2/" $BIN$FILE
+        echo "Nueva ip y puerto: $1:$2"
     elif [ $# -eq 3 ];then
         sed -i "4s/.*/POSICION_X=$2/" $BIN$FILE
         sed -i "5s/.*/POSICION_Y=$3/" $BIN$FILE
