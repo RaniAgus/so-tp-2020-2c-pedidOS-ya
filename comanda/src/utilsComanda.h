@@ -22,6 +22,7 @@ t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
 t_list* listaFramesEnSwap;
 uint32_t contadorLRU;
+int punteroClock = 0;
 
 pthread_mutex_t mutexMemoriaInterna;
 pthread_mutex_t mutexListaFrames;

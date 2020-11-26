@@ -1,5 +1,11 @@
 #include "utilsComanda.h"
 
+void actualizarLRU(t_frame_en_swap* frameEnSwap) {
+	pthread_mutex_lock(&mutexLRU);
+	frameEnSwap->LRU = ++contadorLRU;
+	pthread_mutex_unlock(&mutexLRU);
+}
+
 t_restaurante* buscarRestaurante(char* restaurante){
 	int tamanioSegmentos= list_size(listaRestaurantes);
 	t_restaurante* unRestaurante;
@@ -37,9 +43,7 @@ t_pagina* buscarPlato(t_segmentoPedido* unPedido, char* comida) {
 		plato->inicioMemoria = plato->frameEnSwap->frameAsignado->inicio;
 
 		memcpy(comidaExtraida, (plato->inicioMemoria) + 8, 24);
-		pthread_mutex_lock(&mutexLRU);
-		plato->frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
+		actualizarLRU(plato->frameEnSwap);
 		if (!strcmp(comidaExtraida, comida)) {
 			free(comidaExtraida);
 			return plato;
@@ -82,13 +86,10 @@ void borrarPedidoDeRestaurante(uint32_t pedido_id, t_restaurante* unRest){
 }
 
 t_list* acomodarFrames(int tamMemoria){
-	int cantidadDeFrames = tamMemoria/32;
 	t_list* frames = list_create();
-	int offset = 0;
-	for(int i=0; i<cantidadDeFrames; i++){
+	for(int offset = 0; offset<tamMemoria; offset+=32){
 		t_frame_en_memoria* unFrame = malloc(sizeof(t_frame_en_memoria));
 		unFrame->inicio = memoriaPrincipal + offset;
-		offset+=32;
 		//unFrame->paginaALaQuePertenece = NULL;
 		unFrame->estaSiendoUsado=0;
 		list_add(frames,unFrame);
@@ -97,7 +98,7 @@ t_list* acomodarFrames(int tamMemoria){
 	return frames;
 }
 
-t_frame_en_memoria* dameUnFrame(){
+t_frame_en_memoria* dameUnFrameEnMemoria(){
 	pthread_mutex_lock(&mutexListaFrames);
 	int tamanioListaFrames = list_size(listaFramesMemoria);
 	for (int i=0;i<tamanioListaFrames;i++){
@@ -122,7 +123,7 @@ t_frame_en_swap* dameUnFrameEnSwap(){
 		unFrame = list_get(listaFramesEnSwap,i);
 		if(unFrame->frameAsignado == NULL){
 			CS_LOG_TRACE("le di la posicion de swap %i", (int) unFrame->inicio);
-			unFrame->frameAsignado = dameUnFrame();
+			unFrame->frameAsignado = dameUnFrameEnMemoria();
 			pthread_mutex_unlock(&mutexAreaSwap);
 			if(unFrame->frameAsignado == NULL){
 				traemeDeSwap(unFrame);
@@ -153,22 +154,21 @@ t_list* crearAreaSwap(int tamSwap){
 	//struct stat file_st;
 	fd= open("swap.swp",O_RDWR | O_CREAT, (mode_t) 0777);
 	if(fd==-1){
-		CS_LOG_TRACE("error abriendo swap.bin");
+		CS_LOG_ERROR("error abriendo swap.bin");
+		exit(-1);
 	}
 
 	fallocate(fd, 0, 0, cs_config_get_int("TAMANIO_SWAP"));
 	areaSwap= mmap(NULL, cs_config_get_int("TAMANIO_SWAP"),PROT_WRITE | PROT_READ,MAP_SHARED,fd,0);
 	if(areaSwap==MAP_FAILED){
-		CS_LOG_TRACE("error mapeando");
+		CS_LOG_ERROR("error mapeando");
+		exit(-1);
 	}
 
-	int cantidadDeFrames = tamSwap/32;
 	t_list* framesEnSwap = list_create();
-	int offset = 0;
-	for(int i=0; i<cantidadDeFrames; i++){
+	for(int offset=0; offset < tamSwap; offset+=32){
 		t_frame_en_swap* unFrame = malloc(sizeof(t_frame_en_swap));
 		unFrame->inicio = areaSwap + offset;
-		offset+=32;
 		unFrame->frameAsignado = NULL;
 		unFrame->presente =0;
 		unFrame->LRU =1;
@@ -178,102 +178,85 @@ t_list* crearAreaSwap(int tamSwap){
 
 }
 
-t_frame_en_swap* buscarUM(int tamanioSwap, t_frame_en_swap* frameAReemplazar) {
-	for (int i = 0; i < tamanioSwap; i++) {
-		t_frame_en_swap* potencialFrame = list_get(listaFramesEnSwap, i);
-		if (potencialFrame->presente) {
-			CS_LOG_TRACE("hay presentes");
-			CS_LOG_TRACE("y el presente tiene modificado = %i, usado = %i",potencialFrame->modificado,potencialFrame->usado);
-			if (potencialFrame->modificado ==0 && potencialFrame->usado == 0) {
-				return potencialFrame;
-				CS_LOG_TRACE("y el frame a reemplazar tiene presente tiene modificado = %i, usado = %i",frameAReemplazar->modificado,frameAReemplazar->usado);
-				break;
+t_frame_en_swap* buscarUM() {
+	t_frame_en_swap* encontrado = NULL;
+
+	int inicio = punteroClock;
+	uint32_t bitModificadoBuscado = 0;
+
+	while(encontrado != NULL) {
+		do {
+			t_frame_en_memoria* siguienteFrame = list_get(listaFramesMemoria, punteroClock);
+			bool mismoFrame(t_frame_en_swap* potencialFrameEnSwap) {
+				return potencialFrameEnSwap->presente && potencialFrameEnSwap->frameAsignado == siguienteFrame;
 			}
-		}
-	}
-	if (frameAReemplazar == NULL) {
-		for (int i = 0; i < tamanioSwap; i++) {
-			t_frame_en_swap* potencialFrame = list_get(listaFramesEnSwap, i);
-			if (potencialFrame->presente) {
-				potencialFrame->usado = 0;
-				if (potencialFrame->modificado ==1 && potencialFrame->usado ==0) {
-					return potencialFrame;
-					break;
+			t_frame_en_swap* potencialFrame = list_find(listaFramesEnSwap, mismoFrame);
+
+			if(bitModificadoBuscado == 0) {
+				if(potencialFrame->modificado == 0 && potencialFrame->usado == 0) {
+					encontrado = potencialFrame;
+				}
+			} else {
+				if(potencialFrame->modificado == 1 && potencialFrame->usado == 0) {
+					encontrado = potencialFrame;
+				} else {
+					potencialFrame->usado = 0;
 				}
 			}
-		}
+			punteroClock = (punteroClock + 1) % list_size(listaFramesMemoria);
+		} while(punteroClock != inicio || encontrado != NULL);
+		bitModificadoBuscado = !bitModificadoBuscado;
 	}
-	return NULL;
+
+	return encontrado;
+}
+
+t_frame_en_memoria* liberameUnFrameEnMemoria() {
+	t_frame_en_swap* frameAReemplazar = NULL;
+
+	if (!strcmp(cs_config_get_string("ALGORITMO_REEMPLAZO"), "LRU")) {
+		CS_LOG_INFO("Voy a reemplazar por LRU");
+		int compararLRU(t_frame_en_swap* frame1, t_frame_en_swap* frame2) {
+			CS_LOG_TRACE("EL LRU esta en %i, el min es %i",frame2->LRU, frame1->LRU);
+			return frame1->LRU - frame2->LRU;
+		}
+		frameAReemplazar = list_get_min_by(listaFramesEnSwap, (void*) compararLRU);
+	} else {
+		CS_LOG_INFO("Voy a reemplazar por Clock Modificado");
+		frameAReemplazar = buscarUM();
+	}
+	CS_LOG_TRACE("y el frame a reemplazar tiene presente tiene modificado = %i, usado = %i",frameAReemplazar->modificado,frameAReemplazar->usado);
+
+	CS_LOG_INFO("La victima para reemplazo de pagina es el plato %s", (char*) frameAReemplazar->frameAsignado->inicio + 8);
+
+	if(frameAReemplazar->modificado){
+		memcpy(frameAReemplazar->inicio,frameAReemplazar->frameAsignado->inicio,32);
+	}
+	frameAReemplazar->modificado=0;
+	frameAReemplazar->presente=0;
+	frameAReemplazar->usado=0;
+
+	return frameAReemplazar->frameAsignado;
 }
 
 void traemeDeSwap(t_frame_en_swap* frameEnSwap) {
 	pthread_mutex_lock(&mutexAreaSwap);
-	int tamanioSwap = list_size(listaFramesEnSwap);
-	t_frame_en_swap* frameAReemplazar = NULL; //antes estaba en 0, asumo que no deberia cambiar el comportamiento esto
-	t_frame_en_memoria* framePotencialmenteLibre = dameUnFrame();
-	if(framePotencialmenteLibre!=NULL) {
+	t_frame_en_memoria* frameLibre = dameUnFrameEnMemoria();
+
+	if(frameLibre!=NULL) {
 		CS_LOG_TRACE ("Encontre un frame vacio");
-		framePotencialmenteLibre->estaSiendoUsado=1;
-		memcpy(framePotencialmenteLibre->inicio,frameEnSwap->inicio,32);
-		frameEnSwap->frameAsignado = framePotencialmenteLibre;
-		pthread_mutex_lock(&mutexLRU);
-		frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
-		frameEnSwap->presente =1;
-		frameEnSwap->modificado=0;
-		frameEnSwap->usado= 1;
-		pthread_mutex_unlock(&mutexAreaSwap);
+		frameLibre->estaSiendoUsado=1;
 	} else {
-		if (!strcmp(cs_config_get_string("ALGORITMO_REEMPLAZO"), "LRU")) {
-			CS_LOG_INFO("Voy a reemplazar por LRU");
-			uint32_t lruMin = 99999;//UINT32_MAX;
-			for (int i = 0; i < tamanioSwap; i++) {
-				t_frame_en_swap* potencialFrame = list_get(listaFramesEnSwap, i);
-
-				if (potencialFrame->presente) {
-					//CS_LOG_TRACE("EL LRU esta en %s, el min es %s",potencialFrame->LRU);
-					CS_LOG_TRACE("EL LRU esta en %i, el min es %i",potencialFrame->LRU,lruMin);
-					if (potencialFrame->LRU < lruMin) {
-						frameAReemplazar = potencialFrame;
-						lruMin = potencialFrame->LRU;
-					}
-				}
-			}
-
-
-		} else {
-			CS_LOG_INFO("Voy a reemplazar por Clock Modificado");
-			frameAReemplazar = buscarUM(tamanioSwap, frameAReemplazar);
-			if(frameAReemplazar == NULL) {
-				frameAReemplazar = buscarUM(tamanioSwap, frameAReemplazar);
-			}
-		}
-		CS_LOG_TRACE("y el frame a reemplazar tiene presente tiene modificado = %i, usado = %i",frameAReemplazar->modificado,frameAReemplazar->usado);
-		if(frameAReemplazar->modificado){
-			memcpy(frameAReemplazar->inicio,frameAReemplazar->frameAsignado->inicio,32);
-		}
-		frameAReemplazar->modificado=0;
-		frameAReemplazar->presente=0;
-		frameAReemplazar->usado=0;
-
-
-		char* nombrePlatoAReemplazar = malloc(24);
-		memcpy(nombrePlatoAReemplazar,(frameAReemplazar->frameAsignado->inicio)+8,24);
-		CS_LOG_INFO("La victima para reemplazo de pagina es el plato %s", nombrePlatoAReemplazar);
-		free(nombrePlatoAReemplazar);
-
-
-		memcpy(frameAReemplazar->frameAsignado->inicio,frameEnSwap->inicio,32);
-		frameEnSwap->frameAsignado = frameAReemplazar->frameAsignado;
-		pthread_mutex_lock(&mutexLRU);
-		frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
-		frameEnSwap->presente =1;
-		frameEnSwap->modificado=0;
-		frameEnSwap->usado= 1;
-		pthread_mutex_unlock(&mutexAreaSwap);
+		frameLibre = liberameUnFrameEnMemoria();
 	}
 
+	memcpy(frameLibre->inicio,frameEnSwap->inicio,32);
+	frameEnSwap->frameAsignado = frameLibre;
+	actualizarLRU(frameEnSwap);
+	frameEnSwap->presente =1;
+	frameEnSwap->modificado=0;
+	frameEnSwap->usado= 1;
+	pthread_mutex_unlock(&mutexAreaSwap);
 
 }
 
@@ -287,27 +270,20 @@ e_opcode guardarPedido(t_consulta* msg){
 		restaurante->nombreRestaurante = string_duplicate(msg->restaurante);
 		restaurante->pedidos = list_create();
 		list_add(listaRestaurantes,restaurante);
-		t_segmentoPedido* pedido = malloc(sizeof(t_segmentoPedido));
-		pedido->idPedido = msg->pedido_id;
-		pedido->tablaPaginas = list_create();
-		pedido->estadoPedido = PEDIDO_PENDIENTE;
-		pthread_mutex_init(&(pedido->mutexPedido),NULL);
-		list_add(restaurante->pedidos,pedido);
-		return OPCODE_RESPUESTA_OK;
 	} else{
 		CS_LOG_TRACE("encontre el restaurante, voy a crear el pedido");
-		t_segmentoPedido* pedido = buscarPedido(msg->pedido_id, restaurante);
-		if(pedido){ //si encontro el pedido
+		if(buscarPedido(msg->pedido_id, restaurante) != NULL) { //si encontro el pedido
 			return OPCODE_RESPUESTA_FAIL;
 		}
-		pedido = malloc(sizeof(t_segmentoPedido));
-		pedido->idPedido = msg->pedido_id;
-		pedido->tablaPaginas = list_create();
-		pedido->estadoPedido = PEDIDO_PENDIENTE;
-		pthread_mutex_init(&(pedido->mutexPedido),NULL);
-		list_add(restaurante->pedidos,pedido);
-		return OPCODE_RESPUESTA_OK;
 	}
+
+	t_segmentoPedido* pedido = malloc(sizeof(t_segmentoPedido));
+	pedido->idPedido = msg->pedido_id;
+	pedido->tablaPaginas = list_create();
+	pedido->estadoPedido = PEDIDO_PENDIENTE;
+	pthread_mutex_init(&(pedido->mutexPedido),NULL);
+	list_add(restaurante->pedidos,pedido);
+	return OPCODE_RESPUESTA_OK;
 }
 
 e_opcode guardarPlato(t_consulta* msg){
@@ -337,9 +313,7 @@ e_opcode guardarPlato(t_consulta* msg){
 		dondeDepositoLaLectura+= msg->cantidad;
 		memcpy(plato->inicioMemoria,&dondeDepositoLaLectura,sizeof(uint32_t));
 
-		pthread_mutex_lock(&mutexLRU);
-		plato->frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
+		actualizarLRU(plato->frameEnSwap);
 		plato->frameEnSwap->usado=1;
 		plato->frameEnSwap->modificado =1;
 	} else{
@@ -361,15 +335,13 @@ e_opcode guardarPlato(t_consulta* msg){
 		enSwap->usado=1;
 		pthread_mutex_unlock(&mutexAreaSwap);
 
-		pthread_mutex_lock(&mutexLRU);
-		pagina->frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
+		actualizarLRU(pagina->frameEnSwap);
 
 		int offset=0;
-		memcpy(pagina->inicioMemoria + offset,&(msg->cantidad),sizeof(int));
+		memcpy(pagina->inicioMemoria + offset,&(msg->cantidad),sizeof(uint32_t));
 		offset+=sizeof(uint32_t);
-		int cero = 0;
-		memcpy(pagina->inicioMemoria + offset,&cero,sizeof(int));
+		uint32_t cero = 0;
+		memcpy(pagina->inicioMemoria + offset,&cero,sizeof(uint32_t));
 		offset+=sizeof(uint32_t);
 		memcpy(pagina->inicioMemoria+offset,msg->comida,strlen(msg->comida)+1);
 		memcpy(enSwap->inicio,pagina->inicioMemoria,32);
@@ -409,9 +381,7 @@ t_rta_obt_ped* obtenerPedido(t_consulta* msg){
 		}
 		pagina->inicioMemoria = pagina->frameEnSwap->frameAsignado->inicio;
 
-		pthread_mutex_lock(&mutexLRU);
-		pagina->frameEnSwap->LRU = contadorLRU++;
-		pthread_mutex_unlock(&mutexLRU);
+		actualizarLRU(pagina->frameEnSwap);
 		pagina->frameEnSwap->usado=1;
 		t_plato* unPlato = malloc(sizeof(t_plato));
 		pthread_mutex_lock(&mutexMemoriaInterna);
@@ -499,9 +469,7 @@ e_opcode platoListo(t_consulta* msg){
 	dondeDepositoLaLectura++;
 	memcpy((plato->inicioMemoria) + 4,&dondeDepositoLaLectura,sizeof(uint32_t));
 	e_opcode retorno = buscarYTerminarPedido(pedido);
-	pthread_mutex_lock(&mutexLRU);
-	plato->frameEnSwap->LRU = contadorLRU++;
-	pthread_mutex_unlock(&mutexLRU);
+	actualizarLRU(plato->frameEnSwap);
 	plato->frameEnSwap->modificado=1;
 	plato->frameEnSwap->usado=1;
 	pthread_mutex_unlock(&mutexMemoriaInterna);
