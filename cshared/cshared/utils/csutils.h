@@ -35,6 +35,27 @@
 double 	list_sum(t_list* self, double(*element_value)(void*));
 
 /**
+ * @NAME: list_fold1
+ * @DESC: Devuelve un valor que resulta de aplicar la
+ * operacion entre todos los elementos de la lista, tomando al primero como
+ * semilla y partiendo desde el segundo (si existe).
+ *
+ * La funcion 'operation' debe recibir 2 dos valores, uno del tipo del valor inicial (el
+ * primer elemento de la lista) y otro del tipo de los elementos restantes de la lista.
+ */
+void* list_fold1(t_list* self, void* (*operation)(void*, void*));
+
+/**
+* @NAME: list_get_min_by
+* @DESC: Retorna el minimo de la lista según el comparador
+* El comparador devuelve:
+* comparator(arg1, arg2) < 0 <=> arg1 < arg2
+* comparator(arg1, arg2) = 0 <=> arg1 = arg2
+* comparator(arg1, arg2) > 0 <=> arg1 > arg2
+*/
+void *list_get_min_by(t_list* self, int (*comparator)(void*, void*));
+
+/**
 * @NAME queue_sync_push
 * @DESC Inserta un elemento al final de una queue multihilo. Si 'semaphore' es NULL,
 * la función es no bloqueante

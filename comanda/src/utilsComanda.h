@@ -20,22 +20,42 @@ void* memoriaPrincipal;
 void* areaSwap;
 t_list* listaRestaurantes;
 t_list* listaFramesMemoria;
+t_list* listaFramesEnSwap;
+uint32_t contadorLRU;
+int punteroClock;
 
 pthread_mutex_t mutexMemoriaInterna;
 pthread_mutex_t mutexListaFrames;
-
-typedef struct
-{
-	void* inicioMemoria;
-	uint8_t presente;
-	uint32_t numeroPagina;
-}t_pagina;
+pthread_mutex_t mutexLRU;
+pthread_mutex_t mutexAreaSwap;
 
 typedef struct
 {
 	void* inicio;
-	t_pagina* paginaALaQuePertenece; //estaOcupado
+	//t_pagina* paginaALaQuePertenece; //estaOcupado
+	uint32_t estaSiendoUsado;
 }t_frame_en_memoria;
+
+typedef struct
+{
+	void* inicio;
+	t_frame_en_memoria* frameAsignado;
+	uint8_t presente;
+	uint32_t LRU;
+	uint8_t modificado;
+	uint8_t usado;
+}t_frame_en_swap;
+
+typedef struct
+{
+	void* inicioMemoria;
+	uint32_t numeroPagina;
+	t_frame_en_swap* frameEnSwap;
+}t_pagina;
+
+
+
+
 
 typedef struct
 {
@@ -53,7 +73,7 @@ typedef struct
 	t_list* pedidos;
 }t_restaurante;
 
-void crearAreaSwap();
+t_list* crearAreaSwap(int tamSwap);
 
 e_opcode guardarPedido(t_consulta* msg);
 e_opcode guardarPlato(t_consulta* msg);
@@ -64,5 +84,7 @@ e_opcode finalizarPedido(t_consulta* msg);
 
 t_restaurante* buscarRestaurante(char* restaurante);
 t_list* acomodarFrames(int tamMemoria);
+
+void traemeDeSwap(t_frame_en_swap* frameEnSwap);
 
 #endif /* UTILSCOMANDA_H_ */
