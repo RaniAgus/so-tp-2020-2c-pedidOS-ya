@@ -11,7 +11,6 @@
 ## Cómo deployar
 
 ```
-git config --global credential.helper store
 git clone https://github.com/sisoputnfrba/so-deploy
 cd so-deploy
 ./deploy.sh -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato tp-2020-2c-Segundo-Saque
