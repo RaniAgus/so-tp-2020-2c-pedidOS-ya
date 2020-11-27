@@ -190,7 +190,7 @@ t_frame_en_swap* buscarUM() {
 			bool mismoFrame(t_frame_en_swap* potencialFrameEnSwap) {
 				return potencialFrameEnSwap->presente && potencialFrameEnSwap->frameAsignado == siguienteFrame;
 			}
-			t_frame_en_swap* potencialFrame = list_find(listaFramesEnSwap, mismoFrame);
+			t_frame_en_swap* potencialFrame = list_find(listaFramesEnSwap, (void*) mismoFrame);
 			CS_LOG_TRACE("y el frame a reemplazar tiene presente tiene modificado = %i, usado = %i",potencialFrame->modificado,potencialFrame->usado);
 
 

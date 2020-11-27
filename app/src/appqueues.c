@@ -97,15 +97,15 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 		} else
 		{
 			CS_LOG_INFO("El repartidor llegó al cliente y se entregó el pedido, pasó a EXIT: "
-					"{REPARTIDOR: %d; POS: [%d,%d]} {CLIENTE: %s, POS: [%d,%d]} {PEDIDO: %d, RESTAURANTE: %s}"
+					"{REPARTIDOR: %d; POS: [%d,%d]} {CLIENTE: %s; POS: [%d,%d]} {PEDIDO: %d; RESTAURANTE: %s}"
 					, repartidor->id
 					, repartidor->posicion.x
 					, repartidor->posicion.y
 					, repartidor->pcb->cliente
 					, repartidor->pcb->posicionCliente.x
 					, repartidor->pcb->posicionCliente.y
-					, repartidor->pcb->restaurante
 					, repartidor->pcb->id_pedido
+					, repartidor->pcb->restaurante
 			);
 
 			int8_t resultado = app_finalizar_pedido(
@@ -127,6 +127,16 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 		pthread_mutex_lock(&ready_mutex);
 		list_add(ready_queue, repartidor);
 		pthread_mutex_unlock(&ready_mutex);
+
+		t_pos destino = app_destino_repartidor(repartidor);
+		CS_LOG_INFO("El repartidor está listo para moverse a destino, pasó a READY: "
+				"{REPARTIDOR: %d; POS: [%d,%d]; DESTINO: [%d,%d]}"
+				, repartidor->id
+				, repartidor->posicion.x
+				, repartidor->posicion.y
+				, destino.x
+				, destino.y
+		);
 	}
 }
 
@@ -172,7 +182,7 @@ void app_agregar_repartidor_libre(t_repartidor* repartidor)
 	list_add(repartidores_libres, repartidor);
 	pthread_mutex_unlock(&repartidores_libres_mutex);
 
-	CS_LOG_DEBUG("El repartidor está disponible: {REPARTIDOR: %d; POS: [%d,%d]}"
+	CS_LOG_INFO("El repartidor está disponible: {REPARTIDOR: %d; POS: [%d,%d]}"
 			, repartidor->id
 			, repartidor->posicion.x
 			, repartidor->posicion.y
@@ -196,7 +206,23 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino)
 		t_pos vector_distancia1 = calcular_vector_distancia(repartidor1->posicion, destino);
 		t_pos vector_distancia2 = calcular_vector_distancia(repartidor2->posicion, destino);
 
-		return calcular_norma(vector_distancia1) < calcular_norma(vector_distancia2);
+		CS_LOG_DEBUG("Destino = [%d,%d] // "
+				"Rep.%d: {VD: [%d,%d] = %f} {POS: [%d,%d]} // "
+				"Rep.%d: {VD: [%d,%d] = %f} {POS: [%d,%d]}"
+				//Destino
+				, destino.x, destino.y
+				//Repartidor 1
+				, repartidor1->id
+				, vector_distancia1.x, vector_distancia1.y, calcular_norma(vector_distancia1)
+				, repartidor1->posicion.x, repartidor1->posicion.y
+				//Repartidor 2
+				, repartidor2->id
+				, vector_distancia2.x, vector_distancia2.y
+				, calcular_norma(vector_distancia2)
+				, repartidor2->posicion.x, repartidor2->posicion.y
+		);
+
+		return calcular_norma(vector_distancia1) <= calcular_norma(vector_distancia2);
 	}
 	list_sort(repartidores_libres, (void*) menor_distancia);  //Ordeno la lista por menor distancia
 	repartidor = list_remove(repartidores_libres, 0); //Me quedo con el head de la lista y asi obtengo al repartidor mas cercano disponible

@@ -80,7 +80,13 @@ void handlerMensajeRecibido(t_sfd client_conn, t_header header, void* msg) {
 	char* msg_str = cs_msg_to_str(msg, header.opcode, header.msgtype);
 	t_consulta* elMensaje = (t_consulta*)msg;
 	//Loguea el mensaje
-	CS_LOG_INFO("%s", msg_str);
+	if(header.msgtype != HANDSHAKE_CLIENTE) {
+		CS_LOG_INFO("%s", msg_str);
+	} else {
+		CS_LOG_TRACE("%s", msg_str);
+	}
+
+
 	if(header.opcode == OPCODE_CONSULTA)
 	{
 		switch(header.msgtype)

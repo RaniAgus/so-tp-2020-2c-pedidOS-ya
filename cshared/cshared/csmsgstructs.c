@@ -248,8 +248,8 @@ t_list* cs_receta_duplicate(t_list* receta)
 
 double calcular_norma(t_pos vector)
 {
-	double a = pow(vector.x, 2);
-	double b = pow(vector.y, 2);
+	double a = vector.x * vector.x;
+	double b = vector.y * vector.y;
 	double norma = sqrt(a + b);
 	return norma;
 }

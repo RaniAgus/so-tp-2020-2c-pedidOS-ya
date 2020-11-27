@@ -57,7 +57,7 @@ void app_asignar_repartidor(t_pcb* pcb)
 		repartidor->pcb = pcb;
 		repartidor->destino = DESTINO_RESTAURANTE;
 
-		CS_LOG_INFO("Se asignó el pedido al repartidor: {REPARTIDOR: %d, POS: [%d,%d]} {RESTAURANTE: %d, POS: [%d,%d]}  {PEDIDO_ID: %d}"
+		CS_LOG_INFO("Se asignó el pedido al repartidor: {REPARTIDOR: %d, POS: [%d,%d]} {RESTAURANTE: %s, POS: [%d,%d]}  {PEDIDO_ID: %d}"
 				, repartidor->id
 				, repartidor->posicion.x
 				, repartidor->posicion.y
