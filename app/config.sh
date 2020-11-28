@@ -19,6 +19,8 @@ else
         echo "Nueva ip de comanda: $2"
         echo "Nuevo puerto de comanda: $3"
     elif [ "$1" == "serv" ];then
+        source pedidosya.config
+        sed -i "17s/.*/MI_IP=$IP_APP/" $BIN$FILE
         sed -i "3s/.*/PUERTO_ESCUCHA=$2/" $BIN$FILE
         echo "Nuevo puerto de escucha: $2"
     elif [ "$1" == "cpu" ];then

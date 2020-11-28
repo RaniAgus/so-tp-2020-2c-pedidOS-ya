@@ -73,7 +73,7 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags    = AI_PASSIVE;
 
-	err = getaddrinfo("localhost", port, &hints, &serverInfo);
+	err = getaddrinfo(cs_config_get_string("MI_IP"), port, &hints, &serverInfo);
 	if(err)
 	{
 		freeaddrinfo(serverInfo);
