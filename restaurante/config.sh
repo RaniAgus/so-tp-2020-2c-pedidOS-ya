@@ -13,8 +13,6 @@ if [ $# -lt 1 ];then
     echo "./config.sh [NOMBRE_RESTAURANTE]"
 else
     if [ "$1" == "serv" ];then
-        source pedidosya.config
-        sed -i "12s/.*/MI_IP=$IP_RESTAURANTE/" $BIN$FILE
         sed -i "1s/.*/PUERTO_ESCUCHA=$2/" $BIN$FILE
         echo "Nuevo puerto de escucha: $2"
     elif [ "$1" == "sin" ];then

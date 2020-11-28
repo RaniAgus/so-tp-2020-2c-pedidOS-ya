@@ -11,8 +11,6 @@ if [ $# -lt 1 ];then
     echo "./config.sh lru"
 else
     if [ "$1" == "serv" ];then
-        source pedidosya.config
-        sed -i "7s/.*/MI_IP=$IP_COMANDA/" $BIN$FILE
         sed -i "1s/.*/PUERTO_ESCUCHA=$2/" $BIN$FILE
         echo "Nuevo puerto de escucha: $2"
     elif [ "$1" == "mem" ];then
