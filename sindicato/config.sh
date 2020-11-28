@@ -10,6 +10,8 @@ if [ $# -lt 1 ];then
     echo "./config.sh blk [BLOCK_SIZE] [BLOCKS]"
 else
     if [ "$1" == "serv" ];then
+        source pedidosya.config
+        sed -i "5s/.*/MI_IP=$IP_SINDICATO/" $BIN$FILE
         sed -i "1s/.*/PUERTO_ESCUCHA=$2/" $BIN$FILE
         echo "Nuevo puerto de escucha: $2"
     elif [ "$1" == "mount" ];then
