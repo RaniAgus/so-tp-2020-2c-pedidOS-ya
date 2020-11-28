@@ -935,7 +935,7 @@ char* obtenerPathRestaurante(char* nombreRestaurante){
 uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
 	uint32_t cant = 0;
 	char* path = obtenerPathRestaurante(nombreRestaurante);
-	char* bash_cmd = string_from_format("ls %s | wc - l", path);
+	char* bash_cmd = string_from_format("ls %s | wc -l", path);
 	char* buffer = malloc(1000);
 	FILE *pipe;
 	int len;
