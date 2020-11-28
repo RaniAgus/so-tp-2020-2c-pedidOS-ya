@@ -18,7 +18,6 @@ static rest_dispatcher_t* rest_dispatcher_create(rest_cola_ready_t* queue_ready)
 
 static void rest_cocinero_routine(rest_dispatcher_t* self);
 static void rest_horno_routine(rest_dispatcher_t* self);
-static void rest_reposo_routine(rest_dispatcher_t* self);
 
 static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* pcb);
 
@@ -107,16 +106,6 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		pthread_detach(thread_horno);
 	}
 
-	//Crea el hilo de platos en reposo
-	pthread_t thread_reposo;
-	pthread_create(
-			  &thread_reposo
-			, NULL
-			, (void*) rest_reposo_routine
-			, (void*) rest_dispatcher_create(NULL)
-	);
-	pthread_detach(thread_reposo);
-
 	//Obtiene el resto de la metadata
 	uint32_t cant_pedidos = metadata->cant_pedidos;
 
@@ -129,12 +118,25 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 	return cant_pedidos;
 }
 
+//Ejecuta un ciclo para todos los platos que estén en reposo
+static void _ejecutar_ciclo_reposo(rest_pcb_t* elemento) {
+	t_paso_receta* siguiente_paso = list_get(elemento->pasos_restantes, 0);
+	siguiente_paso->tiempo--;
+	CS_LOG_DEBUG("Se está reposando: {PID: %d} {PASO: %s} {TIEMPO_RESTANTE: %d -> %d}",
+			elemento->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
+	);
+}
+
 void rest_iniciar_ciclo_cpu(void)
 {
 	void _hacer_signal_ejecucion(rest_ciclo_t* semaforo) {
 		sem_post(&semaforo->inicio_ejecucion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_ejecucion);
+
+	pthread_mutex_lock(&mutex_blocked);
+	list_iterate(lista_blocked, (void*) _ejecutar_ciclo_reposo);
+	pthread_mutex_unlock(&mutex_blocked);
 
 	void _hacer_wait_ejecucion(rest_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_ejecucion);
@@ -145,6 +147,19 @@ void rest_iniciar_ciclo_cpu(void)
 		sem_post(&semaforo->inicio_derivacion);
 	}
 	string_iterate_lines((char**)array_sem_ciclo_cpu, (void*) _hacer_signal_derivacion);
+
+	//Deriva todos los platos que hayan concluido su reposo, y los quita de la lista
+	int i = 0;
+	void _derivar_si_necesario(rest_pcb_t* elemento) {
+		if(rest_derivar_si_necesario(elemento) == NULL) {
+			list_remove(lista_blocked, i);
+		} else {
+			i++;
+		}
+	}
+	pthread_mutex_lock(&mutex_blocked);
+	list_iterate(lista_blocked, (void*) _derivar_si_necesario);
+	pthread_mutex_unlock(&mutex_blocked);
 
 	void _hacer_wait_derivacion(rest_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_derivacion);
@@ -369,53 +384,6 @@ static void rest_horno_routine(rest_dispatcher_t* self)
 	}
 }
 
-static void rest_reposo_routine(rest_dispatcher_t* self)
-{
-	CS_LOG_DEBUG("Se creó el thread reposo.");
-
-	while(true)
-	{
-		sem_wait(&self->sem_ciclo->inicio_ejecucion);
-
-		//Ejecuta un ciclo para todos los platos que estén en reposo
-		void _ejecutar_ciclo(rest_pcb_t* elemento) {
-			t_paso_receta* siguiente_paso = list_get(elemento->pasos_restantes, 0);
-			siguiente_paso->tiempo--;
-			CS_LOG_DEBUG("Se está reposando: {PID: %d} {PASO: %s} {TIEMPO_RESTANTE: %d -> %d}",
-					elemento->id, siguiente_paso->paso, siguiente_paso->tiempo + 1, siguiente_paso->tiempo
-			);
-		}
-		pthread_mutex_lock(&mutex_blocked);
-		list_iterate(lista_blocked, (void*) _ejecutar_ciclo);
-		pthread_mutex_unlock(&mutex_blocked);
-
-		sem_post(&self->sem_ciclo->fin_ejecucion);
-
-		sem_wait(&self->sem_ciclo->inicio_derivacion);
-
-		//Deriva todos los platos que hayan concluido su reposo, y los quita de la lista
-		int i = 0;
-		void _derivar_si_necesario(rest_pcb_t* elemento) {
-			if(rest_derivar_si_necesario(elemento) == NULL) {
-				list_remove(lista_blocked, i);
-			} else {
-				i++;
-			}
-		}
-		pthread_mutex_lock(&mutex_blocked);
-		list_iterate(lista_blocked, (void*) _derivar_si_necesario);
-		pthread_mutex_unlock(&mutex_blocked);
-
-		sem_post(&self->sem_ciclo->fin_derivacion);
-
-		sem_wait(&self->sem_ciclo->inicio_extraccion);
-
-		/* No hace nada, no extrae de ninguna queue */
-
-		sem_post(&self->sem_ciclo->fin_extraccion);
-	}
-}
-
 static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* pcb)
 {
 	//Si el paso terminó, lo quita de la cima y deriva el plato
@@ -463,6 +431,7 @@ static rest_pcb_t* rest_derivar_si_necesario(rest_pcb_t* pcb)
 
 static void rest_pcb_destroy(rest_pcb_t* pcb)
 {
+	free(pcb->cliente);
 	free(pcb->comida);
 	list_destroy(pcb->pasos_restantes);
 	free(pcb);
