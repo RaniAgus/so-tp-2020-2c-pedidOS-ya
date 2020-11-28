@@ -27,6 +27,7 @@ typedef struct {
 	e_destinos destino;
 	int ciclos_sin_descansar;
 	int frecuencia_de_descanso;
+	int ciclos_descansados;
 	int tiempo_de_descanso;
 } t_repartidor;
 

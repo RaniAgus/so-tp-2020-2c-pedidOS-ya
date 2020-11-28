@@ -41,6 +41,7 @@ void app_iniciar_repartidores(void)
 		repartidor->posicion.y = atoi(posicion[1]);
 		repartidor->ciclos_sin_descansar = 0;
 		repartidor->frecuencia_de_descanso = atoi(frecuenciasDeDescanso[i]);
+		repartidor->ciclos_descansados = 0;
 		repartidor->tiempo_de_descanso = atoi(tiemposDeDescanso[i]);
 
 		//Al inicio se agregan todos los repartidores creados a la lista de libres
@@ -87,9 +88,10 @@ void app_iniciar_ciclo_cpu(void)
 	string_iterate_lines((void*)array_sem_ciclo_cpu, (void*) _hacer_signal_ejecucion);
 
 	void descansar(t_repartidor* repartidor) {
-		repartidor->ciclos_sin_descansar --;
+		repartidor->ciclos_descansados++;
 		CS_LOG_DEBUG("El repartidor está descansando: {REPARTIDOR: %d; DESCANSO: %d/%d}"
-				, repartidor->tiempo_de_descanso - repartidor->ciclos_sin_descansar
+				, repartidor->id
+				, repartidor->ciclos_descansados
 				, repartidor->tiempo_de_descanso
 		);
 	}
@@ -244,6 +246,8 @@ bool toca_descansar(t_repartidor* repartidor)
 
 void app_agregar_repartidor_descansando(t_repartidor* repartidor)
 {
+	repartidor->ciclos_sin_descansar = 0;
+
 	pthread_mutex_lock(&repartidores_descansando_mutex);
 	list_add(repartidores_descansando, repartidor);
 	pthread_mutex_unlock(&repartidores_descansando_mutex);
@@ -263,15 +267,17 @@ void app_reviso_repartidores_descansados(void)
 
 	int i = 0;
 	void ya_descanso(t_repartidor* repartidor) {
-		if(repartidor->ciclos_sin_descansar == 0)
+		if(repartidor->ciclos_descansados == repartidor->tiempo_de_descanso)
 		{
 			CS_LOG_DEBUG("El repartidor terminó de descansar: {REPARTIDOR: %d; DESCANSO: %d/%d} {PEDIDO: %d; RESTAURANTE: %s}"
-				, repartidor->tiempo_de_descanso - repartidor->ciclos_sin_descansar
+				, repartidor->id
+				, repartidor->ciclos_descansados
 				, repartidor->tiempo_de_descanso
 				, repartidor->pcb->id_pedido
 				, repartidor->pcb->restaurante
 			);
 			list_remove(repartidores_descansando, i);
+			repartidor->ciclos_descansados = 0;
 			app_derivar_repartidor(repartidor);
 		}
 		else i++;
