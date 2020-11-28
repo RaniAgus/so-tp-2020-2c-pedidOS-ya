@@ -10,27 +10,7 @@ int main(void) {
 	leerConfig();
 
 	crearDirectorioAFIP();
-
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
-
-/*
-	for(int i=1; i<cantidadBloques+1; i++){
-		eliminarBit(i);
-	}
-*/
-/*
-	t_consulta* consulta = malloc(sizeof(t_consulta));
-	consulta->restaurante = "MiRestaurante";
-	consulta->pedido_id = 1;
-	guardarPedido(consulta);
-*/
-
-	printf("Restaurante: \n%s\n", leerBloques(1));
-	printf("---------------------------------\n");
-	printf("Pedido: \n%s\n", leerBloques(15));
-
-
-
 	pthread_t consola;
 	pthread_create(&consola, NULL, (void*)atenderConsola, NULL);
 
@@ -44,9 +24,6 @@ int main(void) {
 void leerConfig(){
 	rutaLog = cs_config_get_string("RUTA_LOG");
 	puntoMontaje = cs_config_get_string("PUNTO_MONTAJE");
-	tamanioBloque = cs_config_get_int("BLOCKS_SIZE");
-	cantidadBloques = cs_config_get_int("BLOCKS");
-
 }
 
 // ----------- ATENDER MENSAJES ----------- //
@@ -136,8 +113,10 @@ bool crearRestauranteVerificarArgumentos(int argc, char** argv) {
 	char** posicion = string_get_string_as_array(argv[3]);
 	if(string_array_size(posicion) != 2) {
 		CS_LOG_ERROR("[POSICION](arg=3) no está en un formato válido");
+		liberar_lista(posicion);
 		return false;
 	}
+	liberar_lista(posicion);
 
 	// [AFINIDAD_COCINEROS]
 	if(!cs_string_is_string_array(argv[4])){
@@ -267,6 +246,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 					CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
 				}
 				free(rta_to_str);
+				cs_msg_destroy(respuestaConsultar, headerResp.opcode, headerResp.msgtype);
 			}
 		});
 		    break;
@@ -286,6 +266,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 					CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
 				}
 				free(rta_to_str);
+				cs_msg_destroy(respuestaObtener, headerResp.opcode, headerResp.msgtype);
 			}
 		});
 			break;
@@ -305,6 +286,7 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 					CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
 				}
 				free(rta_to_str);
+				cs_msg_destroy(respuestaObtener, headerResp.opcode, headerResp.msgtype);
 			}
 		});
 			break;
@@ -324,8 +306,12 @@ void server_log_and_send_reply(t_sfd client_conn, t_header header, void* msg){
 					CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
 				}
 				free(rta_to_str);
+				cs_msg_destroy(respuestaObtener, headerResp.opcode, headerResp.msgtype);
 			}
 		});
+			break;
+			case TERMINAR_PEDIDO:;
+				server_send_rta_ok_fail(header.msgtype, client_conn, terminarPedido(elMensaje));
 			break;
 		default:
 			server_send_rta_ok_fail(header.msgtype, client_conn,OPCODE_RESPUESTA_FAIL);
@@ -379,8 +365,3 @@ void server_send_rta_ok_fail(e_msgtype msg_type, t_sfd client_conn,e_opcode ok_f
 		free(rta_to_str);
 		cs_msg_destroy(NULL, header.opcode, header.msgtype);
 }
-
-
-
-
-

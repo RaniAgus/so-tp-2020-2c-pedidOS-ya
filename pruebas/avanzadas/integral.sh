@@ -2,6 +2,7 @@ source pedidosya.config
 
 echo "---------- [  CONFIGURACIÓN DE SINDICATO  ] ----------"
 ./sindicato/config.sh serv $PUERTO_SINDICATO
+./sindicato/config.sh blk 64 2048
 echo "---------- [   CONFIGURACIÓN DE COMANDA   ] ----------"
 ./comanda/config.sh serv $PUERTO_COMANDA
 ./comanda/config.sh mem 4096
