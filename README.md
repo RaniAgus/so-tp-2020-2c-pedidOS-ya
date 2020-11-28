@@ -7,3 +7,11 @@
 - [Video 2: Planificación](https://www.youtube.com/watch?v=SQsC7bwt3_c)
 - [Video 3: Memoria](https://www.youtube.com/watch?v=zHn_kmtbtpw)
 - [Video 4: File System](https://www.youtube.com/watch?v=f1BXdYVhrdM)
+
+## Cómo deployar
+
+```
+git clone https://github.com/sisoputnfrba/so-deploy
+cd so-deploy
+./deploy.sh -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato tp-2020-2c-Segundo-Saque
+```
