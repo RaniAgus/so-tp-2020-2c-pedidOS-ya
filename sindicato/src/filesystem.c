@@ -607,20 +607,20 @@ char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
 		int posicion = -1;
 
 		while(platos[i]!=NULL){
-			if(platos[i] == consulta->comida){
+			if(!strcmp(platos[i], consulta->comida)){
 				posicion = i;
 			}
 			i++;
 		}
 		i=0;
-		char** cantidad = config_get_array_value(conf, "CANTIDAD_PLATOS");
+		char** cantidad = config_get_array_value(conf, "CANTIDAD_LISTA");
 
 		char* aux = cantidad[posicion];
 		cantidad[posicion] = string_itoa(atoi(aux) + consulta->cantidad);
 		free(aux);
 
 		aux = cs_string_array_to_string(cantidad);
-		config_set_value(conf, "LISTA_PLATOS", aux);
+		config_set_value(conf, "CANTIDAD_LISTA", aux);
 		free(aux);
 
 		config_save(conf);
