@@ -109,8 +109,19 @@ void string_array_push(char*** array, char* text) {
 	_string_array_push(array, text, string_array_size(*array));
 }
 
+void string_n_append(char** original, char* string_to_add, int n) {
+	if(strlen(string_to_add) < n) {
+		n = strlen(string_to_add);
+	}
+	*original = realloc(*original, strlen(*original) + n + 1);
+	strncat(*original, string_to_add, n);
+}
+
+
 static void _string_array_push(char*** array, char* text, int size) {
 	*array = realloc(*array, sizeof(char*) * (size + 2));
 	(*array)[size] = text;
 	(*array)[size + 1] = NULL;
 }
+
+
