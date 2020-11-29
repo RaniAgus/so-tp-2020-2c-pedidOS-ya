@@ -54,6 +54,7 @@ void eliminarBit(int);
 
 // -------- RECETA -------- //
 
+int existeReceta(char*);
 t_rta_obt_rec* cs_lectura_to_receta(char*);
 
 // -------- PEDIDO -------- //
@@ -61,21 +62,20 @@ t_rta_obt_rec* cs_lectura_to_receta(char*);
 t_rta_obt_ped* cs_lectura_to_pedido(char*);
 int existePedido(int, char*);
 void escribirInfoPedido(char*, int, char*);
-int obtenerBlockInicialPedido(int, char*);
-int obtenerTamanioPedido(int, char*);
-e_estado_ped cs_string_to_est_ped(char*);
+void obtenerMetadataPedido(int, char*, int*, int*);
 int estaEnEstado(char*, e_estado_ped);
-char* leerPedido(uint32_t,char*);
 char* obtenerPathPedido(int idPedido, char* nombreRestaurante);
-char* leerPedido(uint32_t idPedido, char* nombreRestaurante);
+char* leerPedido(uint32_t,char*);
 
-// -------- PISAR BLOQUES -------- //
+// -------- RETOCAR BLOQUES -------- //
 
 void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura);
+void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien);
 void pisar(t_list*, char*, char*);
 
 // -------- MODIFICAR STRINGS -------- //
 
+char* cs_pedido_to_escritura(t_rta_obt_ped* pedido);
 char* agregarCantPlatos(char*, t_consulta*);
 char* agregarPlato(char*, t_consulta*);
 char* agregarPlatoListo(char*, t_consulta*);
@@ -83,8 +83,10 @@ char* cambiarEstadoPedidoA(char*, t_consulta*, e_estado_ped);
 
 // -------- BLOQUES -------- //
 
+int calcularCantBloques(int size);
 int escribirBloques(char*, char*);
 void escribirBloque(char*, int);
+char* leerBloque(int);
 char* leerBloques(int, int);
 t_list* leerNumerosBloques(int, int);
 void limpiarBloque(int);
@@ -107,5 +109,6 @@ void liberar_lista(char**);
 int tamanioArchivo(char*);
 char* obtenerPathAbsoluto(const char* pathRelativo, ...);
 t_dictionary* cs_lectura_to_dictionary(char* lectura);
+char* escribirNuevoArchivo(char* escritura, const char* dest, ...);
 
 #endif /* FILESYSTEM_H_ */

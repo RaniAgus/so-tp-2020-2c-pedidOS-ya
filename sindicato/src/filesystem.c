@@ -8,9 +8,9 @@ void crearDirectorioAFIP(){
 
 	if(fopen(pathBitmap, "r") == NULL){
 		//CS_LOG_INFO("Genere el directorio %s", puntoMontaje);
-		generarBitmap();
 		crearFiles();
 		crearBlocks();
+		generarBitmap();
 	} else {
 		CS_LOG_TRACE("Ya existe el Bitmap\n");
 	}
@@ -55,12 +55,9 @@ void crearBlocks(){
 	CS_LOG_INFO("Agrego el directorio Blocks");
 
 	for(int i=1; i<=cantidadBloques; i++){
-		char* pathBloque = obtenerPathAbsoluto("%s/%d.AFIP", pathBlocks, i);
-		FILE* block = fopen(pathBloque, "wrb");
-		fclose(block);
-		free(pathBloque);
+		limpiarBloque(i);
 	}
-	CS_LOG_INFO("Se agregaron %d archivos BLOCKS", cantidadBloques);
+	CS_LOG_INFO("Se agregaron %d archivos BLOCKS de tamaño %d", cantidadBloques, tamanioBloque);
 
 	free(pathBlocks);
 }
@@ -98,8 +95,7 @@ t_rta_cons_pl* consultarPlatos(t_consulta* consulta){ // LISTO
 
 e_opcode guardarPedido(t_consulta* consulta){ // LISTO
 	e_opcode respuesta;
-	char* path = obtenerPathRestaurante(consulta->restaurante);
-	if(existeDirectorio(path, 0)){
+	if(existeRestaurante(consulta->restaurante)){
 		if(existePedido(consulta->pedido_id, consulta->restaurante)){
 			respuesta = OPCODE_RESPUESTA_FAIL;
 			CS_LOG_ERROR("Ya existe el pedido %d", consulta->pedido_id);
@@ -111,11 +107,9 @@ e_opcode guardarPedido(t_consulta* consulta){ // LISTO
 						"CANTIDAD_LISTA=[]\n"
 						"PRECIO_TOTAL=0\n"
 			);
-			char* megaaux = string_from_format("Pedido %d",consulta->pedido_id);
-			int primerBloque = escribirBloques(escritura, megaaux);
-			free(megaaux);
-			if(primerBloque){
-				char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
+
+			char* infoPedido = escribirNuevoArchivo(escritura, "Restaurante %s Pedido %d", consulta->restaurante, consulta->pedido_id);
+			if(infoPedido != NULL) {
 				escribirInfoPedido(infoPedido, consulta->pedido_id, consulta->restaurante);
 				respuesta = OPCODE_RESPUESTA_OK;
 			} else {
@@ -127,7 +121,6 @@ e_opcode guardarPedido(t_consulta* consulta){ // LISTO
 		respuesta = OPCODE_RESPUESTA_FAIL;
 		CS_LOG_ERROR("No existe el Restaurant %s", consulta->restaurante);
 	}
-	free(path);
 	return respuesta;
 }
 
@@ -263,8 +256,8 @@ void crearRestaurante(char** consulta){ // LISTO
 	char* path = obtenerPathRestaurante(consulta[RES_NOMBRE]);
 	existeDirectorio(path ,1);
 	CS_LOG_INFO("Se creo el restaurante %s", consulta[RES_NOMBRE]);
-
-	string_append(&path, "/info.AFIP");
+	
+	string_append(&path, "/Info.AFIP");
 	char* escritura = string_from_format(
 			"CANTIDAD_COCINEROS=%s\n"
 			"POSICION=%s\n"
@@ -280,47 +273,36 @@ void crearRestaurante(char** consulta){ // LISTO
 			, consulta[RES_CANT_HORNOS]
 	);
 
-	char* aux = string_from_format("Restaurante %s",consulta[RES_NOMBRE]);
-	char* infoRes = string_from_format(
-			"SIZE=%d\n"
-			"INITIAL_BLOCK=%d\n"
-			, strlen(escritura)
-			, escribirBloques(escritura, aux)
-	);
-	free(aux);
+	char* infoRes = escribirNuevoArchivo(escritura, "Restaurante %s", consulta[RES_NOMBRE]);
+	if(infoRes != NULL) {
+		FILE* fd = fopen(path, "wt");
+		fwrite(infoRes, strlen(infoRes), 1, fd);
+		fclose(fd);
+		CS_LOG_INFO("Se creo el archivo \"Info.AFIP\" para el restaurant %s", consulta[RES_NOMBRE]);
 
-	FILE* fd = fopen(path, "wt");
-	fwrite(infoRes, strlen(infoRes), 1, fd);
-	fclose(fd);
-	CS_LOG_INFO("Se creo el archivo \"info.AFIP\" para el restaurant %s", consulta[RES_NOMBRE]);
+		free(infoRes);
+	}
 
-	free(infoRes);
-	free(escritura);
 	free(path);
+	free(escritura);
 }
 
 void crearReceta(char** consulta){ // LISTO
 	char* path = obtenerPathAbsoluto("Files/Recetas/%s.AFIP", consulta[REC_NOMBRE]);
 	char* escritura = string_from_format("PASOS=%s\nTIEMPO_PASOS=%s\n", consulta[REC_PASOS], consulta[REC_TIEMPOS]);
 
-	char* aux = string_from_format("Receta %s",consulta[REC_NOMBRE]);
-	char* infoRes = string_from_format(
-		"SIZE=%d\n"
-		"INITIAL_BLOCK=%d\n"
-		, strlen(escritura)
-		, escribirBloques(escritura, aux)
-	);
-	free(aux);
+	char* infoRec = escribirNuevoArchivo(escritura, "Receta %s", consulta[REC_NOMBRE]);
+	if(infoRec != NULL) {
+		FILE* fd = fopen(path, "wt");
+		fwrite(infoRec, strlen(infoRec), 1, fd);
+		fclose(fd);
+		CS_LOG_INFO("Se creo el archivo \"%s.AFIP\"", consulta[REC_NOMBRE]);
 
-	FILE* fd = fopen(path, "wt");
-	fwrite(infoRes, strlen(infoRes), 1, fd);
-	fclose(fd);
-	CS_LOG_INFO("Se creo el archivo \"%s.AFIP\"", consulta[REC_NOMBRE]);
+		free(infoRec);
+	}
 
-	free(infoRes);
 	free(path);
 	free(escritura);
-
 }
 
 // --------------------- MANEJO BITMAP --------------------- //
@@ -379,6 +361,13 @@ void eliminarBit(int index){
 
 // --------------------- RECETA --------------------- //
 
+int existeReceta(char* comida){
+	char* path = obtenerPathAbsoluto("Files/Recetas/%s.AFIP", comida);
+	int existe = existeDirectorio(path, 0);
+	free(path);
+	return existe;
+}
+
 t_rta_obt_rec* cs_lectura_to_receta(char* lectura) {
 	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
 
@@ -394,6 +383,25 @@ t_rta_obt_rec* cs_lectura_to_receta(char* lectura) {
 
 // --------------------- PEDIDO --------------------- //
 
+t_rta_obt_ped* cs_lectura_to_pedido(char* lectura) {
+	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
+
+	CS_LOG_TRACE("ESTADO_PEDIDO -> %s", dictionary_get(temp, "ESTADO_PEDIDO"));
+	CS_LOG_TRACE("LISTA_PLATOS -> %s", dictionary_get(temp, "LISTA_PLATOS"));
+	CS_LOG_TRACE("CANTIDAD_LISTA -> %s", dictionary_get(temp, "CANTIDAD_LISTA"));
+	CS_LOG_TRACE("CANTIDAD_PLATOS -> %s", dictionary_get(temp, "CANTIDAD_PLATOS"));
+
+	t_rta_obt_ped* pedido = cs_rta_obtener_ped_create(
+			  cs_string_to_enum(dictionary_get(temp, "ESTADO_PEDIDO"), cs_enum_estado_pedido_to_str)
+			, dictionary_get(temp, "LISTA_PLATOS")
+			, dictionary_get(temp, "CANTIDAD_LISTA")
+			, dictionary_get(temp, "CANTIDAD_PLATOS")
+	);
+	dictionary_destroy_and_destroy_elements(temp, (void*) free);
+
+	return pedido;
+}
+
 int existePedido(int idPedido, char* nombreRestaurante){
 	char* path = obtenerPathPedido(idPedido, nombreRestaurante);
 	int resultado = false;
@@ -408,31 +416,21 @@ int existePedido(int idPedido, char* nombreRestaurante){
 
 void escribirInfoPedido(char* infoPedido, int idPedido, char* nombreRestaurante){
 	char* path = obtenerPathPedido(idPedido, nombreRestaurante);
-	int file = open(path, O_CREAT | O_RDWR, 0664);
-	lseek(file, 0, SEEK_END);
-	write(file, infoPedido, strlen(infoPedido));
-	close(file);
+	FILE* file = fopen(path, "w");
+	fwrite(infoPedido, 1, strlen(infoPedido), file);
+	fclose(file);
 	CS_LOG_INFO("Escribi el Info del pedido %d para el restaurante %s", idPedido, nombreRestaurante);
 	free(path);
 	free(infoPedido);
 }
 
-int obtenerBlockInicialPedido(int idPedido, char* restaurante){
+void obtenerMetadataPedido(int idPedido, char* restaurante, int* bloque, int* size){
 	char* path = obtenerPathPedido(idPedido, restaurante);
 	t_config* conf = config_create(path);
-	int bloque = config_get_int_value(conf, "INITIAL_BLOCK");
+	*bloque = config_get_int_value(conf, "INITIAL_BLOCK");
+	*size = config_get_int_value(conf, "SIZE");
 	config_destroy(conf);
 	free(path);
-	return bloque;
-}
-
-int obtenerTamanioPedido(int idPedido, char* restaurante){
-	char* path = obtenerPathPedido(idPedido, restaurante);
-	t_config* conf = config_create(path);
-	int size = config_get_int_value(conf, "SIZE");
-	config_destroy(conf);
-	free(path);
-	return size;
 }
 
 int estaEnEstado(char* lectura, e_estado_ped estado){
@@ -442,30 +440,16 @@ int estaEnEstado(char* lectura, e_estado_ped estado){
 	return resultado;
 }
 
-t_rta_obt_ped* cs_lectura_to_pedido(char* lectura) {
-	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
-
-	t_rta_obt_ped* pedido = cs_rta_obtener_ped_create(
-			  cs_string_to_enum(dictionary_get(temp, "ESTADO_PEDIDO"), cs_enum_estado_pedido_to_str)
-			, dictionary_get(temp, "LISTA_PLATOS")
-			, dictionary_get(temp, "CANTIDAD_LISTA")
-			, dictionary_get(temp, "CANTIDAD_PLATOS")
-	);
-	dictionary_destroy_and_destroy_elements(temp, (void*) free);
-
-	return pedido;
-}
-
 char* obtenerPathPedido(int idPedido, char* nombreRestaurante) {
-	return obtenerPathAbsoluto("Files/Restaurantes/%s/Pedido%d", nombreRestaurante,idPedido);
+	return obtenerPathAbsoluto("Files/Restaurantes/%s/Pedido%d.AFIP", nombreRestaurante,idPedido);
 }
 
 char* leerPedido(uint32_t idPedido, char* nombreRestaurante) {
 	char* lectura = NULL;
 	if(existeRestaurante(nombreRestaurante)) {
 		if(existePedido(idPedido, nombreRestaurante)) {
-			int bloqueInicial = obtenerBlockInicialPedido(idPedido, nombreRestaurante);
-			int size = obtenerTamanioPedido(idPedido, nombreRestaurante);
+			int bloqueInicial, size;
+			obtenerMetadataPedido(idPedido, nombreRestaurante, &bloqueInicial, &size);
 			lectura = leerBloques(bloqueInicial, size);
 		} else {
 			CS_LOG_ERROR("No existe el Pedido %d", idPedido);
@@ -479,18 +463,10 @@ char* leerPedido(uint32_t idPedido, char* nombreRestaurante) {
 
 // --------------------- MODIFICAR STRINGS --------------------- //
 
-char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
-	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
-
-	bool encontrarPorNombre(t_plato* plato) {
-		return !strcmp(plato->comida, consulta->comida);
-	}
-	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
-	plato->cant_total += consulta->cantidad;
-
+char* cs_pedido_to_escritura(t_rta_obt_ped* pedido) {
 	char *comidas, *listos, *totales;
 	cs_platos_to_string(pedido->platos_y_estados, &comidas, &listos, &totales);
-	char* respuesta = string_from_format(
+	char* escritura = string_from_format(
 			"ESTADO_PEDIDO=%s\n"
 			"LISTA_PLATOS=%s\n"
 			"CANTIDAD_PLATOS=%s\n"
@@ -505,66 +481,37 @@ char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
 	free(listos);
 	free(totales);
 
+	return escritura;
+}
+
+char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
+	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
+
+	bool encontrarPorNombre(t_plato* plato) {
+		return !strcmp(plato->comida, consulta->comida);
+	}
+	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
+	plato->cant_total += consulta->cantidad;
+
+	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+
 	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
-	return respuesta;
+	return escrituraNueva;
 }
 
 char* agregarPlato(char* escrituraVieja, t_consulta* consulta){ // LISTO
-	char* respuesta;
-	char* leido;
-	char* nuevo;
-	char* aux;
-	char* path = obtenerPathPedido(consulta->pedido_id, consulta->restaurante);
-	FILE* f = fopen(path, "wrb");
-	fwrite(escrituraVieja, 1, strlen(escrituraVieja), f);
-	fclose(f);
-	t_config* conf = config_create(path);
-	leido = config_get_string_value(conf, "LISTA_PLATOS");
-	if(strlen(leido)==2){
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s%s]", aux, consulta->comida);
-		free(aux);
-	} else {
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s,%s]", aux, consulta->comida);
-		free(aux);
-	}
-	config_set_value(conf, "LISTA_PLATOS", nuevo);
-	free(nuevo);
-	leido = config_get_string_value(conf, "CANTIDAD_LISTA");
-	if(strlen(leido)==2){
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s%d]", aux, 0);
-		free(aux);
-	} else {
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s,%d]",aux, 0);
-		free(aux);
-	}
-	config_set_value(conf, "CANTIDAD_LISTA", nuevo);
-	free(nuevo);
-	leido = config_get_string_value(conf, "CANTIDAD_PLATOS");
-	if(strlen(leido)==2){
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s%d]", aux, consulta->cantidad);
-		free(aux);
-	} else {
-		aux = string_substring_until(leido, strlen(leido) -1);
-		nuevo = string_from_format("%s,%d]", aux, consulta->cantidad);
-		free(aux);
-	}
-	config_set_value(conf, "CANTIDAD_PLATOS", nuevo);
-	config_save(conf);
-	config_destroy(conf);
-	free(nuevo);
-	int tamanio = tamanioArchivo(path);
-	f = fopen(path, "r");
-	respuesta = malloc(tamanio);
-	fread(respuesta, 1, tamanio, f);
-	fclose(f);
-	remove(path);
-	free(path);
-	return respuesta;
+	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
+
+	t_plato* nuevo = malloc(sizeof(t_plato));
+	nuevo->comida = string_duplicate(consulta->comida);
+	nuevo->cant_lista = 0;
+	nuevo->cant_total = consulta->cantidad;
+	list_add(pedido->platos_y_estados, nuevo);
+
+	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+
+	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	return escrituraNueva;
 }
 
 char* agregarPlatoListo(char* escrituraVieja, t_consulta* consulta){ // LISTO
@@ -580,206 +527,162 @@ char* agregarPlatoListo(char* escrituraVieja, t_consulta* consulta){ // LISTO
 		return escrituraVieja;
 	}
 
-	char *comidas, *listos, *totales;
-	cs_platos_to_string(pedido->platos_y_estados, &comidas, &listos, &totales);
-	char* respuesta = string_from_format(
-			"ESTADO_PEDIDO=%s\n"
-			"LISTA_PLATOS=%s\n"
-			"CANTIDAD_PLATOS=%s\n"
-			"CANTIDAD_LISTA=%s\n"
-			"PRECIO_TOTAL=0\n"
-			, cs_enum_estado_pedido_to_str(pedido->estado_pedido)
-			, comidas
-			, totales
-			, listos
-	);
-	free(comidas);
-	free(listos);
-	free(totales);
-	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido);
 
-	return respuesta;
+	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	return escrituraNueva;
 }
 
 char* cambiarEstadoPedidoA(char* lectura, t_consulta* consulta, e_estado_ped estado){ // LISTO
 	t_rta_obt_ped* pedido = cs_lectura_to_pedido(lectura);
+
 	pedido->estado_pedido = estado;
 
-	char *comidas, *listos, *totales;
-	cs_platos_to_string(pedido->platos_y_estados, &comidas, &listos, &totales);
-	char* respuesta = string_from_format(
-			"ESTADO_PEDIDO=%s\n"
-			"LISTA_PLATOS=%s\n"
-			"CANTIDAD_PLATOS=%s\n"
-			"CANTIDAD_LISTA=%s\n"
-			"PRECIO_TOTAL=0\n"
-			, cs_enum_estado_pedido_to_str(pedido->estado_pedido)
-			, comidas
-			, totales
-			, listos
-	);
-	free(comidas);
-	free(listos);
-	free(totales);
-	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido);
 
-	return respuesta;
+	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	return escrituraNueva;
 }
 
 // --------------------- RETOCAR BLOQUES --------------------- //
 
 void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura) {
-	int bloqueInicial = obtenerBlockInicialPedido(idPedido, nombreRestaurante);
-	int size = obtenerTamanioPedido(idPedido, nombreRestaurante);
+	int bloqueInicial, size;
+	obtenerMetadataPedido(idPedido, nombreRestaurante, &bloqueInicial, &size);
 	t_list* bloques = leerNumerosBloques(bloqueInicial, size);
 	pisar(bloques, nuevaEscritura, nombreRestaurante);
+	char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(nuevaEscritura), (int)list_get(bloques, 0));
+	escribirInfoPedido(infoPedido, idPedido, nombreRestaurante);
 	list_destroy(bloques);
 }
 
-void pisar(t_list* bloques, char* escrituraNueva, char* restaurante){ // REVISAR REALLOC
-	int cantidadEscrituras = (strlen(escrituraNueva) + tamanioBloque - tamanioReservado -1)/(tamanioBloque-tamanioReservado);
-	int bloqueNuevo;
+void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien) {
+	int cantidadEscrituras = calcularCantBloques(strlen(escrituraNueva));
 	while(list_size(bloques) > cantidadEscrituras){
 		eliminarBit((int)list_get(bloques, list_size(bloques)-1));
 		limpiarBloque((int)list_get(bloques, list_size(bloques)-1));
 		list_remove(bloques, list_size(bloques)-1);
 	}
 	while(list_size(bloques) < cantidadEscrituras){
-		bloqueNuevo = obtenerYEscribirProximoDisponible(restaurante);
+		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien); //TODO: Ver qué pasa si el bitmap se llena
 		list_add(bloques, (void*)bloqueNuevo);
 	}
-	int puntero=0;
-	uint32_t nextBlock;
-	char* unaux;
-	char* escrituraAux;
-	for(int i=0; i<list_size(bloques)-1; i++){
-		unaux = string_substring(escrituraNueva ,puntero, tamanioBloque-tamanioReservado);
-		escrituraAux = string_from_format("%s", unaux);
+}
+
+void pisar(t_list* bloques, char* escrituraNueva, char* restaurante){
+	ajustarCantidadBloques(bloques, escrituraNueva, restaurante);
+	int numBloque = (int)list_get(bloques, 0);
+
+	for(int i = 0; i < list_size(bloques) - 1; i++) {
+		uint32_t proxBloque = (uint32_t)list_get(bloques, i + 1);
+		char* escrituraAux = string_substring(escrituraNueva, i * (tamanioBloque - tamanioReservado), tamanioBloque - tamanioReservado);
 		escrituraAux = realloc(escrituraAux, tamanioBloque);
-		nextBlock = (uint32_t)list_get(bloques, i+1);
-		memcpy(escrituraAux + tamanioBloque - tamanioReservado, &nextBlock, tamanioReservado);
-		escribirBloque(escrituraAux, (int)list_get(bloques,i));
-		puntero = puntero + strlen(unaux);
-		free(unaux);
+		memcpy(escrituraAux + tamanioBloque - tamanioReservado, &proxBloque, tamanioReservado);
+		escribirBloque(escrituraAux, numBloque);
 		free(escrituraAux);
+		numBloque = (int)proxBloque;
 	}
-	unaux = string_substring_from(escrituraNueva, puntero);
-	escrituraAux = string_from_format("%s", unaux);
-	escribirBloque(escrituraAux, (int)list_get(bloques, list_size(bloques)-1));
-	free(unaux);
+
+	char* escrituraAux = malloc(tamanioBloque);
+	strncpy(escrituraAux, escrituraNueva + (list_size(bloques) - 1) * (tamanioBloque - tamanioReservado), tamanioBloque);
+	escribirBloque(escrituraAux, numBloque);
 	free(escrituraAux);
 }
 
 // --------------------- BLOQUES --------------------- //
 
+int calcularCantBloques(int size) {
+	return (size + tamanioBloque - tamanioReservado - 1) / (tamanioBloque - tamanioReservado);
+}
+
 int escribirBloques(char* escritura, char* aQuien){
-	int primerBloque = 0;
-	int puntero = 0;
-	int cantidadEscrituras =  (strlen(escritura) + tamanioBloque - tamanioReservado -1)/(tamanioBloque-tamanioReservado);
-	int numBloque = obtenerYEscribirProximoDisponible(aQuien);
-	uint32_t proxBloque = obtenerYEscribirProximoDisponible(aQuien);
-	primerBloque = numBloque;
-	char* escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
-	puntero = puntero + strlen(escrituraAux);
-	escrituraAux = realloc(escrituraAux, tamanioBloque);
-	memcpy(escrituraAux + tamanioBloque - tamanioReservado, &proxBloque, tamanioReservado);
-	escribirBloque(escrituraAux, numBloque);
-	free(escrituraAux);
-	for(int i=0; i<cantidadEscrituras-2; i++){
-		numBloque = (int)proxBloque;
-		proxBloque = (uint32_t)obtenerYEscribirProximoDisponible(aQuien);
-		escrituraAux = string_substring(escritura, puntero, tamanioBloque - tamanioReservado);
-		puntero = puntero + strlen(escrituraAux);
+	int cantidadEscrituras = calcularCantBloques(strlen(escritura));
+	int primerBloque = obtenerYEscribirProximoDisponible(aQuien);
+	int numBloque = primerBloque;
+
+	for(int i = 0; i < cantidadEscrituras - 1; i++) {
+		uint32_t proxBloque = (uint32_t)obtenerYEscribirProximoDisponible(aQuien);
+		char* escrituraAux = string_substring(escritura, i * (tamanioBloque - tamanioReservado), tamanioBloque - tamanioReservado);
 		escrituraAux = realloc(escrituraAux, tamanioBloque);
 		memcpy(escrituraAux + tamanioBloque - tamanioReservado, &proxBloque, tamanioReservado);
 		escribirBloque(escrituraAux, numBloque);
 		free(escrituraAux);
+		numBloque = (int)proxBloque;
 	}
-	escrituraAux = string_substring_from(escritura, puntero);
-	escribirBloque(escrituraAux, proxBloque);
+
+	char* escrituraAux = malloc(tamanioBloque);
+	strncpy(escrituraAux, escritura + (cantidadEscrituras - 1) * (tamanioBloque - tamanioReservado), tamanioBloque);
+	escribirBloque(escrituraAux, numBloque);
 	free(escrituraAux);
+
 	return primerBloque;
 }
 
 void escribirBloque(char* escritura, int numBloque){
-	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, numBloque);
+	char* path = obtenerPathAbsoluto("Blocks/%d.AFIP", numBloque);
 	FILE* fd = fopen(path, "wrb");
 	fwrite(escritura, 1, tamanioBloque, fd);
 	fclose(fd);
 	CS_LOG_INFO("Escribi el bloque %d", numBloque);
+	cs_log_hexdump(LOG_LEVEL_DEBUG, escritura, tamanioBloque);
 	free(path);
+}
+
+char* leerBloque(int nroBloque) {
+	char* path = obtenerPathAbsoluto("Blocks/%d.AFIP", nroBloque);
+	char* lecturaAux = malloc(tamanioBloque);
+	FILE* f = fopen(path, "r");
+
+	fread(lecturaAux, 1, tamanioBloque, f);
+	fclose(f);
+
+	CS_LOG_DEBUG("Lei el bloque %d", nroBloque);
+	cs_log_hexdump(LOG_LEVEL_DEBUG, lecturaAux, tamanioBloque);
+
+	free(path);
+	return lecturaAux;
 }
 
 char* leerBloques(int initialBlock, int size){
 	char* lectura = string_new();
-	char* lecturaAux = malloc(tamanioBloque);
-	int cantidadLecturas =  (size + tamanioBloque - tamanioReservado -1)/(tamanioBloque-tamanioReservado);
-	uint32_t nextBlock = 0;
-	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, initialBlock);
-	FILE* f = fopen(path, "r");
-	fseek(f, 0L, SEEK_END);
-	int tamanioArchivo = ftell(f);
-	fseek(f, 0L, SEEK_SET);
-	char* until;
-	int i = 1;
-	while(i < cantidadLecturas){
-		fread(lecturaAux, 1, tamanioBloque, f);
-		until = string_substring_until(lecturaAux, tamanioBloque - tamanioReservado);
-		string_append(&lectura, until);
-		free(until);
+	int cantidadLecturas = calcularCantBloques(size);
+	uint32_t nextBlock = initialBlock;
+
+	for(int i = 1; i < cantidadLecturas; i++){
+		char* lecturaAux = leerBloque(nextBlock);
+		string_n_append(&lectura, lecturaAux, tamanioBloque - tamanioReservado);
 		memcpy(&nextBlock, lecturaAux + tamanioBloque - tamanioReservado, tamanioReservado);
-		fclose(f);
-		free(path);
-		path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, (int)nextBlock);
-		f = fopen(path, "r");
-		fseek(f, 0L, SEEK_END);
-		tamanioArchivo = ftell(f);
-		fseek(f, 0L, SEEK_SET);
-		i++;
+		free(lecturaAux);
 	}
-	fread(lecturaAux, 1, tamanioArchivo, f);
-	until = string_substring_until(lecturaAux, size%tamanioBloque);
-	string_append(&lectura, until);
-	free(until);
-	fclose(f);
-	free(path);
+	char* lecturaAux = leerBloque(nextBlock);
+	string_n_append(&lectura, lecturaAux, size % (tamanioBloque - tamanioReservado));
 	free(lecturaAux);
+
 	return lectura;
 }
 
 t_list* leerNumerosBloques(int initialBlock, int size){
-	int cantidadEscrituras =  (size + tamanioBloque - tamanioReservado -1)/(tamanioBloque-tamanioReservado);
+	int cantidadEscrituras = calcularCantBloques(size);
 	t_list* bloques = list_create();
 	list_add(bloques, (void*)initialBlock);
-	uint32_t block;
-	char* lecturaAux = malloc(tamanioBloque);
-	char* path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, initialBlock);
-	FILE* f = fopen(path, "r");
-	fseek(f, 0L, SEEK_END);
-	fseek(f, 0L, SEEK_SET);
-	int i = 1;
-	while(i < cantidadEscrituras){
-		fread(lecturaAux, tamanioBloque, 1, f);
-		memcpy(&block, lecturaAux + tamanioBloque - tamanioReservado, tamanioReservado);
-		list_add(bloques, (void*)block);
-		fclose(f);
-		free(path);
-		path = string_from_format("%s/Blocks/%d.AFIP", puntoMontaje, (int)block);
-		f = fopen(path, "r");
-		fseek(f, 0L, SEEK_END);
-		fseek(f, 0L, SEEK_SET);
-		i++;
+	uint32_t nextBlock = initialBlock;
+	for(int i = 1; i < cantidadEscrituras; i++){
+		char* lecturaAux = leerBloque(nextBlock);
+		memcpy(&nextBlock, lecturaAux + tamanioBloque - tamanioReservado, tamanioReservado);
+		list_add(bloques, (void*)nextBlock);
+		free(lecturaAux);
 	}
-	fclose(f);
-	free(path);
-	free(lecturaAux);
+
 	return bloques;
 }
 
 void limpiarBloque(int bloque){
-	char* path = obtenerPathAbsoluto("Blocks/%d.AFIP", bloque);
-	FILE* f = fopen(path, "wrb");
-	fclose(f);
+	char* pathBloque = obtenerPathAbsoluto("Blocks/%d.AFIP", bloque);
+	FILE* block = fopen(pathBloque, "wrb");
+	fseek(block, tamanioBloque - 1, SEEK_SET);
+	fputc(0, block);
+	fclose(block);
+	free(pathBloque);
 }
 
 // --------------------- RESTAURANTE --------------------- //
@@ -799,21 +702,23 @@ char* obtenerPathRestaurante(char* nombreRestaurante){
 uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
 	uint32_t cant = 0;
 	char* path = obtenerPathRestaurante(nombreRestaurante);
-	char* bash_cmd = string_from_format("ls %s | wc -l", path);
-	char* buffer = malloc(1000);
-	FILE *pipe;
-	int len;
-	pipe = popen(bash_cmd, "r");
-	if (NULL != pipe) {
-		fgets(buffer, 1000, pipe);
-		len = strlen(buffer);
+	char* comando = string_from_format("ls %s | wc -l", path);
+	FILE *pipe = popen(comando, "r");
+	if(pipe != NULL) {
+		char* buffer = NULL;
+		int len = 0;
+		do {
+			len++;
+			buffer = realloc(buffer, len);
+			buffer[len-1] = fgetc(pipe);
+		} while(buffer[len-1] != '\n');
 		buffer[len-1] = '\0';
 		cant = atoi(buffer);
 		pclose(pipe);
-		free(bash_cmd);
 		free(buffer);
-		free(path);
 	}
+	free(path);
+	free(comando);
 
 	return cant - 1;
 }
@@ -823,7 +728,6 @@ t_rta_obt_rest* cs_lectura_to_restaurante(char* lectura, uint32_t cant_pedidos){
 	char** pos_lista = string_get_string_as_array(dictionary_get(temp, "POSICION"));
 	t_pos posicion = cs_string_array_to_pos(pos_lista);
 	liberar_lista(pos_lista);
-
 
 	t_rta_obt_rest* restaurante = cs_rta_obtener_rest_create(
 			  atoi(dictionary_get(temp, "CANTIDAD_COCINEROS"))
@@ -850,7 +754,7 @@ bool existeRestaurante(char* restaurante) {
 char* leerRestaurante(char* restaurante) {
 	char* lectura = NULL;
 	if(existeRestaurante(restaurante)) {
-		char* path = obtenerPathAbsoluto("Files/Restaurantes/%s/info.AFIP", restaurante);
+		char* path = obtenerPathAbsoluto("Files/Restaurantes/%s/Info.AFIP", restaurante);
 		t_config* md = config_create(path);
 		if(md != NULL) {
 			int initialBlock = config_get_int_value(md, "INITIAL_BLOCK");
@@ -858,7 +762,7 @@ char* leerRestaurante(char* restaurante) {
 			lectura = leerBloques(initialBlock, size);
 			config_destroy(md);
 		} else {
-			CS_LOG_ERROR("No existe %s/info.AFIP", restaurante);
+			CS_LOG_ERROR("No existe %s/Info.AFIP", restaurante);
 		}
 		free(path);
 	} else {
@@ -919,4 +823,19 @@ t_dictionary* cs_lectura_to_dictionary(char* lectura) {
 	liberar_lista(lineas);
 
 	return dictionary;
+}
+
+char* escribirNuevoArchivo(char* escritura, const char* dest, ...) {
+	va_list args;
+	va_start(args, dest);
+	char* aQuien = string_from_vformat(dest, args);
+	va_end(args);
+	int primerBloque = escribirBloques(escritura, aQuien);
+	free(aQuien);
+	if(primerBloque){
+		return string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
+	} else {
+		//TODO: Mensaje de error?
+		return NULL;
+	}
 }
