@@ -246,12 +246,6 @@ bool toca_descansar(t_repartidor* repartidor)
 
 void app_agregar_repartidor_descansando(t_repartidor* repartidor)
 {
-	repartidor->ciclos_sin_descansar = 0;
-
-	pthread_mutex_lock(&repartidores_descansando_mutex);
-	list_add(repartidores_descansando, repartidor);
-	pthread_mutex_unlock(&repartidores_descansando_mutex);
-
 	CS_LOG_INFO("El repartidor pasó a BLOQUEADO para descansar: {REPARTIDOR: %d; POS: [%d,%d]; CICLOS: %d/%d}"
 			, repartidor->id
 			, repartidor->posicion.x
@@ -259,6 +253,12 @@ void app_agregar_repartidor_descansando(t_repartidor* repartidor)
 			, repartidor->ciclos_sin_descansar
 			, repartidor->frecuencia_de_descanso
 	);
+
+	repartidor->ciclos_sin_descansar = 0;
+
+	pthread_mutex_lock(&repartidores_descansando_mutex);
+	list_add(repartidores_descansando, repartidor);
+	pthread_mutex_unlock(&repartidores_descansando_mutex);
 }
 
 void app_reviso_repartidores_descansados(void)

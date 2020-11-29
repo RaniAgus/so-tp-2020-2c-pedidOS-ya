@@ -19,8 +19,9 @@ echo "---------- [     CONFIGURACIÓN DE APP     ] ----------"
 ./app/config.sh pos 5 5
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
 ./restaurante/config.sh sin $IP_SINDICATO $PUERTO_SINDICATO
+./restaurante/config.sh app $IP_APP $PUERTO_APP
 ./restaurante/config.sh serv $PUERTO_RESTAURANTE
-./restaurante/config.sh cpu 5 # Valor original: ??
+./restaurante/config.sh cpu 5
 
 read -p ">> Presiona enter para configurar el siguiente restaurante (la parri)"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
