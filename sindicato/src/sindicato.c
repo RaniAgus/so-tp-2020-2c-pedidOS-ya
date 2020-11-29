@@ -358,13 +358,13 @@ void server_send_rta_ok_fail(e_msgtype msg_type, t_sfd client_conn,e_opcode ok_f
 	t_header header= {ok_fail,msg_type};
 	char* rta_to_str = cs_msg_to_str(NULL, header.opcode, header.msgtype);
 	if( cs_send_respuesta(client_conn, header, NULL) == STATUS_SUCCESS )
-		{
-			CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
-		} else
-		{
-			CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
-		}
+	{
+		CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
+	} else
+	{
+		CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
+	}
 
-		free(rta_to_str);
-		cs_msg_destroy(NULL, header.opcode, header.msgtype);
+	free(rta_to_str);
+	cs_msg_destroy(NULL, header.opcode, header.msgtype);
 }
