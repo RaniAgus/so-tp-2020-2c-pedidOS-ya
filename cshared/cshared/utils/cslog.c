@@ -60,6 +60,7 @@ void cs_log_hexdump(t_log_level log_level, void* source, size_t length)
 		console_save_line();
 
 		char* buffer = mem_hexstring(source, length);
+		string_append(&buffer, "\n");
 		if(CS_LOGGER_INTERNAL->file != NULL) {
 			txt_write_in_file(CS_LOGGER_INTERNAL->file, buffer);
 		}
