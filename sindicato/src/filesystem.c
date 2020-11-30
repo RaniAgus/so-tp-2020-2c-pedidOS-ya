@@ -551,9 +551,9 @@ void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritur
 	obtenerMetadataPedido(idPedido, nombreRestaurante, &bloqueInicial, &size);
 	t_list* bloques = leerNumerosBloques(bloqueInicial, size);
 	ajustarCantidadBloques(bloques, nuevaEscritura, nombreRestaurante);
-	escribirBloques(bloques, nuevaEscritura);
 	int primerBloque = (int)list_get(bloques, 0); //Si la lista está vacía, retorna 0
 	if(primerBloque > 0) {
+		escribirBloques(bloques, nuevaEscritura);
 		char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(nuevaEscritura), primerBloque);
 		escribirInfoPedido(infoPedido, idPedido, nombreRestaurante);
 	} else {
