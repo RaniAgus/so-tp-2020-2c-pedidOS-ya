@@ -550,9 +550,15 @@ void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritur
 	int bloqueInicial, size;
 	obtenerMetadataPedido(idPedido, nombreRestaurante, &bloqueInicial, &size);
 	t_list* bloques = leerNumerosBloques(bloqueInicial, size);
-	pisar(bloques, nuevaEscritura, nombreRestaurante);
-	char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(nuevaEscritura), (int)list_get(bloques, 0));
-	escribirInfoPedido(infoPedido, idPedido, nombreRestaurante);
+	ajustarCantidadBloques(bloques, nuevaEscritura, nombreRestaurante);
+	escribirBloques(bloques, nuevaEscritura);
+	int primerBloque = (int)list_get(bloques, 0); //Si la lista está vacía, retorna 0
+	if(primerBloque > 0) {
+		char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(nuevaEscritura), primerBloque);
+		escribirInfoPedido(infoPedido, idPedido, nombreRestaurante);
+	} else {
+		// TODO: Devolver error
+	}
 	list_destroy(bloques);
 }
 
@@ -564,13 +570,16 @@ void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien)
 		list_remove(bloques, list_size(bloques)-1);
 	}
 	while(list_size(bloques) < cantidadEscrituras){
-		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien); //TODO: Ver qué pasa si el bitmap se llena
+		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien);
+		if(bloqueNuevo == 0) {
+			//TODO: Ver qué pasa si el bitmap se llena
+			break;
+		}
 		list_add(bloques, (void*)bloqueNuevo);
 	}
 }
 
-void pisar(t_list* bloques, char* escrituraNueva, char* restaurante){
-	ajustarCantidadBloques(bloques, escrituraNueva, restaurante);
+void escribirBloques(t_list* bloques, char* escrituraNueva){ //Antes era pisar()
 	int numBloque = (int)list_get(bloques, 0);
 
 	for(int i = 0; i < list_size(bloques) - 1; i++) {
@@ -595,25 +604,23 @@ int calcularCantBloques(int size) {
 	return (size + tamanioBloque - tamanioReservado - 1) / (tamanioBloque - tamanioReservado);
 }
 
-int escribirBloques(char* escritura, char* aQuien){
+int escribirBloquesNuevos(char* escritura, char* aQuien){ // Antes era escribirBloques
 	int cantidadEscrituras = calcularCantBloques(strlen(escritura));
-	int primerBloque = obtenerYEscribirProximoDisponible(aQuien);
-	int numBloque = primerBloque;
-
-	for(int i = 0; i < cantidadEscrituras - 1; i++) {
-		uint32_t proxBloque = (uint32_t)obtenerYEscribirProximoDisponible(aQuien);
-		char* escrituraAux = string_substring(escritura, i * (tamanioBloque - tamanioReservado), tamanioBloque - tamanioReservado);
-		escrituraAux = realloc(escrituraAux, tamanioBloque);
-		memcpy(escrituraAux + tamanioBloque - tamanioReservado, &proxBloque, tamanioReservado);
-		escribirBloque(escrituraAux, numBloque);
-		free(escrituraAux);
-		numBloque = (int)proxBloque;
+	t_list* bloques = list_create();
+	for(int i = 0; i < cantidadEscrituras; i++) {
+		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien);
+		if(bloqueNuevo == 0) {
+			//TODO: Ver qué pasa si el bitmap se llena
+			break;
+		}
+		list_add(bloques, (void*)bloqueNuevo);
 	}
 
-	char* escrituraAux = malloc(tamanioBloque);
-	strncpy(escrituraAux, escritura + (cantidadEscrituras - 1) * (tamanioBloque - tamanioReservado), tamanioBloque);
-	escribirBloque(escrituraAux, numBloque);
-	free(escrituraAux);
+	int primerBloque = (int)list_get(bloques, 0); //Si la lista está vacía, retorna 0
+	if(primerBloque > 0) {
+		escribirBloques(bloques, escritura);
+	}
+	list_destroy(bloques);
 
 	return primerBloque;
 }
@@ -830,9 +837,9 @@ char* escribirNuevoArchivo(char* escritura, const char* dest, ...) {
 	va_start(args, dest);
 	char* aQuien = string_from_vformat(dest, args);
 	va_end(args);
-	int primerBloque = escribirBloques(escritura, aQuien);
+	int primerBloque = escribirBloquesNuevos(escritura, aQuien);
 	free(aQuien);
-	if(primerBloque){
+	if(primerBloque > 0){
 		return string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
 	} else {
 		//TODO: Mensaje de error?

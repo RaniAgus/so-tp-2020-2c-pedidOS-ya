@@ -71,7 +71,7 @@ char* leerPedido(uint32_t,char*);
 
 void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura);
 void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien);
-void pisar(t_list*, char*, char*);
+void escribirBloques(t_list*, char*);
 
 // -------- MODIFICAR STRINGS -------- //
 
@@ -84,7 +84,7 @@ char* cambiarEstadoPedidoA(char*, t_consulta*, e_estado_ped);
 // -------- BLOQUES -------- //
 
 int calcularCantBloques(int size);
-int escribirBloques(char*, char*);
+int escribirBloquesNuevos(char*, char*);
 void escribirBloque(char*, int);
 char* leerBloque(int);
 char* leerBloques(int, int);
