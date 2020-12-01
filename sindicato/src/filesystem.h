@@ -59,6 +59,7 @@ t_rta_obt_rec* cs_lectura_to_receta(char*);
 
 // -------- PEDIDO -------- //
 
+int buscarPlatoEnPedido(char*, t_consulta*);
 t_rta_obt_ped* cs_lectura_to_pedido(char*);
 int existePedido(int, char*);
 void escribirInfoPedido(char*, int, char*);
@@ -75,7 +76,6 @@ void escribirBloques(t_list*, char*);
 
 // -------- MODIFICAR STRINGS -------- //
 
-int buscarPlatoEnPedido(char*, t_consulta*);
 char* cs_pedido_to_escritura(t_rta_obt_ped* pedido);
 char* agregarCantPlatos(char*, t_consulta*);
 char* agregarPlato(char*, t_consulta*);
@@ -94,6 +94,7 @@ void limpiarBloque(int);
 
 // -------- RESTAURANTE -------- //
 
+bool buscarPlatoEnRestaurante(char*, t_consulta*);
 char* obtenerPlatos(char*);
 char* obtenerPathRestaurante(char*);
 uint32_t obtenerCantidadPedidos(char*);

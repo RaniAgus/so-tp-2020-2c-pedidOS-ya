@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
 	leerConfig();
 
 	crearDirectorioAFIP();
+
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");
 	pthread_t consola;
 	pthread_create(&consola, NULL, (void*)atenderConsola, NULL);

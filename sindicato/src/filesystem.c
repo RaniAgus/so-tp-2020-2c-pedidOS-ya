@@ -127,21 +127,26 @@ e_opcode guardarPlato(t_consulta* consulta){ // LISTO
 	e_opcode respuesta = OPCODE_RESPUESTA_FAIL;
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
-		if(estaEnEstado(lectura, PEDIDO_PENDIENTE)){
-			char* nuevaEscritura;
-			if(buscarPlatoEnPedido(lectura, consulta)){
-				nuevaEscritura = agregarCantPlatos(lectura ,consulta);
+		char* restaurante = leerRestaurante(consulta->restaurante);
+		if(buscarPlatoEnRestaurante(restaurante, consulta)){
+			if(estaEnEstado(lectura, PEDIDO_PENDIENTE)){
+				char* nuevaEscritura;
+				if(buscarPlatoEnPedido(lectura, consulta)){
+					nuevaEscritura = agregarCantPlatos(lectura ,consulta);
+				} else {
+					nuevaEscritura = agregarPlato(lectura, consulta);
+				}
+				respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
+				free(nuevaEscritura);
 			} else {
-				nuevaEscritura = agregarPlato(lectura, consulta);
+				CS_LOG_ERROR("El pedido %d ya no se encuentra pendiente", consulta->pedido_id);
 			}
-			respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
-			free(nuevaEscritura);
 		} else {
-			CS_LOG_ERROR("El pedido %d ya no se encuentra pendiente", consulta->pedido_id);
+			CS_LOG_ERROR("El restaurante %s no dispone del plato %s en su menu", consulta->restaurante, consulta->comida);
 		}
+		free(restaurante);
 		free(lectura);
 	}
-
 	return respuesta;
 }
 
@@ -380,6 +385,16 @@ t_rta_obt_rec* cs_lectura_to_receta(char* lectura) {
 
 // --------------------- PEDIDO --------------------- //
 
+int buscarPlatoEnPedido(char* escrituraVieja, t_consulta* consulta){
+	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
+
+	bool encontrarPorNombre(t_plato* plato) {
+		return !strcmp(plato->comida, consulta->comida);
+	}
+	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
+	return plato!=NULL;
+}
+
 t_rta_obt_ped* cs_lectura_to_pedido(char* lectura) {
 	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
 
@@ -479,16 +494,6 @@ char* cs_pedido_to_escritura(t_rta_obt_ped* pedido) {
 	free(totales);
 
 	return escritura;
-}
-
-int buscarPlatoEnPedido(char* escrituraVieja, t_consulta* consulta){
-	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
-
-	bool encontrarPorNombre(t_plato* plato) {
-		return !strcmp(plato->comida, consulta->comida);
-	}
-	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
-	return plato!=NULL;
 }
 
 char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
@@ -714,6 +719,23 @@ void limpiarBloque(int bloque){
 }
 
 // --------------------- RESTAURANTE --------------------- //
+
+bool buscarPlatoEnRestaurante(char* lectura, t_consulta* consulta){
+	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
+	char** platos = string_get_string_as_array(dictionary_get(temp, "PLATOS"));
+	int i = 0;
+	bool resultado = false;
+	while(platos[i] != NULL){
+		if(!strcmp(platos[i], consulta->comida)){
+			resultado = true;
+			break;
+		}
+		i++;
+	}
+	liberar_lista(platos);
+	dictionary_destroy_and_destroy_elements(temp, (void*) free);
+	return resultado;
+}
 
 char* obtenerPlatos(char* lectura){
 	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
