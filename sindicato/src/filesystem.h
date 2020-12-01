@@ -75,6 +75,7 @@ void escribirBloques(t_list*, char*);
 
 // -------- MODIFICAR STRINGS -------- //
 
+int buscarPlatoEnPedido(char*, t_consulta*);
 char* cs_pedido_to_escritura(t_rta_obt_ped* pedido);
 char* agregarCantPlatos(char*, t_consulta*);
 char* agregarPlato(char*, t_consulta*);

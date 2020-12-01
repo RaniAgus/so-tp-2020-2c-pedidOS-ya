@@ -129,7 +129,7 @@ e_opcode guardarPlato(t_consulta* consulta){ // LISTO
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_PENDIENTE)){
 			char* nuevaEscritura;
-			if(string_contains(lectura, consulta->comida)){
+			if(buscarPlatoEnPedido(lectura, consulta)){
 				nuevaEscritura = agregarCantPlatos(lectura ,consulta);
 			} else {
 				nuevaEscritura = agregarPlato(lectura, consulta);
@@ -188,7 +188,7 @@ e_opcode platoListo(t_consulta* consulta){ //
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_CONFIRMADO)){
-			if(string_contains(lectura, consulta->comida)){
+			if(buscarPlatoEnPedido(lectura, consulta)){
 				char* nuevaEscritura = agregarPlatoListo(lectura, consulta);
 				if(nuevaEscritura != NULL) {
 					respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
@@ -200,7 +200,7 @@ e_opcode platoListo(t_consulta* consulta){ //
 				CS_LOG_ERROR("El pedido %d del restaurante %s no posee el plato %s", consulta->pedido_id, consulta->restaurante, consulta->comida);
 			}
 		} else {
-			CS_LOG_ERROR("El pedido %d todavía no había sido confirmado", consulta->pedido_id);
+			CS_LOG_ERROR("El pedido %d no esta en estado confirmado", consulta->pedido_id);
 		}
 		free(lectura);
 	}
@@ -331,7 +331,7 @@ int obtenerYEscribirProximoDisponible(char* aQuien){
 	sem_post(&bitmapSem);
 	free(path);
 
-	CS_LOG_TRACE("BITMAP LLENO");
+	CS_LOG_ERROR("BITMAP LLENO");
 	return 0;
 }
 
@@ -479,6 +479,16 @@ char* cs_pedido_to_escritura(t_rta_obt_ped* pedido) {
 	free(totales);
 
 	return escritura;
+}
+
+int buscarPlatoEnPedido(char* escrituraVieja, t_consulta* consulta){
+	t_rta_obt_ped* pedido = cs_lectura_to_pedido(escrituraVieja);
+
+	bool encontrarPorNombre(t_plato* plato) {
+		return !strcmp(plato->comida, consulta->comida);
+	}
+	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
+	return plato!=NULL;
 }
 
 char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
