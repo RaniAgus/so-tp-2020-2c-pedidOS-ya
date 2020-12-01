@@ -2,7 +2,7 @@
 
 static t_log*           CS_LOGGER_INTERNAL = NULL;
 static pthread_mutex_t  CS_LOGGER_MUTEX;
-static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_INFO;
+static t_log_level 		CS_LOGGER_LEVEL = LOG_LEVEL_TRACE;
 static int				CS_CONSOLE_MODE = 1;
 
 e_status cs_logger_init(const char* file_key, const char* program_name)
@@ -47,4 +47,30 @@ t_log* cs_logger_get(void)
 pthread_mutex_t* cs_logger_get_mutex(void)
 {
 	return &CS_LOGGER_MUTEX;
+}
+
+
+void cs_log_hexdump(t_log_level log_level, void* source, size_t length)
+{
+	char *log_colors[] = {"\x1b[36m", "\x1b[32m", "", "\x1b[33m", "\x1b[31m" };
+
+	if(log_level >= CS_LOGGER_INTERNAL->detail)
+	{
+		pthread_mutex_lock(cs_logger_get_mutex());
+		console_save_line();
+
+		char* buffer = mem_hexstring(source, length);
+		string_append(&buffer, "\n");
+		if(CS_LOGGER_INTERNAL->file != NULL) {
+			txt_write_in_file(CS_LOGGER_INTERNAL->file, buffer);
+		}
+		if(CS_LOGGER_INTERNAL->is_active_console) {
+			printf("%s%s\x1b[0m", log_colors[log_level], buffer);
+			fflush(stdout);
+		}
+		free(buffer);
+
+		console_restore_line();
+		pthread_mutex_unlock(cs_logger_get_mutex());
+	}
 }

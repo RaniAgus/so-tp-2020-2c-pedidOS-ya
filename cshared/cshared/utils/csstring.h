@@ -84,4 +84,18 @@ bool string_array_is_empty(char** array);
 */
 void string_array_push(char*** array, char* text);
 
+/**
+* @NAME: string_n_append
+* @DESC: Agrega al primer string un máximo de n caracteres
+* del segundo.
+*
+* Ejemplo:
+* char *unaPalabra = string_new();
+* string_n_append(&unaPalabra, "HOLA ", 10);
+* string_n_append(&unaPalabra, "PEPE", 3);
+*
+* => unaPalabra = "HOLA PEP"
+*/
+void string_n_append(char** original, char* string_to_add, int n);
+
 #endif /* UTILS_STRING_H_ */

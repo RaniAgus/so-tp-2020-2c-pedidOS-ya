@@ -1,7 +1,10 @@
 #include "sindicato.h"
 #include "filesystem.h"
 
-int main(void) {
+int main(int argc, char* argv[]) {
+	for(int i = 1; i<argc; i++) {
+		if(string_starts_with(argv[i],"-")) cs_parse_argument(argv[i]);
+	}
 
 	sem_init(&bitmapSem, 0, 1);
 	tamanioReservado = 4;
@@ -30,35 +33,39 @@ void leerConfig(){
 
 bool crearRecetaVerificarArgumentos(int argc, char** argv) {
 	if(argc < 4){
-		CS_LOG_ERROR("Faltan argumentos para crearReceta");
+		CS_LOG_ERROR("Faltan argumentos para crearReceta(3): %d", argc - 1);
 		return false;
 	}
 
 	if(argc > 4) {
-		CS_LOG_ERROR("Sobran argumentos para crearReceta");
+		CS_LOG_ERROR("Sobran argumentos para crearReceta(3): %d", argc - 1);
 		return false;
 	}
 
 	/* [NOMBRE] */
+	if(existeReceta(argv[REC_NOMBRE])) {
+		CS_LOG_ERROR("La receta de %s ya existe", argv[REC_NOMBRE]);
+		return false;
+	}
 
 	// [PASOS]
-	if(!cs_string_is_string_array(argv[2])){
-		CS_LOG_ERROR("[PASOS](arg=2) no está en formato array de strings");
+	if(!cs_string_is_string_array(argv[REC_PASOS])){
+		CS_LOG_ERROR("[PASOS] no está en formato array de strings: %s", argv[REC_PASOS]);
 		return false;
 	}
 
 	// [TIEMPO_PASOS]
-	if(!cs_string_is_unsigned_int_array(argv[3])){
-		CS_LOG_ERROR("[TIEMPO_PASOS](arg=3) no está en formato array de enteros");
+	if(!cs_string_is_unsigned_int_array(argv[REC_TIEMPOS])){
+		CS_LOG_ERROR("[TIEMPO_PASOS] no está en formato array de enteros: %s", argv[REC_TIEMPOS]);
 		return false;
 	}
 
-	char** pasos = string_get_string_as_array(argv[2]);
-	char** tiempos = string_get_string_as_array(argv[3]);
+	char** pasos = string_get_string_as_array(argv[REC_PASOS]);
+	char** tiempos = string_get_string_as_array(argv[REC_TIEMPOS]);
 
 	// [PASOS] y [TIEMPO_PASOS] no pueden estar vacías
 	if(*pasos == NULL || *tiempos == NULL) {
-		CS_LOG_ERROR("[PASOS](arg=2) y [TIEMPO_PASOS](arg=3) no admiten listas vacias");
+		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no admiten listas vacias: %s, %s", argv[REC_PASOS], argv[REC_TIEMPOS]);
 		liberar_lista(pasos);
 		liberar_lista(tiempos);
 		return false;
@@ -66,7 +73,7 @@ bool crearRecetaVerificarArgumentos(int argc, char** argv) {
 
 	// [PASOS].size == [TIEMPO_PASOS].size
 	if(string_array_size(pasos) != string_array_size(tiempos)) {
-		CS_LOG_ERROR("[PASOS](arg=2) y [TIEMPO_PASOS](arg=3) no tienen el mismo tamaño");
+		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no tienen el mismo tamaño: %s, %s", argv[REC_PASOS], argv[REC_TIEMPOS]);
 		liberar_lista(pasos);
 		liberar_lista(tiempos);
 		return false;
@@ -79,78 +86,75 @@ bool crearRecetaVerificarArgumentos(int argc, char** argv) {
 
 bool crearRestauranteVerificarArgumentos(int argc, char** argv) {
 	if(argc < 8){
-		CS_LOG_ERROR("Faltan argumentos para crearRestaurante");
+		CS_LOG_ERROR("Faltan argumentos para crearRestaurante(7)", argc - 1);
 		return false;
 	}
 
 	if(argc > 8) {
-		CS_LOG_ERROR("Sobran argumentos para crearRestaurante");
+		CS_LOG_ERROR("Sobran argumentos para crearRestaurante(7)", argc - 1);
 		return false;
 	}
 
 	// [NOMBRE]
-	char* path = obtenerPathRestaurante(argv[1]);
-	if(existeDirectorio(path ,0)) {
-		CS_LOG_ERROR("No se pudo crear el restaurante %s porque ya existe", argv[1]);
-		free(path);
+	if(existeRestaurante(argv[RES_NOMBRE])) {
+		CS_LOG_ERROR("No se pudo crear el restaurante %s porque ya existe", argv[RES_NOMBRE]);
 		return false;
 	}
-	free(path);
 
 	// [CANTIDAD_COCINEROS]
-	if(cs_string_to_uint(argv[2]) <= 0) {
-		CS_LOG_ERROR("[CANTIDAD_COCINEROS](arg=2) no está en un formato numérico válido");
+	if(cs_string_to_uint(argv[RES_CANT_COCINEROS]) <= 0) {
+		CS_LOG_ERROR("[CANTIDAD_COCINEROS] no está en un formato numérico válido: %s", argv[RES_CANT_COCINEROS]);
 		return false;
 	}
 
 	// [POSICION]
-	if(!cs_string_is_unsigned_int_array(argv[3])){
-		CS_LOG_ERROR("[POSICION](arg=3) no está en formato array de enteros");
+	if(!cs_string_is_unsigned_int_array(argv[RES_POSICION])){
+		CS_LOG_ERROR("[POSICION] no está en formato array de enteros: %s", argv[RES_POSICION]);
 		return false;
 	}
 
 	// [POSICION].size == 2
-	char** posicion = string_get_string_as_array(argv[3]);
+	char** posicion = string_get_string_as_array(argv[RES_POSICION]);
 	if(string_array_size(posicion) != 2) {
-		CS_LOG_ERROR("[POSICION](arg=3) no está en un formato válido");
+		CS_LOG_ERROR("[POSICION] no está en un formato válido: %s", argv[RES_POSICION]);
 		liberar_lista(posicion);
 		return false;
 	}
 	liberar_lista(posicion);
 
 	// [AFINIDAD_COCINEROS]
-	if(!cs_string_is_string_array(argv[4])){
-		CS_LOG_ERROR("[AFINIDAD_COCINEROS](arg=4) no está en formato array de strings");
+	if(!cs_string_is_string_array(argv[RES_AFINIDADES])){
+		CS_LOG_ERROR("[AFINIDAD_COCINEROS] no está en formato array de strings: %s", argv[RES_AFINIDADES]);
 		return false;
 	}
 
 	// [CANTIDAD_COCINEROS] >= [AFINIDAD_COCINEROS].size
-	char** afinidad_cocineros = string_get_string_as_array(argv[4]);
-	if(cs_string_to_uint(argv[2]) < string_array_size(afinidad_cocineros)) {
-		CS_LOG_ERROR("[CANTIDAD_COCINEROS](arg=2) es menor al tamaño de [AFINIDAD_COCINEROS](arg=4)");
+	char** afinidad_cocineros = string_get_string_as_array(argv[RES_AFINIDADES]);
+	if(cs_string_to_uint(argv[RES_CANT_COCINEROS]) < string_array_size(afinidad_cocineros)) {
+		CS_LOG_ERROR("[CANTIDAD_COCINEROS] es menor al tamaño de [AFINIDAD_COCINEROS]: %s, %s", argv[RES_CANT_COCINEROS], argv[RES_AFINIDADES]);
 		liberar_lista(afinidad_cocineros);
 		return false;
 	}
 	liberar_lista(afinidad_cocineros);
 
 	// [PLATOS]
-	if(!cs_string_is_string_array(argv[5])){
-		CS_LOG_ERROR("[PLATOS](arg=5) no está en formato array de strings");
+	if(!cs_string_is_string_array(argv[RES_PLATOS])){
+		CS_LOG_ERROR("[PLATOS] no está en formato array de strings: %s", argv[RES_PLATOS]);
 		return false;
 	}
 
 	// [PRECIO_PLATOS]
-	if(!cs_string_is_unsigned_int_array(argv[6])){
-		CS_LOG_ERROR("[PRECIO_PLATOS](arg=6) no está en formato array de enteros");
+	if(!cs_string_is_unsigned_int_array(argv[RES_PRECIOS])){
+		CS_LOG_ERROR("[PRECIO_PLATOS] no está en formato array de enteros: %s", argv[RES_PRECIOS]);
 		return false;
 	}
 
-	char** platos = string_get_string_as_array(argv[5]);
-	char** precio_platos = string_get_string_as_array(argv[6]);
+	char** platos = string_get_string_as_array(argv[RES_PLATOS]);
+	char** precio_platos = string_get_string_as_array(argv[RES_PRECIOS]);
 
 	// [PLATOS] y [PRECIO_PLATOS] no pueden estar vacías
 	if(*platos == NULL || *precio_platos == NULL) {
-		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no admiten listas vacias");
+		CS_LOG_ERROR("[PLATOS] y [PRECIO_PLATOS] no admiten listas vacias: %s, %s", argv[RES_PLATOS], argv[RES_PRECIOS]);
 		liberar_lista(platos);
 		liberar_lista(precio_platos);
 		return false;
@@ -158,7 +162,7 @@ bool crearRestauranteVerificarArgumentos(int argc, char** argv) {
 
 	// [PLATOS].size == [PRECIO_PLATOS].size
 	if(string_array_size(platos) != string_array_size(precio_platos)) {
-		CS_LOG_ERROR("[PASOS] y [TIEMPO_PASOS] no tienen el mismo tamaño");
+		CS_LOG_ERROR("[PLATOS] y [PRECIO_PLATOS] no tienen el mismo tamaño: %s, %s", argv[RES_PLATOS], argv[RES_PRECIOS]);
 		liberar_lista(platos);
 		liberar_lista(precio_platos);
 		return false;
@@ -167,8 +171,8 @@ bool crearRestauranteVerificarArgumentos(int argc, char** argv) {
 	liberar_lista(precio_platos);
 
 	// [CANTIDAD_HORNOS]
-	if(cs_string_to_uint(argv[7]) <= 0) {
-		CS_LOG_ERROR("[CANTIDAD_HORNOS](arg=7) no está en un formato numérico válido");
+	if(cs_string_to_uint(argv[RES_CANT_HORNOS]) <= 0) {
+		CS_LOG_ERROR("[CANTIDAD_HORNOS] no está en un formato numérico válido: %s", argv[RES_CANT_HORNOS]);
 		return false;
 	}
 
@@ -355,13 +359,13 @@ void server_send_rta_ok_fail(e_msgtype msg_type, t_sfd client_conn,e_opcode ok_f
 	t_header header= {ok_fail,msg_type};
 	char* rta_to_str = cs_msg_to_str(NULL, header.opcode, header.msgtype);
 	if( cs_send_respuesta(client_conn, header, NULL) == STATUS_SUCCESS )
-		{
-			CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
-		} else
-		{
-			CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
-		}
+	{
+		CS_LOG_INFO("Se envió la respuesta: %s", rta_to_str);
+	} else
+	{
+		CS_LOG_ERROR("No se pudo enviar la respuesta: %s", rta_to_str);
+	}
 
-		free(rta_to_str);
-		cs_msg_destroy(NULL, header.opcode, header.msgtype);
+	free(rta_to_str);
+	cs_msg_destroy(NULL, header.opcode, header.msgtype);
 }

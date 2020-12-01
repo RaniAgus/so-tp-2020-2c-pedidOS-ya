@@ -15,7 +15,11 @@ void enviarRespuestaOkFail(e_msgtype msg_type, t_sfd client_conn,e_opcode ok_fai
 
 void loguearError(e_status err);
 
-int main(void) {
+int main(int argc, char* argv[]) {
+	for(int i = 1; i<argc; i++) {
+		if(string_starts_with(argv[i],"-")) cs_parse_argument(argv[i]);
+	}
+
 	char* str_time;
 	//Abre el archivo de configuración
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);

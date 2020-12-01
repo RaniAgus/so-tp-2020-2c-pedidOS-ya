@@ -4,7 +4,9 @@
 #include "cserror.h"
 #include "csconfig.h"
 #include "csconsole.h"
+#include <commons/txt.h>
 #include <commons/log.h>
+#include <commons/memory.h>
 
 /**
 * @NAME cs_logger_init (versión de log_create de commons/log.h)
@@ -41,7 +43,14 @@ pthread_mutex_t* cs_logger_get_mutex(void);
 * @NAME cs_logger_get
 * @DESC Retorna la instancia de logger interna.
 */
-t_log*           cs_logger_get(void);
+t_log* cs_logger_get(void);
+
+/**
+* @NAME: cs_log_hexdump
+* @DESC: Imprime un dump hexadecimal por pantalla de una porción de memoria dada
+* solo si el log level es menor o igual al pasado por parámetro (versión de mem_hexdump de commons/memory.h)
+*/
+void cs_log_hexdump(t_log_level log_level, void* source, size_t length);
 
 /**
 * @NAME CS_LOG_TRACE (versión de log_trace de commons/log.h)
