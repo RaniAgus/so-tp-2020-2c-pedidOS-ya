@@ -107,7 +107,6 @@ e_opcode guardarPedido(t_consulta* consulta){ // LISTO
 						"CANTIDAD_LISTA=[]\n"
 						"PRECIO_TOTAL=0\n"
 			);
-
 			char* infoPedido = escribirNuevoArchivo(escritura, "Restaurante %s Pedido %d", consulta->restaurante, consulta->pedido_id);
 			if(infoPedido != NULL) {
 				escribirInfoPedido(infoPedido, consulta->pedido_id, consulta->restaurante);
@@ -135,9 +134,8 @@ e_opcode guardarPlato(t_consulta* consulta){ // LISTO
 			} else {
 				nuevaEscritura = agregarPlato(lectura, consulta);
 			}
-			pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
+			respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
 			free(nuevaEscritura);
-			respuesta = OPCODE_RESPUESTA_OK;
 		} else {
 			CS_LOG_ERROR("El pedido %d ya no se encuentra pendiente", consulta->pedido_id);
 		}
@@ -153,9 +151,8 @@ e_opcode confirmarPedido(t_consulta* consulta){ // LISTO
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_PENDIENTE)){
 			char* nuevaEscritura = cambiarEstadoPedidoA(lectura, consulta, PEDIDO_CONFIRMADO);
-			pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
+			respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
 			free(nuevaEscritura);
-			respuesta = OPCODE_RESPUESTA_OK;
 		} else {
 			CS_LOG_ERROR("El pedido %d ya no se encuentra pendiente", consulta->pedido_id);
 		}
@@ -193,12 +190,11 @@ e_opcode platoListo(t_consulta* consulta){ //
 		if(estaEnEstado(lectura, PEDIDO_CONFIRMADO)){
 			if(string_contains(lectura, consulta->comida)){
 				char* nuevaEscritura = agregarPlatoListo(lectura, consulta);
-				if(nuevaEscritura != lectura) {
-					pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
+				if(nuevaEscritura != NULL) {
+					respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
 					free(nuevaEscritura);
-					respuesta = OPCODE_RESPUESTA_OK;
 				} else {
-					CS_LOG_ERROR("Ya estaban listos todos los platos %s del pedido %s del restaurante %s", consulta->comida, consulta->pedido_id, consulta->restaurante);
+					CS_LOG_ERROR("Ya estaban listos todos los platos %s del pedido %d del restaurante %s", consulta->comida, consulta->pedido_id, consulta->restaurante);
 				}
 			} else {
 				CS_LOG_ERROR("El pedido %d del restaurante %s no posee el plato %s", consulta->pedido_id, consulta->restaurante, consulta->comida);
@@ -208,7 +204,6 @@ e_opcode platoListo(t_consulta* consulta){ //
 		}
 		free(lectura);
 	}
-
 	return respuesta;
 }
 
@@ -218,9 +213,8 @@ e_opcode terminarPedido(t_consulta* consulta){ //
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_CONFIRMADO)){
 			char* nuevaEscritura = cambiarEstadoPedidoA(lectura, consulta, PEDIDO_TERMINADO);
-			pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
+			respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
 			free(nuevaEscritura);
-			respuesta = OPCODE_RESPUESTA_OK;
 		} else {
 			CS_LOG_ERROR("El pedido %d tovadía no se ha confirmado", consulta->pedido_id);
 		}
@@ -255,6 +249,7 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){ // LISTO
 void crearRestaurante(char** consulta){ // LISTO
 	char* path = obtenerPathRestaurante(consulta[RES_NOMBRE]);
 	existeDirectorio(path ,1);
+	char* pathCarpeta = string_duplicate(path);
 	CS_LOG_INFO("Se creo el restaurante %s", consulta[RES_NOMBRE]);
 	
 	string_append(&path, "/Info.AFIP");
@@ -281,8 +276,10 @@ void crearRestaurante(char** consulta){ // LISTO
 		CS_LOG_INFO("Se creo el archivo \"Info.AFIP\" para el restaurant %s", consulta[RES_NOMBRE]);
 
 		free(infoRes);
+	} else {
+		remove(pathCarpeta);
 	}
-
+	free(pathCarpeta);
 	free(path);
 	free(escritura);
 }
@@ -317,16 +314,16 @@ int obtenerYEscribirProximoDisponible(char* aQuien){
 
 	t_bitarray* bitmap = bitarray_create_with_mode((char*)punteroABitmap, cantidadBloques/8, MSB_FIRST);
 
-	for(int i=1; i<=cantidadBloques; i++){
+	for(int i=0; i<cantidadBloques; i++){
 		if(bitarray_test_bit(bitmap, i) == 0){
 			bitarray_set_bit(bitmap ,i);
-			CS_LOG_INFO("Se asigno el bloque %d al %s", i, aQuien);
+			CS_LOG_INFO("Se asigno el bloque %d al %s", i+1, aQuien);
 			msync(bitmap->bitarray,cantidadBloques/8 ,0);
 			close(bitmapFile);
 			bitarray_destroy(bitmap);
 			sem_post(&bitmapSem);
 			free(path);
-			return i;
+			return i + 1;
 		}
 	}
 	close(bitmapFile);
@@ -524,7 +521,7 @@ char* agregarPlatoListo(char* escrituraVieja, t_consulta* consulta){ // LISTO
 	plato->cant_lista++;
 	if(plato->cant_lista > plato->cant_total) {
 		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
-		return escrituraVieja;
+		return NULL;
 	}
 
 	char* escrituraNueva = cs_pedido_to_escritura(pedido);
@@ -546,7 +543,7 @@ char* cambiarEstadoPedidoA(char* lectura, t_consulta* consulta, e_estado_ped est
 
 // --------------------- RETOCAR BLOQUES --------------------- //
 
-void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura) {
+e_opcode pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura) {
 	int bloqueInicial, size;
 	obtenerMetadataPedido(idPedido, nombreRestaurante, &bloqueInicial, &size);
 	t_list* bloques = leerNumerosBloques(bloqueInicial, size);
@@ -557,9 +554,11 @@ void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritur
 		char* infoPedido = string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(nuevaEscritura), primerBloque);
 		escribirInfoPedido(infoPedido, idPedido, nombreRestaurante);
 	} else {
-		// TODO: Devolver error
+		list_destroy(bloques);
+		return OPCODE_RESPUESTA_FAIL;
 	}
 	list_destroy(bloques);
+	return OPCODE_RESPUESTA_OK;
 }
 
 void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien) {
@@ -569,14 +568,22 @@ void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien)
 		limpiarBloque((int)list_get(bloques, list_size(bloques)-1));
 		list_remove(bloques, list_size(bloques)-1);
 	}
+	t_list* listaDeBloquesAgregados = list_create();
 	while(list_size(bloques) < cantidadEscrituras){
 		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien);
-		if(bloqueNuevo == 0) {
-			//TODO: Ver qué pasa si el bitmap se llena
-			break;
+		if(bloqueNuevo == 0){
+			while(!list_is_empty(listaDeBloquesAgregados)){
+				int bloqueALiberar = (int)list_remove(listaDeBloquesAgregados, 0);
+				eliminarBit(bloqueALiberar);
+			}
+			list_destroy(listaDeBloquesAgregados);
+			list_clean(bloques);
+			return;
 		}
-		list_add(bloques, (void*)bloqueNuevo);
+		list_add(listaDeBloquesAgregados, (void*)bloqueNuevo);
 	}
+	list_add_all(bloques, listaDeBloquesAgregados);
+	list_destroy(listaDeBloquesAgregados);
 }
 
 void escribirBloques(t_list* bloques, char* escrituraNueva){ //Antes era pisar()
@@ -610,13 +617,15 @@ int escribirBloquesNuevos(char* escritura, char* aQuien){ // Antes era escribirB
 	for(int i = 0; i < cantidadEscrituras; i++) {
 		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien);
 		if(bloqueNuevo == 0) {
-			//TODO: Ver qué pasa si el bitmap se llena
+			while(!list_is_empty(bloques)){
+				int bloqueALiberar = (int)list_remove(bloques, 0);
+				eliminarBit(bloqueALiberar);
+			}
 			break;
 		}
 		list_add(bloques, (void*)bloqueNuevo);
 	}
-
-	int primerBloque = (int)list_get(bloques, 0); //Si la lista está vacía, retorna 0
+	int primerBloque = (int)list_get(bloques, 0);
 	if(primerBloque > 0) {
 		escribirBloques(bloques, escritura);
 	}
@@ -662,9 +671,12 @@ char* leerBloques(int initialBlock, int size){
 		free(lecturaAux);
 	}
 	char* lecturaAux = leerBloque(nextBlock);
-	string_n_append(&lectura, lecturaAux, size % (tamanioBloque - tamanioReservado));
+	int resto = size % (tamanioBloque - tamanioReservado);
+	if(resto == 0){
+		resto = tamanioBloque;
+	}
+	string_n_append(&lectura, lecturaAux, resto);
 	free(lecturaAux);
-
 	return lectura;
 }
 
@@ -679,7 +691,6 @@ t_list* leerNumerosBloques(int initialBlock, int size){
 		list_add(bloques, (void*)nextBlock);
 		free(lecturaAux);
 	}
-
 	return bloques;
 }
 
@@ -842,7 +853,6 @@ char* escribirNuevoArchivo(char* escritura, const char* dest, ...) {
 	if(primerBloque > 0){
 		return string_from_format("SIZE=%d\nINITIAL_BLOCK=%d", strlen(escritura), primerBloque);
 	} else {
-		//TODO: Mensaje de error?
 		return NULL;
 	}
 }

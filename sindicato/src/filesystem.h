@@ -69,7 +69,7 @@ char* leerPedido(uint32_t,char*);
 
 // -------- RETOCAR BLOQUES -------- //
 
-void pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura);
+e_opcode pisarPedido(uint32_t idPedido, char* nombreRestaurante, char* nuevaEscritura);
 void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien);
 void escribirBloques(t_list*, char*);
 
