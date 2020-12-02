@@ -76,11 +76,16 @@ void escribirBloques(t_list*, char*);
 
 // -------- MODIFICAR STRINGS -------- //
 
-char* cs_pedido_to_escritura(t_rta_obt_ped* pedido);
+char* cs_pedido_to_escritura(t_rta_obt_ped*, char*);
 char* agregarCantPlatos(char*, t_consulta*);
 char* agregarPlato(char*, t_consulta*);
 char* agregarPlatoListo(char*, t_consulta*);
 char* cambiarEstadoPedidoA(char*, t_consulta*, e_estado_ped);
+
+// -------- PLATOS -------- //
+
+int obtener_precio_platos(char*, char*, char*);
+int obtener_precio(char*, int, char*);
 
 // -------- BLOQUES -------- //
 

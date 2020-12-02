@@ -475,19 +475,21 @@ char* leerPedido(uint32_t idPedido, char* nombreRestaurante) {
 
 // --------------------- MODIFICAR STRINGS --------------------- //
 
-char* cs_pedido_to_escritura(t_rta_obt_ped* pedido) {
+char* cs_pedido_to_escritura(t_rta_obt_ped* pedido, char* restaurante){
 	char *comidas, *listos, *totales;
 	cs_platos_to_string(pedido->platos_y_estados, &comidas, &listos, &totales);
+	int precio = obtener_precio_platos(comidas, totales, restaurante);
 	char* escritura = string_from_format(
 			"ESTADO_PEDIDO=%s\n"
 			"LISTA_PLATOS=%s\n"
 			"CANTIDAD_PLATOS=%s\n"
 			"CANTIDAD_LISTA=%s\n"
-			"PRECIO_TOTAL=0\n"
+			"PRECIO_TOTAL=%d\n"
 			, cs_enum_estado_pedido_to_str(pedido->estado_pedido)
 			, comidas
 			, totales
 			, listos
+			, precio
 	);
 	free(comidas);
 	free(listos);
@@ -505,7 +507,7 @@ char* agregarCantPlatos(char* escrituraVieja, t_consulta* consulta){
 	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
 	plato->cant_total += consulta->cantidad;
 
-	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido, consulta->restaurante);
 
 	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	return escrituraNueva;
@@ -520,7 +522,7 @@ char* agregarPlato(char* escrituraVieja, t_consulta* consulta){ // LISTO
 	nuevo->cant_total = consulta->cantidad;
 	list_add(pedido->platos_y_estados, nuevo);
 
-	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido, consulta->restaurante);
 
 	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	return escrituraNueva;
@@ -539,7 +541,7 @@ char* agregarPlatoListo(char* escrituraVieja, t_consulta* consulta){ // LISTO
 		return NULL;
 	}
 
-	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido, consulta->restaurante);
 
 	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	return escrituraNueva;
@@ -550,10 +552,56 @@ char* cambiarEstadoPedidoA(char* lectura, t_consulta* consulta, e_estado_ped est
 
 	pedido->estado_pedido = estado;
 
-	char* escrituraNueva = cs_pedido_to_escritura(pedido);
+	char* escrituraNueva = cs_pedido_to_escritura(pedido, consulta->restaurante);
 
 	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
 	return escrituraNueva;
+}
+
+// --------------------- PLATOS --------------------- //
+
+int obtener_precio_platos(char* platosStr, char* totalesStr, char* restaurante){
+	char** platos = string_get_string_as_array(platosStr);
+	char** totales = string_get_string_as_array(totalesStr);
+	int precio = 0;
+	int i=0;
+	while(platos[i]!=NULL){
+		precio = precio + obtener_precio(platos[i], atoi(totales[i]),restaurante);
+		i++;
+	}
+	liberar_lista(platos);
+	return precio;
+}
+
+int obtener_precio(char* plato,int cantidad, char* restaurante){
+	int precio = 0;
+	char* pathRestaurante = obtenerPathRestaurante(restaurante);
+	string_append(&pathRestaurante, "/Info.AFIP");
+	t_config* md = config_create(pathRestaurante);
+	int initialBlock = config_get_int_value(md, "INITIAL_BLOCK");
+	int size = config_get_int_value(md, "SIZE");
+	config_destroy(md);
+
+	char* lectura = leerBloques(initialBlock, size);
+
+	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
+	char* platosStr = dictionary_get(temp, "PLATOS");
+	char* preciosStr = dictionary_get(temp, "PRECIO_PLATOS");
+	char** platos = string_get_string_as_array(platosStr);
+	char** precios = string_get_string_as_array(preciosStr);
+	dictionary_destroy_and_destroy_elements(temp, (void*) free);
+
+	int i = 0;
+	while(platos[i]!=NULL){
+		if(!strcmp(plato, platos[i])){
+			precio = atoi(precios[i]);
+			break;
+		}
+		i++;
+	}
+	liberar_lista(platos);
+	liberar_lista(precios);
+	return precio*cantidad;
 }
 
 // --------------------- RETOCAR BLOQUES --------------------- //
@@ -721,8 +769,8 @@ void limpiarBloque(int bloque){
 // --------------------- RESTAURANTE --------------------- //
 
 bool buscarPlatoEnRestaurante(char* lectura, t_consulta* consulta){
-	t_dictionary* temp = cs_lectura_to_dictionary(lectura);
-	char** platos = string_get_string_as_array(dictionary_get(temp, "PLATOS"));
+	char* platosStr = obtenerPlatos(lectura);
+	char** platos = string_get_string_as_array(platosStr);
 	int i = 0;
 	bool resultado = false;
 	while(platos[i] != NULL){
@@ -733,7 +781,6 @@ bool buscarPlatoEnRestaurante(char* lectura, t_consulta* consulta){
 		i++;
 	}
 	liberar_lista(platos);
-	dictionary_destroy_and_destroy_elements(temp, (void*) free);
 	return resultado;
 }
 
