@@ -392,8 +392,9 @@ int buscarPlatoEnPedido(char* escrituraVieja, t_consulta* consulta){
 		return !strcmp(plato->comida, consulta->comida);
 	}
 	t_plato * plato = list_find(pedido->platos_y_estados, (void*) encontrarPorNombre);
-	//ELIMINAR PEDIDO
-	return plato!=NULL;
+	int resultado = plato!=NULL;
+	cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+	return resultado;
 }
 
 t_rta_obt_ped* cs_lectura_to_pedido(char* lectura) {
@@ -784,6 +785,7 @@ bool buscarPlatoEnRestaurante(char* lectura, t_consulta* consulta){
 		}
 		i++;
 	}
+	free(platosStr);
 	liberar_lista(platos);
 	return resultado;
 }
@@ -921,7 +923,6 @@ t_dictionary* cs_lectura_to_dictionary(char* lectura) {
 		free(aux[0]);
 		free(aux);
 	}
-	//ELIMINAR PERO QUE
 	liberar_lista(lineas);
 	return dictionary;
 }
