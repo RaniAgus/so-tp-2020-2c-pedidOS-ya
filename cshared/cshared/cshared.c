@@ -18,12 +18,10 @@ void cs_module_init(const char* config_file_path, const char* log_file_key, cons
 {
 	CHECK_STATUS(cs_config_init(config_file_path));
 	CHECK_STATUS(cs_logger_init(log_file_key, module_name));
-	cs_error_init();
 }
 
 void cs_module_close(void)
 {
-	cs_error_delete();
 	cs_logger_delete();
 	cs_config_delete();
 }

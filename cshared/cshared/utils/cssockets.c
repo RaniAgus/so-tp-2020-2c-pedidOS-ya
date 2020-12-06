@@ -14,28 +14,6 @@ const char* cs_enum_opcode_to_str(int value)
 	return CS_OPCODE_STR[value];
 }
 
-void cs_package_destroy(t_package* package)
-{
-	if(package)
-	{
-		if(package->payload) cs_buffer_destroy(package->payload);
-		free(package);
-	}
-
-	return;
-}
-
-void cs_buffer_destroy(t_buffer* buffer)
-{
-	if(buffer)
-	{
-		if(buffer->stream) free(buffer->stream);
-		free(buffer);
-	}
-
-	return;
-}
-
 void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), void(*err_handler)(e_status))
 {
 	t_sfd* client_conn;
@@ -50,7 +28,6 @@ void cs_tcp_server_accept_routine(t_sfd* conn, void(*success_action)(t_sfd*), vo
 	    if(*client_conn == -1)
 	    {
 	    	free((void*)client_conn);
-	    	cs_set_local_err(errno);
 	    	err_handler(STATUS_ACCEPT_ERROR);
 	    	continue;
 	    }
@@ -66,27 +43,19 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 
 	//Parsea las direcciones
 	struct addrinfo hints;
-	struct addrinfo* serverInfo;
+	struct addrinfo *serverInfo;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family   = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags    = AI_PASSIVE;
 
-	err = getaddrinfo("localhost", port, &hints, &serverInfo);
+	err = getaddrinfo(NULL, port, &hints, &serverInfo);
 	if(err)
 	{
 		freeaddrinfo(serverInfo);
-		if (err == EAI_SYSTEM)
-		{
-			cs_set_local_err(errno); // Algunos errores se setean en 'errno'
-			return STATUS_LOOK_UP_ERROR;
-		}
-		else
-		{
-			cs_set_local_err(err); // Otros son propios de 'getaddrinfo()' y se leen con 'gai_strerror()'
-			return STATUS_GETADDRINFO_ERROR;
-		}
+		// Algunos errores se setean en 'errno' y otros son propios de 'getaddrinfo()' y se leen con 'gai_strerror()'
+		return err == EAI_SYSTEM ? STATUS_GETADDRINFO_ERROR : err;
 	}
 
 	//Obtiene el file descriptor
@@ -94,7 +63,6 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 	if(*conn == -1)
 	{
 		freeaddrinfo(serverInfo);
-		cs_set_local_err(errno);
 		return STATUS_SOCKET_ERROR;
 	}
 
@@ -104,7 +72,6 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 	if(err == -1)
 	{
 		freeaddrinfo(serverInfo);
-		cs_set_local_err(errno);
 		return STATUS_SOCKET_ERROR;
 	}
 
@@ -113,7 +80,6 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 	if(err == -1)
 	{
 		freeaddrinfo(serverInfo);
-		cs_set_local_err(errno);
 		return STATUS_BIND_ERROR;
 	}
 
@@ -122,7 +88,6 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port)
 	if(err == -1)
 	{
 		freeaddrinfo(serverInfo);
-		cs_set_local_err(errno);
 		return STATUS_LISTEN_ERROR;
 	}
 
@@ -136,7 +101,7 @@ e_status cs_tcp_client_create(t_sfd* conn, char* ip, char* port)
 
 	//Parsea las direcciones
 	struct addrinfo hints;
-	struct addrinfo *clientInfo;
+	struct addrinfo *clientInfo, *p;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family   = AF_UNSPEC;
@@ -146,38 +111,80 @@ e_status cs_tcp_client_create(t_sfd* conn, char* ip, char* port)
 	if(err)
 	{
 		freeaddrinfo(clientInfo);
-		if (err == EAI_SYSTEM)
-		{
-			cs_set_local_err(errno); // Algunos errores se setean en 'errno'
-			return STATUS_LOOK_UP_ERROR;
-		}
-		else
-		{
-			cs_set_local_err(err); // Otros son propios de 'getaddrinfo()' y se leen con 'gai_strerror()'
-			return STATUS_GETADDRINFO_ERROR;
-		}
+		// Algunos errores se setean en 'errno' y otros son propios de 'getaddrinfo()' y se leen con 'gai_strerror()'
+		return err == EAI_SYSTEM ? STATUS_GETADDRINFO_ERROR : err;
 	}
 
-	//Obtiene el file descriptor
-	*conn = socket(clientInfo->ai_family,clientInfo->ai_socktype,clientInfo->ai_protocol);
-	if(*conn == -1)
+	for(p = clientInfo; p != NULL; p = p->ai_next)
 	{
-		freeaddrinfo(clientInfo);
-		cs_set_local_err(errno);
-		return STATUS_SOCKET_ERROR;
-	}
+		//Obtiene el file descriptor
+		*conn = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+		if(*conn == -1)
+			continue;
 
-	//Se conecta al puerto de escucha del servidor
-	err = connect(*conn,clientInfo->ai_addr,clientInfo->ai_addrlen);
-	if(err == -1)
-	{
-		freeaddrinfo(clientInfo);
-		cs_set_local_err(errno);
-		return STATUS_CONNECT_ERROR;
+		//Se conecta al puerto de escucha del servidor
+		err = connect(*conn, p->ai_addr, p->ai_addrlen);
+		if(err != -1)
+			break;
+
+		close(*conn);
 	}
 
 	freeaddrinfo(clientInfo);
+
+	return *conn == -1 ? STATUS_SOCKET_ERROR : err == -1 ? STATUS_CONNECT_ERROR : STATUS_SUCCESS;
+}
+
+e_status cs_send_all(t_sfd conn, t_buffer* buffer)
+{
+	t_buffer* temp = buffer_create();
+	buffer_pack(temp, &buffer->size, sizeof(uint32_t));
+	buffer_pack(temp, buffer->stream, buffer->size);
+
+	int bytes_sent = 0;
+	int bytes_left = temp->size;
+
+	//El protocolo TCP puede partir el paquete si es muy grande (>1K)
+	while(bytes_left > 0)
+	{
+		//'MSG_NOSIGNAL' para que no se envíe la señal 'SIGPIPE' al destinatario
+		int n = send(conn, temp->stream + bytes_sent, bytes_left, MSG_NOSIGNAL);
+		if(n == -1)
+		{
+			buffer_destroy(temp);
+			if(errno == EPIPE)
+				return STATUS_CONN_LOST;
+			else
+				return STATUS_SEND_ERROR;
+		} else
+		{
+			bytes_sent += n;
+			bytes_left -= n;
+		}
+	}
+
+	buffer_destroy(temp);
 	return STATUS_SUCCESS;
+}
+
+e_status cs_receive_all(t_sfd sockfd, t_buffer* buffer)
+{
+	t_buffer temp;
+	int bytes_received;
+
+	bytes_received = recv(sockfd, &temp.size, sizeof(uint32_t), MSG_WAITALL);
+	if(bytes_received > 0)
+	{
+		temp.stream = malloc(temp.size);
+		bytes_received = recv(sockfd, temp.stream, temp.size, MSG_WAITALL);
+		if(bytes_received > 0)
+		{
+			buffer_pack(buffer, temp.stream, temp.size);
+		}
+		free(temp.stream);
+	}
+
+	return bytes_received > 0 ? STATUS_SUCCESS : (bytes_received == 0 ?  STATUS_CONN_LOST : STATUS_RECV_ERROR);
 }
 
 e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
@@ -194,7 +201,6 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 	{
 		free(ip);
 		free(port);
-		cs_set_local_err(errno);
 		return STATUS_GETPEERNAME_ERROR;
 	}
 
@@ -207,15 +213,8 @@ e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
 	{
 		free(ip);
 		free(port);
-		if(err == EAI_SYSTEM)
-		{
-			cs_set_local_err(errno);
-			return STATUS_LOOK_UP_ERROR;
-		} else
-		{
-			cs_set_local_err(err);
-			return STATUS_GETADDRINFO_ERROR;
-		}
+		// Algunos errores se setean en 'errno' y otros son propios de 'getnameinfo()' y se leen con 'gai_strerror()'
+		return err == EAI_SYSTEM ? STATUS_GETNAMEINFO_ERROR : err;
 	}
 
 	if(ip_ptr)   *ip_ptr   = strdup(ip);

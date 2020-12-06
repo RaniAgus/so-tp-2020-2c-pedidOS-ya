@@ -9,6 +9,7 @@
 #include <pthread.h>
 
 #include "cserror.h"
+#include "csbuffer.h"
 
 typedef volatile int t_sfd;
 
@@ -18,35 +19,11 @@ typedef struct
 	int8_t 	 msgtype;
 }t_header;
 
-typedef struct
-{
-	uint32_t size;
-	void*	 stream;
-}t_buffer;
-
-typedef struct
-{
-	t_header  header;
-	t_buffer* payload;
-}t_package;
-
 /**
 * @NAME cs_enum_opcode_to_str
 * @DESC Devuelve el string correspondiente al enum value de t_enum_msgtype
 */
 const char* cs_enum_opcode_to_str(int value);
-
-/**
-* @NAME cs_package_destroy
-* @DESC Destruye un paquete y su contenido
-*/
-void cs_package_destroy(t_package* package);
-
-/**
-* @NAME cs_buffer_destroy
-* @DESC Destruye un buffer y su contenido
-*/
-void cs_buffer_destroy(t_buffer* buffer);
 
 /**
 * @NAME cs_tcp_server_accept_routine
@@ -74,6 +51,18 @@ e_status cs_tcp_server_create(t_sfd* conn, char* port);
 * retorna el tipo de error.
 */
 e_status cs_tcp_client_create(t_sfd* conn, char* ip, char* port);
+
+/**
+* @NAME cs_send_all
+* @DESC Envía un buffer serializado hacia el destinatario indicado usando send()
+*/
+e_status cs_send_all(t_sfd conn, t_buffer* buffer);
+
+/**
+* @NAME socket_receive_all
+* @DESC Recibe un buffer serializado desde el remitente indicado usando recv()
+*/
+e_status cs_receive_all(t_sfd sockfd, t_buffer* buffer);
 
 /**
 * @NAME cs_get_peer_info

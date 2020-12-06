@@ -21,6 +21,9 @@ lib$(LIBRARY_NAME).so: $(CSHARED_SRC) $(CSHARED_DEPS)
 # All target
 all: lib$(LIBRARY_NAME).so
 
+test: all
+	cd tests && make valgrind
+
 install: all
 	sudo cp -u lib$(LIBRARY_NAME).so /usr/lib
 	sudo cp --parents -u $(CSHARED_DEPS) /usr/include

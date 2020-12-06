@@ -41,8 +41,9 @@ context(test_serializacion) {
 		should_int(comida_menu->precio) be equal to (precio);
 	}
 
-	void* serializar_y_deserializar(t_header header, void* mensaje, t_buffer*(*to_buffer)(void*), int expected_size) {
-		t_buffer* buffer = to_buffer(mensaje);
+	void* serializar_y_deserializar(t_header header, void* mensaje, e_module dest, int expected_size) {
+		t_buffer* buffer = buffer_create();
+		buffer_pack_msg(buffer, header, mensaje, dest);
 
 		should_ptr(buffer) not be null;
 		should_int(buffer->size) be equal to (expected_size);
@@ -52,7 +53,7 @@ context(test_serializacion) {
 			should_ptr(buffer->stream) be null;
 		}
 
-		void* recibido = cs_buffer_to_msg(header, buffer, -1);
+		void* recibido = buffer_unpack_msg(header, buffer, -1);
 
 		if(buffer->stream) free(buffer->stream);
 		free(buffer);
@@ -70,14 +71,10 @@ context(test_serializacion) {
 			cs_config_delete();
 		} end
 
-		t_buffer* _consulta_to_buffer(t_consulta* consulta) {
-			return cs_consulta_to_buffer(consulta, MODULO_COMANDA);
-		}
-
 		it("Consulta sin parámetros") {
 			t_header header = {OPCODE_CONSULTA, CONSULTAR_RESTAURANTES};
 			t_consulta* enviado  = _cons_create(CONSULTAR_RESTAURANTES, NULL, 0, NULL, 0);
-			t_consulta* recibido = serializar_y_deserializar(header, enviado, (void*)_consulta_to_buffer, 0);
+			t_consulta* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) not be null;
 			should_ptr(recibido->comida) be null;
@@ -92,7 +89,7 @@ context(test_serializacion) {
 		it("Consulta con todos los parámetros") {
 			t_header header = {OPCODE_CONSULTA, GUARDAR_PLATO};
 			t_consulta* enviado  = _cons_create(GUARDAR_PLATO, "Bayern", 8, "Barcelona", 2);
-			t_consulta* recibido = serializar_y_deserializar(header, enviado, (void*)_consulta_to_buffer, 31);
+			t_consulta* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 31);
 
 			should_ptr(recibido) not be null;
 			should_string(recibido->comida) be equal to ("Bayern");
@@ -107,7 +104,7 @@ context(test_serializacion) {
 		it("Consulta handshake Cliente") {
 			t_header header = {OPCODE_CONSULTA, HANDSHAKE_CLIENTE};
 			t_handshake_cli* enviado  = cs_cons_handshake_cli_create();
-			t_handshake_cli* recibido = serializar_y_deserializar(header, enviado, (void*) cs_handshake_cli_to_buffer, 20);
+			t_handshake_cli* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 20);
 
 			should_ptr(recibido) not be null;
 			should_string(recibido->nombre) be equal to ("Cliente1");
@@ -122,7 +119,7 @@ context(test_serializacion) {
 			t_header header = {OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE};
 			t_pos posicion = {7, 8};
 			t_handshake_res* enviado  = cs_cons_handshake_res_create(posicion);
-			t_handshake_res* recibido = serializar_y_deserializar(header, enviado, (void*) cs_handshake_res_to_buffer, 31);
+			t_handshake_res* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 31);
 
 			should_ptr(recibido) not be null;
 			should_string(recibido->nombre) be equal to ("ElParrillon");
@@ -150,11 +147,7 @@ context(test_serializacion) {
 			const char* restaurantes[] = { "Resto1", "Resto2", "Resto3", NULL };
 			t_header header = {OPCODE_RESPUESTA_OK, CONSULTAR_RESTAURANTES};
 			t_rta_cons_rest* enviado  = cs_rta_consultar_rest_create(string_get_string_as_array("[Resto1,Resto2,Resto3]"));
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_cons_rest* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 26);
+			t_rta_cons_rest* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 26);
 
 			should_ptr(recibido) not be null;
 			assert_array(recibido->restaurantes, restaurantes);
@@ -166,11 +159,7 @@ context(test_serializacion) {
 		it("Seleccionar Restaurante") {
 			t_header header = {OPCODE_RESPUESTA_OK, SELECCIONAR_RESTAURANTE};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -185,11 +174,7 @@ context(test_serializacion) {
 			t_header header = {OPCODE_RESPUESTA_OK, OBTENER_RESTAURANTE};
 			t_rta_obt_rest* enviado = cs_rta_obtener_rest_create(4, "[Mollejas,Choripan]",
 					"[AsadoCompleto,Choripan,Mollejas]", "[300,50,250]", posicion, 5, 10);
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_obt_rest* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 96);
+			t_rta_obt_rest* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 100);
 
 			should_ptr(recibido) not be null;
 			should_int(recibido->cant_cocineros) be equal to (4);
@@ -210,11 +195,7 @@ context(test_serializacion) {
 			const char* platos[] = { "Plato1", "Plato2", "Plato3", NULL };
 			t_header header = {OPCODE_RESPUESTA_OK, CONSULTAR_PLATOS};
 			t_rta_cons_pl* enviado  = cs_rta_consultar_pl_create("[Plato1,Plato2,Plato3]");
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_cons_pl* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 26);
+			t_rta_cons_pl* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 26);
 
 			should_ptr(recibido) not be null;
 			assert_array(recibido->comidas, platos);
@@ -226,11 +207,7 @@ context(test_serializacion) {
 		it("Crear Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, CREAR_PEDIDO};
 			t_rta_crear_ped* enviado = cs_rta_crear_ped_create(24);
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_crear_ped* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 4);
+			t_rta_crear_ped* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 4);
 
 			should_ptr(recibido) not be null;
 			should_int(recibido->pedido_id) be equal to (24);
@@ -242,11 +219,7 @@ context(test_serializacion) {
 		it("Guardar Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, GUARDAR_PEDIDO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -257,11 +230,7 @@ context(test_serializacion) {
 		it("Aniadir Plato") {
 			t_header header = {OPCODE_RESPUESTA_OK, ANIADIR_PLATO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -272,11 +241,7 @@ context(test_serializacion) {
 		it("Guardar Plato") {
 			t_header header = {OPCODE_RESPUESTA_OK, GUARDAR_PLATO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -287,11 +252,7 @@ context(test_serializacion) {
 		it("Confirmar Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, CONFIRMAR_PEDIDO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -302,11 +263,7 @@ context(test_serializacion) {
 		it("Plato Listo") {
 			t_header header = {OPCODE_RESPUESTA_OK, PLATO_LISTO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -317,11 +274,7 @@ context(test_serializacion) {
 		it("Consultar Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, CONSULTAR_PEDIDO};
 			t_rta_cons_ped* enviado  = cs_rta_consultar_ped_create("ElParrillon", PEDIDO_CONFIRMADO, "[Choripan,AsadoCompleto]", "[2,1]", "[4,1]");
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_cons_ped* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 62);
+			t_rta_cons_ped* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 65);
 
 			should_ptr(recibido) not be null;
 			should_string(recibido->restaurante) be equal to ("ElParrillon");
@@ -336,11 +289,7 @@ context(test_serializacion) {
 		it("Obtener Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, OBTENER_PEDIDO};
 			t_rta_obt_ped* enviado  = cs_rta_obtener_ped_create(PEDIDO_CONFIRMADO, "[Choripan,AsadoCompleto]", "[2,1]", "[4,1]");
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_obt_ped* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 47);
+			t_rta_obt_ped* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 50);
 
 			should_ptr(recibido) not be null;
 			should_int(recibido->estado_pedido) be equal to (PEDIDO_CONFIRMADO);
@@ -354,11 +303,7 @@ context(test_serializacion) {
 		it("Finalizar Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, FINALIZAR_PEDIDO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -369,11 +314,7 @@ context(test_serializacion) {
 		it("Terminar Pedido") {
 			t_header header = {OPCODE_RESPUESTA_OK, TERMINAR_PEDIDO};
 			void* enviado  = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 
@@ -384,11 +325,7 @@ context(test_serializacion) {
 		it("Obtener Receta") {
 			t_header header = {OPCODE_RESPUESTA_OK, OBTENER_RECETA};
 			t_rta_obt_rec* enviado = cs_rta_obtener_receta_create("[Preparar,Servir]", "[2,1]");
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_obt_rec* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 30);
+			t_rta_obt_rec* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 34);
 
 			should_ptr(recibido) not be null;
 			assert_paso_in_receta(recibido->pasos_receta, 0, "Preparar", 2);
@@ -401,11 +338,7 @@ context(test_serializacion) {
 		it("Handshake Cliente") {
 			t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE_CLIENTE};
 			t_rta_handshake_cli* enviado = cs_rta_handshake_cli_create();
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			t_rta_handshake_cli* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 1);
+			t_rta_handshake_cli* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 1);
 
 			should_ptr(recibido) not be null;
 			should_int(recibido->modulo) be equal to (MODULO_APP);
@@ -417,11 +350,7 @@ context(test_serializacion) {
 		it("Handshake Restaurante") {
 			t_header header = {OPCODE_RESPUESTA_OK, HANDSHAKE_RESTAURANTE};
 			void* enviado = NULL;
-
-			t_buffer* _respuesta_to_buffer(void* mensaje) {
-				return cs_respuesta_to_buffer(header, mensaje);
-			}
-			void* recibido = serializar_y_deserializar(header, enviado, (void*) _respuesta_to_buffer, 0);
+			void* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) be null;
 

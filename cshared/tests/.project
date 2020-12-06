@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>unit-tests</name>
+	<name>tests</name>
 	<comment></comment>
 	<projects>
 		<project>cshared</project>
@@ -23,5 +23,6 @@
 		<nature>org.eclipse.cdt.core.cnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+		<nature>org.eclipse.linuxtools.tmf.project.nature</nature>
 	</natures>
 </projectDescription>

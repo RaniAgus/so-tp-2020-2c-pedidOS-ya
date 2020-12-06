@@ -46,8 +46,8 @@ void app_conectar_restaurante(char* nombre, t_pos posicion, char* ip, char* puer
 	app_restaurante_t* restaurante = malloc(sizeof(app_restaurante_t));
 	restaurante->posicion.x = posicion.x;
 	restaurante->posicion.y = posicion.y;
-	restaurante->ip_escucha = ({ ip ? strdup(ip) : NULL; });
-	restaurante->puerto_escucha = ({ puerto ? strdup(puerto) : NULL; });
+	restaurante->ip_escucha = ip ? strdup(ip) : NULL;
+	restaurante->puerto_escucha = puerto ? strdup(puerto) : NULL;
 
 	//Lo agrega a la tabla de restaurantes
 	pthread_mutex_lock(&mutex_restaurantes);

@@ -141,6 +141,8 @@ context(test_messages) {
 
 			msg_to_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, CONSULTAR_PLATOS);
 			should_string(msg_to_str) be equal to ("CONSULTAR_PLATOS");
+			should_bool(cs_cons_has_argument(CONSULTAR_PLATOS, CONS_ARG_RESTAURANTE, MODULO_APP)) be falsey;
+			should_bool(cs_cons_has_argument(CONSULTAR_PLATOS, CONS_ARG_RESTAURANTE, MODULO_RESTAURANTE)) be falsey;
 			cs_msg_destroy(consulta, OPCODE_CONSULTA, CONSULTAR_PLATOS);
 			free(msg_to_str);
 		} end
@@ -153,6 +155,7 @@ context(test_messages) {
 
 			msg_to_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, CONSULTAR_PLATOS);
 			should_string(msg_to_str) be equal to ("CONSULTAR_PLATOS {RESTAURANTE: Resto}");
+			should_bool(cs_cons_has_argument(CONSULTAR_PLATOS, CONS_ARG_RESTAURANTE, MODULO_SINDICATO)) be truthy;
 			cs_msg_destroy(consulta, OPCODE_CONSULTA, CONSULTAR_PLATOS);
 			free(msg_to_str);
 		} end
@@ -273,6 +276,8 @@ context(test_messages) {
 
 			msg_to_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, CREAR_PEDIDO);
 			should_string(msg_to_str) be equal to ("CREAR_PEDIDO {ID_PEDIDO: 35}");
+			should_bool(cs_cons_has_argument(CONFIRMAR_PEDIDO, CONS_ARG_RESTAURANTE, MODULO_APP)) be falsey;
+			should_bool(cs_cons_has_argument(CONFIRMAR_PEDIDO, CONS_ARG_RESTAURANTE, MODULO_RESTAURANTE)) be falsey;
 			cs_msg_destroy(consulta, OPCODE_CONSULTA, CREAR_PEDIDO);
 			free(msg_to_str);
 		} end
@@ -286,6 +291,8 @@ context(test_messages) {
 
 			msg_to_str = cs_msg_to_str(consulta, OPCODE_CONSULTA, CREAR_PEDIDO);
 			should_string(msg_to_str) be equal to ("CREAR_PEDIDO {RESTAURANTE: Resto} {ID_PEDIDO: 35}");
+			should_bool(cs_cons_has_argument(CONFIRMAR_PEDIDO, CONS_ARG_RESTAURANTE, MODULO_COMANDA)) be truthy;
+			should_bool(cs_cons_has_argument(CONFIRMAR_PEDIDO, CONS_ARG_RESTAURANTE, MODULO_SINDICATO)) be truthy;
 			cs_msg_destroy(consulta, OPCODE_CONSULTA, CREAR_PEDIDO);
 			free(msg_to_str);
 		} end
