@@ -184,7 +184,7 @@ static void rest_recibir_confirmar_pedido(t_sfd conn, t_consulta* recibido, char
 	if(resultado == OPCODE_RESPUESTA_OK)
 	{
 		CS_LOG_TRACE("Se generarán los PCBs del pedido %d generado por %s",
-				recibido->pedido_id, ({ cliente ? cliente : "App"; })
+				recibido->pedido_id, cliente ? cliente : "App"
 		);
 
 		//Itera la lista de platos

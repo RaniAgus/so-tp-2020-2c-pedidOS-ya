@@ -43,7 +43,7 @@ bool cs_cons_has_argument(int8_t msgtype, int8_t arg, int8_t module)
 {
 	int result = _MSG_ARGS[(int)msgtype][(int)arg];
 
-	if(result < 0) result = ({ module < 3 ? 1 : 0; });
+	if(result < 0) result = module < 3 ? 1 : 0;
 
 	return result;
 }
@@ -86,9 +86,9 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 
 	msg->msgtype = msg_type;
 
-	msg->comida      = ({ comida != NULL ? string_duplicate(comida) : NULL; });
+	msg->comida      = comida != NULL ? string_duplicate(comida) : NULL;
 	msg->cantidad    = cant;
-	msg->restaurante = ({ rest != NULL ?   string_duplicate(rest)   : NULL; });
+	msg->restaurante = rest != NULL ?   string_duplicate(rest)   : NULL;
 	msg->pedido_id   = pedido_id;
 
 	return msg;

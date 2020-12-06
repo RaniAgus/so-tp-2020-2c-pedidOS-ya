@@ -20,6 +20,7 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 		//Se invoca a la función 'closure' que recibe el mensaje
 		closure(conn, header, msg);
 	}
+	buffer_destroy(buffer);
 
 	return status;
 }

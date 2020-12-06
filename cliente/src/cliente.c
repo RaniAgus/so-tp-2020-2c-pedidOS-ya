@@ -160,10 +160,7 @@ void client_recv_msg_routine(void)
 		}
 	} while(status == STATUS_SUCCESS);
 
-	system("reset -Q");
 	CS_LOG_INFO("Se perdió la conexión con %s.", cs_enum_module_to_str(serv_module));
-	console_save_line();
-	exit(-1);
 }
 
 e_status client_send_msg(cl_parser_result* result)
