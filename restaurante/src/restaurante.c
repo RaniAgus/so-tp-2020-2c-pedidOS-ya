@@ -19,7 +19,6 @@ void restaurante_init(void)
 	string_to_upper(nombre_en_mayus);
 
 	CHECK_STATUS(cs_logger_init(LOG_FILE_KEY, nombre_en_mayus));
-	cs_error_init();
 
 	rest_planificador_init( rest_dispatcher_init( rest_obtener_metadata() ) );
 	rest_recepcion_init();

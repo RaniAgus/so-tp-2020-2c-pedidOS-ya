@@ -13,14 +13,12 @@ e_status cs_logger_init(const char* file_key, const char* program_name)
 
 	file = cs_config_get_string(file_key);
 	if(file == NULL) 
-	{
-		cs_set_local_err(errno);
 		return STATUS_LOGGER_ERROR;
-	}
+	
 
 	CS_LOGGER_INTERNAL = log_create(file, (char*)program_name, CS_CONSOLE_MODE, CS_LOGGER_LEVEL);
 
-	return (CS_LOGGER_INTERNAL) ? STATUS_SUCCESS : ({cs_set_local_err(errno); STATUS_LOGGER_ERROR;});
+	return (CS_LOGGER_INTERNAL) ? STATUS_SUCCESS : STATUS_LOGGER_ERROR;
 }
 
 void cs_logger_delete(void)

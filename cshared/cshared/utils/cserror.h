@@ -31,27 +31,38 @@
 
 typedef enum
 {
+	STATUS_ADDRINFO_ERROR_OVERFLOW = -12,
+	STATUS_ADDRINFO_ERROR_SYSTEM = -11,
+	STATUS_ADDRINFO_ERROR_MEMORY = -10,
+	STATUS_ADDRINFO_ERROR_SERVICE = -8,
+	STATUS_ADDRINFO_ERROR_SOCKTYPE = -7,
+	STATUS_ADDRINFO_ERROR_FAMILY = -6,
+	STATUS_ADDRINFO_ERROR_FAIL = -4,
+	STATUS_ADDRINFO_ERROR_AGAIN = -3,
+	STATUS_ADDRINFO_ERROR_NONAME = -2,
+	STATUS_ADDRINFO_ERROR_BADFLAGS = -1,
+
 	STATUS_SUCCESS = 0,
-	STATUS_LOOK_UP_ERROR,
+	STATUS_LOOK_UP_ERROR = 1,
 
-	STATUS_SIGACTION_ERROR,
+	STATUS_SIGACTION_ERROR = 2,
 
-	STATUS_CONFIG_ERROR,
-	STATUS_LOGGER_ERROR,
+	STATUS_CONFIG_ERROR = 3,
+	STATUS_LOGGER_ERROR = 4,
 
-	STATUS_REJECTED_MSG,
-	STATUS_CONN_LOST,
-	STATUS_SEND_ERROR,
-	STATUS_RECV_ERROR,
+	STATUS_CONN_LOST = 5,
+	STATUS_SEND_ERROR = 6,
+	STATUS_RECV_ERROR = 7,
 
-	STATUS_GETADDRINFO_ERROR,
-	STATUS_SOCKET_ERROR,
-	STATUS_BIND_ERROR,
-	STATUS_LISTEN_ERROR,
-	STATUS_CONNECT_ERROR,
-	STATUS_ACCEPT_ERROR,
-	STATUS_GETPEERNAME_ERROR
+	STATUS_GETADDRINFO_ERROR = 8,
+	STATUS_SOCKET_ERROR = 9,
+	STATUS_BIND_ERROR = 10,
+	STATUS_LISTEN_ERROR = 11,
+	STATUS_CONNECT_ERROR = 12,
+	STATUS_ACCEPT_ERROR = 13,
 
+	STATUS_GETPEERNAME_ERROR = 14,
+	STATUS_GETNAMEINFO_ERROR = 15
 }e_status;
 
 /**
@@ -61,28 +72,10 @@ typedef enum
 const char* cs_enum_status_to_str(int value);
 
 /**
-* @NAME cs_error_init
-* @DESC Inicia el mutex del estado de error interno.
-*/
-void cs_error_init(void);
-
-/**
-* @NAME cs_error_delete
-* @DESC Destruye el mutex del estado de error interno.
-*/
-void cs_error_delete(void);
-
-/**
 * @NAME cs_string_error
 * @DESC Devuelve un string que describe el error, según el t_enum_status y la
  * variable 'cs_err'.
 */
 char* cs_string_error(e_status val);
-
-/**
-* @NAME cs_set_err
-* @DESC Asigna un valor a la variable 'cs_err'.
-*/
-void cs_set_local_err(int val);
 
 #endif //SHARED_CSERROR_H
