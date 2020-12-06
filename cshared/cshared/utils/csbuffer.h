@@ -8,6 +8,8 @@
 	#include <stdint.h>
 	#include <commons/collections/list.h>
 
+	#include "csstring.h"
+
 	typedef struct {
 		uint32_t size;
 		void*    stream;
