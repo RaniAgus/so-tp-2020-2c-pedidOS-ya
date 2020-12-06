@@ -1,16 +1,7 @@
 #include "cssend.h"
 #include "utils/cslog.h"
 
-#define CS_HEADER_FIXED_SIZE\
-	(sizeof(int8_t) + sizeof(int8_t))
-
-#define CS_PAYLOAD_SIZE\
-	(sizeof(uint32_t) + package->payload->size)
-
-static e_status   _send_msg(t_sfd conn, t_header header, t_buffer* (*_to_buffer_func)(void));
-static t_package* _package_create(t_header header, t_buffer* payload);
-static t_buffer*  _package_to_buffer(t_package* package);
-static e_status   _send_all(t_sfd conn, t_buffer* buffer);
+static e_status _send_msg(t_sfd conn, t_header header, void* msg, e_module dest);
 
 e_status cs_send_handshake_cli(t_sfd conn)
 {
@@ -18,12 +9,7 @@ e_status cs_send_handshake_cli(t_sfd conn)
 	t_header header = { OPCODE_CONSULTA, HANDSHAKE_CLIENTE };
 	t_handshake_cli* msg = cs_cons_handshake_cli_create();
 
-	t_buffer* _to_buffer_func(void)
-	{
-		return cs_handshake_cli_to_buffer(msg);
-	}
-	status = _send_msg(conn, header, _to_buffer_func);
-
+	status = _send_msg(conn, header, msg, MODULO_DESCONOCIDO);
 	cs_msg_destroy(msg, header.opcode, header.msgtype);
 
 	return status;
@@ -35,12 +21,7 @@ e_status cs_send_handshake_res(t_sfd conn, t_pos pos)
 	t_header header = { OPCODE_CONSULTA, HANDSHAKE_RESTAURANTE };
 	t_handshake_res* msg = cs_cons_handshake_res_create(pos);
 
-	t_buffer* _to_buffer_func(void)
-	{
-		return cs_handshake_res_to_buffer(msg);
-	}
-	status = _send_msg(conn, header, _to_buffer_func);
-
+	status = _send_msg(conn, header, msg, MODULO_DESCONOCIDO);
 	cs_msg_destroy(msg, header.opcode, header.msgtype);
 
 	return status;
@@ -49,508 +30,224 @@ e_status cs_send_handshake_res(t_sfd conn, t_pos pos)
 e_status cs_send_consulta(t_sfd conn, e_msgtype msg_type, t_consulta* msg, e_module dest)
 {
 	t_header header = { OPCODE_CONSULTA, msg_type };
-	t_buffer* _to_buffer_func(void)
-	{
-		return cs_consulta_to_buffer(msg, dest);
-	}
-	return _send_msg(conn, header, _to_buffer_func);
+	return _send_msg(conn, header, msg, dest);
 }
 
 e_status cs_send_respuesta(t_sfd conn, t_header header, void* msg)
 {
-	t_buffer* _to_buffer_func(void)
-	{
-		return cs_respuesta_to_buffer(header, msg);
-	}
-	return _send_msg(conn, header, _to_buffer_func);
+	return _send_msg(conn, header, msg, MODULO_DESCONOCIDO);
 }
 
-/********************************* PAQUETES Y BUFFER  ***************************************/
-
-static e_status _send_msg(t_sfd conn, t_header header, t_buffer* (*_to_buffer_func)(void))
+static e_status _send_msg(t_sfd conn, t_header header, void* msg, e_module dest)
 {
-	e_status status = STATUS_SUCCESS;
+	e_status status;
 
-	t_buffer  *payload = NULL;
-	t_package *package = NULL;
-	t_buffer  *buffer  = NULL;
+	//Se agrega el header al paquete
+	t_buffer* buffer = buffer_create();
+	buffer_pack(buffer, &header.opcode, 1);
+	buffer_pack(buffer, &header.msgtype, 1);
 
-	//Se pasa el mensaje a payload
-	payload = _to_buffer_func();
-
-	//Se arma el paquete y se serializa
-	package = _package_create(header, payload);
-	buffer  = _package_to_buffer(package);
+	//Se agrega el payload al paquete
+	buffer_pack_msg(buffer, header, msg, dest);
 
 	//Se envía al receptor
-	status = _send_all(conn, buffer);
+	status = cs_send_all(conn, buffer);
 
-	//Se liberan los recursos
-	cs_buffer_destroy(buffer);
-	cs_package_destroy(package);
-	cs_buffer_destroy(payload);
+	//Se libera el buffer
+	buffer_destroy(buffer);
 
 	return status;
 }
 
-static e_status _send_all(t_sfd conn, t_buffer* buffer)
-{
-	e_status status = STATUS_SUCCESS;
+/*********************************  BUFFER  ***************************************/
 
-	uint32_t bytes_sent = 0;
-	uint32_t bytes_left;
-	uint32_t n;
+void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg);
+void buffer_pack_consulta_hs_cliente(t_buffer* buffer, t_handshake_cli* msg);
+void buffer_pack_consulta(t_buffer* buffer, t_consulta* msg, e_module dest);
+void buffer_pack_respuesta_ok(t_buffer* buffer, e_msgtype msg_type, void* msg);
 
-	bytes_left = buffer->size;
-	do
-	{	//'MSG_NOSIGNAL' para que no se envíe la señal 'SIGPIPE' al destinatario
-		n = send(conn, (buffer->stream) + bytes_sent, bytes_left, MSG_NOSIGNAL);
-		if(n == -1)
-		{
-			cs_set_local_err(errno);
-			if(errno == EPIPE)
-				status = STATUS_CONN_LOST;
-			else
-				status = STATUS_SEND_ERROR;
-		} else
-		{
-			bytes_sent += n;
-			bytes_left -= n;
-		}
-	//El protocolo TCP puede partir el paquete si es muy grande (>1K)
-	} while(bytes_sent < buffer->size && status == STATUS_SUCCESS);
+static void buffer_pack_handshake_cliente(t_buffer* buffer, t_rta_handshake_cli* msg);
+static void buffer_pack_consultar_restaurantes(t_buffer* buffer, t_rta_cons_rest* msg);
+static void buffer_pack_obtener_restaurante(t_buffer* buffer, t_rta_obt_rest* msg);
+static void buffer_pack_consultar_platos(t_buffer* buffer, t_rta_cons_pl* msg);
+static void buffer_pack_crear_pedido(t_buffer* buffer, t_rta_crear_ped* msg);
+static void buffer_pack_consultar_pedido(t_buffer* buffer, t_rta_cons_ped* msg);
+static void buffer_pack_obtener_pedido(t_buffer* buffer, t_rta_obt_ped* msg);
+static void buffer_pack_obtener_receta(t_buffer* buffer, t_rta_obt_rec* msg);
 
-	return status;
-}
+void buffer_pack_menu(t_buffer* buffer, t_list* menu);
+void buffer_pack_platos(t_buffer* buffer, t_list* platos);
+void buffer_pack_receta(t_buffer* buffer, t_list* receta);
 
-static t_package* _package_create(t_header header, t_buffer* payload)
-{
-	t_package* package;
-
-	package = malloc(sizeof(t_package));
-
-    package->header.opcode  = header.opcode;
-    package->header.msgtype = header.msgtype;
-    if(payload)
-    {
-    	package->payload = malloc(sizeof(t_buffer));
-    	package->payload->stream = malloc(payload->size);
-        memcpy(package->payload->stream, payload->stream, payload->size);
-        package->payload->size = payload->size;
-    } else
-    {
-    	package->payload = NULL;
-    }
-
-    return package;
-}
-
-static t_buffer* _package_to_buffer(t_package* package)
-{
-	t_buffer* buffer;
-	int offset = 0;
-
-	//Se reserva la memoria necesaria
-	buffer = malloc(sizeof(t_buffer));
-
-	buffer->size = CS_HEADER_FIXED_SIZE;
-	if(package->payload) buffer->size += CS_PAYLOAD_SIZE;
-	buffer->stream = malloc(buffer->size);
-
-	cs_stream_copy(buffer->stream, &offset, &package->header.opcode,  sizeof(int8_t), 1);
-	cs_stream_copy(buffer->stream, &offset, &package->header.msgtype, sizeof(int8_t), 1);
-
-	cs_stream_copy(buffer->stream, &offset, &package->payload->size,  sizeof(uint32_t), 1);
-	cs_stream_copy(buffer->stream, &offset, package->payload->stream, package->payload->size, 1);
-
-	return buffer;
-}
-
-static t_buffer* cs_buffer_create(int size)
-{
-	t_buffer *buffer = malloc(sizeof(t_buffer));
-	if(size > 0) {
-		buffer->size = size;
-		buffer->stream = malloc(size);
-	} else {
-		buffer->size = 0;
-		buffer->stream = NULL;
-	}
-
-	return buffer;
-}
-
-/********************************* CONSULTAS / HANDSHAKES  ***************************************/
-
-t_buffer* cs_consulta_to_buffer(t_consulta* msg, e_module dest)
-{
-	t_buffer *buffer;
-	int offset = 0;
-
-	uint32_t size = 0;
-	uint32_t comida_len = 0;
-	uint32_t restaurante_len = 0;
-
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
-	{
-		comida_len = strlen(msg->comida);
-		size += sizeof(uint32_t) + comida_len;
-	}
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
-		size += sizeof(uint32_t);
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
-	{
-		restaurante_len = strlen(msg->restaurante);
-		size += sizeof(uint32_t) + restaurante_len;
-	}
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
-		size += sizeof(uint32_t);
-
-	buffer = cs_buffer_create(size);
-
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
-	{
-		cs_stream_copy(buffer->stream, &offset, &comida_len      , sizeof(uint32_t), COPY_SEND);
-		cs_stream_copy(buffer->stream, &offset,  msg->comida     , comida_len      , COPY_SEND);
-	}
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
-	{
-		cs_stream_copy(buffer->stream, &offset, &msg->cantidad   , sizeof(uint32_t), COPY_SEND);
-	}
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
-	{
-		cs_stream_copy(buffer->stream, &offset, &restaurante_len , sizeof(uint32_t), COPY_SEND);
-		cs_stream_copy(buffer->stream, &offset,  msg->restaurante, restaurante_len , COPY_SEND);
-	}
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
-	{
-		cs_stream_copy(buffer->stream, &offset, &msg->pedido_id  , sizeof(uint32_t), COPY_SEND);
-	}
-
-	return buffer;
-}
-
-t_buffer* cs_handshake_cli_to_buffer(t_handshake_cli* msg)
-{
-	t_buffer *buffer;
-	int offset = 0;
-
-	uint32_t nombre_len = strlen(msg->nombre);
-
-	buffer = cs_buffer_create(3 * sizeof(uint32_t) + nombre_len);
-
-	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_SEND);
-
-	return buffer;
-}
-
-t_buffer* cs_handshake_res_to_buffer(t_handshake_res* msg)
-{
-	t_buffer *buffer;
-	int offset = 0;
-
-	uint32_t nombre_len = strlen(msg->nombre);
-	uint32_t puerto_len = strlen(msg->puerto);
-
-	buffer = cs_buffer_create(4 * sizeof(uint32_t) + nombre_len + puerto_len);
-
-	cs_stream_copy(buffer->stream, &offset, &nombre_len     , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  msg->nombre    , nombre_len      , COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->posicion.x, sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->posicion.y, sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &puerto_len     , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  msg->puerto    , puerto_len      , COPY_SEND);
-
-	return buffer;
-}
-
-/********************************* RESPUESTAS  ***************************************/
-
-static t_buffer* _rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg);
-static t_buffer* _rta_cons_rest_to_buffer(t_rta_cons_rest* msg);
-static t_buffer* _rta_obt_rest_to_buffer(t_rta_obt_rest* msg);
-static t_buffer* _rta_cons_pl_to_buffer(t_rta_cons_pl* msg);
-static t_buffer* _rta_crear_ped_to_buffer(t_rta_crear_ped* msg);
-static t_buffer* _rta_cons_ped_to_buffer(t_rta_cons_ped* msg);
-static t_buffer* _rta_obt_ped_to_buffer(t_rta_obt_ped* msg);
-static t_buffer* _rta_obt_rec_to_buffer(t_rta_obt_rec* msg);
-
-t_buffer* cs_respuesta_to_buffer(t_header header, void* msg)
+void buffer_pack_msg(t_buffer* buffer, t_header header, void* msg, e_module dest)
 {
 	switch(header.opcode)
 	{
-	case OPCODE_RESPUESTA_OK:
+	case OPCODE_CONSULTA:
 		switch(header.msgtype)
 		{
 		case HANDSHAKE_CLIENTE:
-			return _rta_handshake_cli_to_buffer((t_rta_handshake_cli*)msg);
-		case CONSULTAR_RESTAURANTES:
-			return _rta_cons_rest_to_buffer((t_rta_cons_rest*)msg);
-		case OBTENER_RESTAURANTE:
-			return _rta_obt_rest_to_buffer((t_rta_obt_rest*)msg);
-		case CONSULTAR_PLATOS:
-			return _rta_cons_pl_to_buffer((t_rta_cons_pl*)msg);
-		case CREAR_PEDIDO:
-			return _rta_crear_ped_to_buffer((t_rta_crear_ped*)msg);
-		case CONSULTAR_PEDIDO:
-			return _rta_cons_ped_to_buffer((t_rta_cons_ped*)msg);
-		case OBTENER_PEDIDO:
-			return _rta_obt_ped_to_buffer((t_rta_obt_ped*)msg);
-		case OBTENER_RECETA:
-			return _rta_obt_rec_to_buffer((t_rta_obt_rec*)msg);
+			buffer_pack_consulta_hs_cliente(buffer, msg);
+			break;
+		case HANDSHAKE_RESTAURANTE:
+			buffer_pack_consulta_hs_restaurante(buffer, msg);
+			break;
 		default:
+			buffer_pack_consulta(buffer, msg, dest);
 			break;
 		}
+		break;
+	case OPCODE_RESPUESTA_OK:
+		buffer_pack_respuesta_ok(buffer, header.msgtype, msg);
 		break;
 	default:
 		break;
 	}
-	return cs_buffer_create(0);
 }
 
-static t_buffer* _rta_handshake_cli_to_buffer(t_rta_handshake_cli* msg)
+/********************************* CONSULTAS / HANDSHAKES  ***************************************/
+
+void buffer_pack_consulta_hs_cliente(t_buffer* buffer, t_handshake_cli* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
-
-	buffer = cs_buffer_create(sizeof(int8_t));
-
-	//Módulo
-	cs_stream_copy(buffer->stream,&offset,&msg->modulo,sizeof(uint8_t),COPY_SEND);
-
-	return buffer;
+	buffer_pack_string(buffer, msg->nombre);
+	buffer_pack(buffer, &msg->posicion.x, sizeof(uint32_t));
+	buffer_pack(buffer, &msg->posicion.y, sizeof(uint32_t));
 }
 
-static t_buffer* _rta_cons_rest_to_buffer(t_rta_cons_rest* msg)
+void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
-
-	char* restaurantes;
-	uint32_t restaurantes_len;
-
-	//Convierte los array y listas a string
-	restaurantes = cs_string_array_to_string(msg->restaurantes);
-
-	//Calcula la longitud de los strings
-	restaurantes_len = strlen(restaurantes);
-
-	buffer = cs_buffer_create(restaurantes_len + sizeof(uint32_t));
-
-	//Restaurantes
-	cs_stream_copy(buffer->stream,&offset,&restaurantes_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,restaurantes,restaurantes_len,COPY_SEND);
-
-	free(restaurantes);
-
-	return buffer;
+	buffer_pack_string(buffer, msg->nombre);
+	buffer_pack(buffer, &msg->posicion.x, sizeof(uint32_t));
+	buffer_pack(buffer, &msg->posicion.y, sizeof(uint32_t));
+	buffer_pack_string(buffer, msg->puerto);
 }
 
-static t_buffer* _rta_obt_rest_to_buffer(t_rta_obt_rest* msg)
+void buffer_pack_consulta(t_buffer* buffer, t_consulta* msg, e_module dest)
 {
-	t_buffer *buffer;
-	int offset = 0;
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
+		buffer_pack_string(buffer, msg->comida);
 
-	char *afinidades, *comidas, *precios;
-	uint32_t afinidades_len, comidas_len, precios_len;
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
+		buffer_pack(buffer, &msg->cantidad, sizeof(uint32_t));
 
-	//Convierte los array y listas a string
-	afinidades = cs_string_array_to_string(msg->afinidades);
-	cs_menu_to_string(msg->menu, &comidas, &precios);
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
+		buffer_pack_string(buffer, msg->restaurante);
 
-	//Calcula la longitud de los strings
-	afinidades_len = strlen(afinidades);
-	comidas_len    = strlen(comidas);
-	precios_len    = strlen(precios);
-
-	buffer = cs_buffer_create(8 * sizeof(uint32_t) + afinidades_len + comidas_len + precios_len);
-
-	//Cocineros -- Cantidad (se copia directamente)
-	cs_stream_copy(buffer->stream, &offset, &msg->cant_cocineros   , sizeof(uint32_t), COPY_SEND);
-
-	//Cocineros -- Afinidades
-	cs_stream_copy(buffer->stream, &offset, &afinidades_len        , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  afinidades            , afinidades_len  , COPY_SEND);
-
-	//Menú -- Comidas
-	cs_stream_copy(buffer->stream, &offset, &comidas_len           , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  comidas               , comidas_len     , COPY_SEND);
-
-	//Menú -- Precios
-	cs_stream_copy(buffer->stream, &offset, &precios_len           , sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset,  precios               , precios_len     , COPY_SEND);
-
-	//Posición del restaurante (se copia directamente)
-	cs_stream_copy(buffer->stream, &offset, &msg->pos_restaurante.x, sizeof(uint32_t), COPY_SEND);
-	cs_stream_copy(buffer->stream, &offset, &msg->pos_restaurante.y, sizeof(uint32_t), COPY_SEND);
-
-	//Cantidad de hornos (se copia directamente)
-	cs_stream_copy(buffer->stream, &offset, &msg->cant_hornos      , sizeof(uint32_t), COPY_SEND);
-
-	//Cantidad de pedidos
-	cs_stream_copy(buffer->stream, &offset, &msg->cant_pedidos     , sizeof(uint32_t), COPY_SEND);
-
-	free(afinidades);
-	free(comidas);
-	free(precios);
-
-	return buffer;
+	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
+		buffer_pack(buffer, &msg->pedido_id, sizeof(uint32_t));
 }
 
-static t_buffer* _rta_cons_pl_to_buffer(t_rta_cons_pl* msg)
+/********************************* RESPUESTAS  ***************************************/
+
+void buffer_pack_respuesta_ok(t_buffer* buffer, e_msgtype msg_type, void* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
+	switch(msg_type)
+	{
+	case HANDSHAKE_CLIENTE:
+		buffer_pack_handshake_cliente(buffer, msg);
+		break;
+	case CONSULTAR_RESTAURANTES:
+		buffer_pack_consultar_restaurantes(buffer, msg);
+		break;
+	case OBTENER_RESTAURANTE:
+		buffer_pack_obtener_restaurante(buffer, msg);
+		break;
+	case CONSULTAR_PLATOS:
+		buffer_pack_consultar_platos(buffer, msg);
+		break;
+	case CREAR_PEDIDO:
+		buffer_pack_crear_pedido(buffer, msg);
+		break;
+	case CONSULTAR_PEDIDO:
+		buffer_pack_consultar_pedido(buffer, msg);
+		break;
+	case OBTENER_PEDIDO:
+		buffer_pack_obtener_pedido(buffer, msg);
+		break;
+	case OBTENER_RECETA:
+		buffer_pack_obtener_receta(buffer, msg);
+		break;
+	default:
+		break;
+	}
+}
 
-	char* comidas;
-	uint32_t comidas_len;
+static void buffer_pack_handshake_cliente(t_buffer* buffer, t_rta_handshake_cli* msg)
+{
+	buffer_pack(buffer, &msg->modulo, sizeof(uint8_t)); //Modulo
+}
 
-	//Convierte los array y listas a string
-	comidas = cs_string_array_to_string(msg->comidas);
+static void buffer_pack_consultar_restaurantes(t_buffer* buffer, t_rta_cons_rest* msg)
+{
+	buffer_pack_string_array(buffer, msg->restaurantes); //Restaurantes
+}
 
-	//Calcula la longitud de los strings
-	comidas_len = strlen(comidas);
+static void buffer_pack_obtener_restaurante(t_buffer* buffer, t_rta_obt_rest* msg)
+{
+	buffer_pack(buffer, &msg->cant_cocineros, sizeof(uint32_t));    //Cocineros (cantidad)
+	buffer_pack_string_array(buffer, msg->afinidades);              //Cocineros (afinidades)
+	buffer_pack_menu(buffer, msg->menu);                            //Menú (comidas + precios)
+	buffer_pack(buffer, &msg->pos_restaurante.x, sizeof(uint32_t)); //Posición del restaurante en x
+	buffer_pack(buffer, &msg->pos_restaurante.y, sizeof(uint32_t)); //Posición del restaurante en y
+	buffer_pack(buffer, &msg->cant_hornos, sizeof(uint32_t));       //Cantidad de hornos
+	buffer_pack(buffer, &msg->cant_pedidos, sizeof(uint32_t));      //Cantidad de pedidos
+}
 
-	buffer = cs_buffer_create(comidas_len + sizeof(uint32_t));
-
-	//Comidas
-	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_SEND);
-
-	free(comidas);
-
-	return buffer;
+static void buffer_pack_consultar_platos(t_buffer* buffer, t_rta_cons_pl* msg)
+{
+	buffer_pack_string_array(buffer, msg->comidas); //Comidas
 }
 
 
-static t_buffer* _rta_crear_ped_to_buffer(t_rta_crear_ped* msg)
+static void buffer_pack_crear_pedido(t_buffer* buffer, t_rta_crear_ped* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
-
-	buffer = cs_buffer_create(sizeof(uint32_t));
-
-	//Pedido ID
-	cs_stream_copy(buffer->stream,&offset,&msg->pedido_id,sizeof(uint32_t),COPY_SEND);
-
-	return buffer;
+	buffer_pack(buffer, &msg->pedido_id, sizeof(uint32_t)); //Pedido ID
 }
 
-static t_buffer* _rta_cons_ped_to_buffer(t_rta_cons_ped* msg)
+static void buffer_pack_consultar_pedido(t_buffer* buffer, t_rta_cons_ped* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
-
-	char *comidas, *listos, *totales;
-	uint32_t comidas_len, listos_len, totales_len, restaurante_len;
-
-	//Convierte los array y listas a string
-	cs_platos_to_string(msg->platos_y_estados,&comidas,&listos,&totales);
-
-	//Calcula la longitud de los strings
-	comidas_len = strlen(comidas);
-	listos_len  = strlen(listos);
-	totales_len = strlen(totales);
-	restaurante_len = strlen(msg->restaurante);
-
-	buffer = cs_buffer_create(4 * sizeof(uint32_t) + comidas_len + listos_len + totales_len + restaurante_len + sizeof(int8_t));
-
-	//Restaurante (se copia directamente)
-	cs_stream_copy(buffer->stream,&offset,&restaurante_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,msg->restaurante,restaurante_len,COPY_SEND);
-
-	//Estado del pedido (se copia directamente)
-	cs_stream_copy(buffer->stream,&offset,&msg->estado_pedido,sizeof(int8_t),COPY_SEND);
-
-	//Platos -- Comidas
-	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_SEND);
-
-	//Platos -- Listos
-	cs_stream_copy(buffer->stream,&offset,&listos_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,listos,listos_len,COPY_SEND);
-
-	//Platos -- Totales
-	cs_stream_copy(buffer->stream,&offset,&totales_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,totales,totales_len,COPY_SEND);
-
-	free(comidas);
-	free(listos);
-	free(totales);
-
-	return buffer;
+	buffer_pack_string(buffer, msg->restaurante);            //Restaurante
+	buffer_pack(buffer, &msg->estado_pedido,sizeof(int8_t)); //Estado del pedido
+	buffer_pack_platos(buffer, msg->platos_y_estados);       //Platos (comidas + listos + totales)
 }
 
-static t_buffer* _rta_obt_ped_to_buffer(t_rta_obt_ped* msg)
+static void buffer_pack_obtener_pedido(t_buffer* buffer, t_rta_obt_ped* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
-
-	char *comidas, *listos, *totales;
-	uint32_t comidas_len,listos_len,totales_len;
-
-	//Convierte los array y listas a string
-	cs_platos_to_string(msg->platos_y_estados,&comidas,&listos,&totales);
-
-	//Calcula la longitud de los strings
-	comidas_len = strlen(comidas);
-	listos_len  = strlen(listos);
-	totales_len = strlen(totales);
-
-	buffer = cs_buffer_create(3 * sizeof(uint32_t) + comidas_len + listos_len + totales_len + sizeof(int8_t));
-
-	//Estado del pedido (se copia directamente)
-	cs_stream_copy(buffer->stream,&offset,&msg->estado_pedido,sizeof(int8_t),COPY_SEND);
-
-	//Platos -- Comidas
-	cs_stream_copy(buffer->stream,&offset,&comidas_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,comidas,comidas_len,COPY_SEND);
-
-	//Platos -- Listos
-	cs_stream_copy(buffer->stream,&offset,&listos_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,listos,listos_len,COPY_SEND);
-
-	//Platos -- Totales
-	cs_stream_copy(buffer->stream,&offset,&totales_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,totales,totales_len,COPY_SEND);
-
-	free(comidas);
-	free(listos);
-	free(totales);
-
-	return buffer;
+	buffer_pack(buffer, &msg->estado_pedido,sizeof(int8_t));  //Estado del pedido
+	buffer_pack_platos(buffer, msg->platos_y_estados);        //Platos (comidas + listos + totales)
 }
 
-static t_buffer* _rta_obt_rec_to_buffer(t_rta_obt_rec* msg)
+static void buffer_pack_obtener_receta(t_buffer* buffer, t_rta_obt_rec* msg)
 {
-	t_buffer *buffer;
-	int offset = 0;
+	buffer_pack_receta(buffer, msg->pasos_receta); //Receta (pasos + tiempos)
+}
 
-	char *pasos, *tiempos;
-	uint32_t pasos_len, tiempos_len;
+/********************************* LISTAS  ***************************************/
 
-	//Convierte los array y listas a string
-	cs_receta_to_string(msg->pasos_receta, &pasos, &tiempos);
+void buffer_pack_menu(t_buffer* buffer, t_list* menu)
+{
+	void _pack_comida_menu(t_buffer* buffer, t_comida_menu* comida_menu) {
+		buffer_pack_string(buffer, comida_menu->comida);
+		buffer_pack(buffer, &comida_menu->precio, sizeof(uint32_t));
+	}
+	buffer_pack_list(buffer, menu, (void*)_pack_comida_menu);
+}
 
-	//Calcula la longitud de los strings
-	pasos_len   = strlen(pasos);
-	tiempos_len = strlen(tiempos);
+void buffer_pack_platos(t_buffer* buffer, t_list* platos)
+{
+	void _pack_plato(t_buffer* buffer, t_plato* plato) {
+		buffer_pack_string(buffer, plato->comida);                 //Comida
+		buffer_pack(buffer, &plato->cant_lista, sizeof(uint32_t)); //Cantidad lista
+		buffer_pack(buffer, &plato->cant_total, sizeof(uint32_t)); //Cantidad total
+	}
+	buffer_pack_list(buffer, platos, (void*)_pack_plato);
+}
 
-	buffer = cs_buffer_create(2 * sizeof(uint32_t) + pasos_len + tiempos_len);
-
-	//Receta -- Pasos
-	cs_stream_copy(buffer->stream,&offset,&pasos_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,pasos,pasos_len,COPY_SEND);
-
-	//Receta -- Tiempos
-	cs_stream_copy(buffer->stream,&offset,&tiempos_len,sizeof(uint32_t),COPY_SEND);
-	cs_stream_copy(buffer->stream,&offset,tiempos,tiempos_len,COPY_SEND);
-
-	free(pasos);
-	free(tiempos);
-
-	return buffer;
+void buffer_pack_receta(t_buffer* buffer, t_list* receta)
+{
+	void _pack_paso_receta(t_buffer* buffer, t_paso_receta* paso_receta) {
+		buffer_pack_string(buffer, paso_receta->paso);
+		buffer_pack(buffer, &paso_receta->tiempo, sizeof(uint32_t));
+	}
+	buffer_pack_list(buffer, receta, (void*)_pack_paso_receta);
 }

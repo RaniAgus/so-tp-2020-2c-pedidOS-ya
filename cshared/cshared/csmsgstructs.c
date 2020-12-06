@@ -63,8 +63,8 @@ t_list* cs_platos_create(char* comidas, char* listos, char* totales)
 			plato_y_estado = malloc(sizeof(t_plato));
 
 			plato_y_estado->comida = string_duplicate(platos_arr[i]);
-			plato_y_estado->cant_lista = atoi(listos_arr[i]);
-			plato_y_estado->cant_total = atoi(totales_arr[i]);
+			plato_y_estado->cant_lista = (uint32_t)atoi(listos_arr[i]);
+			plato_y_estado->cant_total = (uint32_t)atoi(totales_arr[i]);
 
 			list_add(list, (void*)plato_y_estado);
 		}
@@ -98,7 +98,7 @@ t_list* cs_receta_create(char* pasos, char* tiempos)
 		paso_receta = malloc(sizeof(t_paso_receta));
 
 		paso_receta->paso   = string_duplicate(pasos_arr[i]);
-		paso_receta->tiempo = atoi(tiempos_arr[i]);
+		paso_receta->tiempo = (uint32_t)atoi(tiempos_arr[i]);
 
 		list_add(list, (void*)paso_receta);
 	}
@@ -129,7 +129,7 @@ t_list* cs_menu_create(char* comidas, char* precios)
 		comida_menu = malloc(sizeof(t_paso_receta));
 
 		comida_menu->comida = string_duplicate(comidas_arr[i]);
-		comida_menu->precio = atoi(precios_arr[i]);
+		comida_menu->precio = (uint32_t)atoi(precios_arr[i]);
 
 		list_add(list, (void*)comida_menu);
 	}
@@ -213,7 +213,6 @@ void cs_menu_to_string(t_list* menu, char** comidas, char** precios)
 	(*precios)[strlen(*precios) - 1] = ']';
 }
 
-
 int cs_platos_estan_listos(t_list* platos)
 {
 	int terminado = 1;
@@ -265,7 +264,7 @@ t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2)
 t_pos cs_string_array_to_pos(char** posicion)
 {
 	t_pos pos;
-	pos.x = atoi(posicion[0]);
-	pos.y = atoi(posicion[1]);
+	pos.x = (uint32_t)atoi(posicion[0]);
+	pos.y = (uint32_t)atoi(posicion[1]);
 	return pos;
 }

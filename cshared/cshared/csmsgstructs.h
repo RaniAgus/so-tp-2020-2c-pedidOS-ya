@@ -21,20 +21,20 @@ typedef struct
 typedef struct
 {
 	char* comida;
-	int   cant_lista;
-	int   cant_total;
+	uint32_t cant_lista;
+	uint32_t cant_total;
 }t_plato;
 
 typedef struct
 {
 	char* paso;
-	int   tiempo;
+	uint32_t tiempo;
 }t_paso_receta;
 
 typedef struct
 {
 	char* comida;
-	int   precio;
+	uint32_t precio;
 }t_comida_menu;
 
 /**
@@ -101,21 +101,18 @@ t_list* cs_menu_create(char* comidas, char* precios);
 /**
 * @NAME cs_platos_to_string
 * @DESC Realiza el paso inverso a cs_platos_create
-*
 */
 void cs_platos_to_string(t_list* menu, char** comidas, char** listos, char** totales);
 
 /**
 * @NAME cs_receta_to_string
 * @DESC Realiza el paso inverso a cs_receta_create
-*
 */
 void cs_receta_to_string(t_list* menu, char** pasos, char** tiempos);
 
 /**
 * @NAME cs_menu_to_string
 * @DESC Realiza el paso inverso a cs_menu_create
-*
 */
 void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
 
@@ -123,7 +120,6 @@ void cs_menu_to_string(t_list* menu, char** comidas, char** precios);
 * @NAME cs_platos_estan_listos
 * @DESC Devuelve 1 si todos los platos están listos, 0 si no lo están
 * y -1 en caso de error
-*
 */
 int cs_platos_estan_listos(t_list* platos);
 
@@ -133,7 +129,16 @@ int cs_platos_estan_listos(t_list* platos);
 */
 t_list* cs_receta_duplicate(t_list* receta);
 
+/**
+* @NAME calcular_norma
+* @DESC Calcula la norma de un vector 2D.
+*/
 double calcular_norma(t_pos vector);
+
+/**
+* @NAME calcular_vector_distancia
+* @DESC Calcula el vector distancia entre dos vectores 2D.
+*/
 t_pos calcular_vector_distancia(t_pos posicion1, t_pos posicion2);
 
 /**

@@ -2,6 +2,7 @@
 #define CONN_RECV_H_
 
 #include "utils/cssockets.h"
+#include "utils/csbuffer.h"
 #include "csmsgtypes.h"
 
 /**
@@ -18,6 +19,6 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*));
 * ADVERTENCIA: NO USAR, ESTÁN PUBLICADAS SOLO PARA TESTS
 *
 */
-void* cs_buffer_to_msg(t_header header, t_buffer* payload, t_sfd conn);
+void* buffer_unpack_msg(t_header header, t_buffer* payload, t_sfd conn);
 
 #endif /* CONNRECV_H_ */
