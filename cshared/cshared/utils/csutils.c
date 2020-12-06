@@ -2,20 +2,16 @@
 
 //************************* LISTS *************************
 static void* list_fold_elements(t_link_element* element, void* seed, void*(*operation)(void*, void*));
-double list_sum(t_list* self, double(*element_value)(void*)) {
-	t_link_element* element = self->head;
-	double sumatory = 0;
-
-	while(element != NULL) {
-		sumatory += element_value(element->data);
-		element = element->next;
-	}
-
-	return sumatory;
-}
 
 void* list_fold1(t_list* self, void* (*operation)(void*, void*)) {
 	return self->elements_count > 0 ? list_fold_elements(self->head->next, self->head->data, operation) : NULL;
+}
+
+void* list_get_max_by(t_list* self, int (*comparator)(void*, void*)) {
+	void* _return_maximum(void* seed, void* data) {
+		return comparator(seed, data) >= 0 ? seed : data;
+	}
+	return list_fold1(self, _return_maximum);
 }
 
 void* list_get_min_by(t_list* self, int (*comparator)(void*, void*)) {

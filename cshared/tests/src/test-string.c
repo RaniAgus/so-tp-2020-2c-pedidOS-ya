@@ -83,10 +83,20 @@ context (test_string) {
 		} end
 	} end
 
-	it("string array to string") {
-		char* result = cs_string_array_to_string((char**)ENUM_STR);
-		should_string(result) be equal to ("[Error,One,Two,Three]");
-		free(result);
+	describe("string array to string") {
+		it("string array with elements") {
+			char* result = cs_string_array_to_string((char**)ENUM_STR);
+			should_string(result) be equal to ("[Error,One,Two,Three]");
+			free(result);
+		} end
+
+		it("empty string array") {
+			char** empty_array = string_array_new();
+			char* result = cs_string_array_to_string(empty_array);
+			should_string(result) be equal to ("[]");
+			free(result);
+			free(empty_array);
+		} end
 	} end
 
 	describe ("string array") {
@@ -122,4 +132,15 @@ context (test_string) {
 		}end
 
 	}end
+
+    it("n_append") {
+        char *string = string_new();
+        string_n_append(&string, "Hello", 10);
+        string_n_append(&string, "     ", 1);
+        string_n_append(&string, "world", 5);
+
+        should_string(string) be equal to("Hello world");
+
+        free(string);
+    } end
 }

@@ -69,7 +69,7 @@ e_status cs_receive_all(t_sfd sockfd, t_buffer* buffer);
 * @DESC Retorna una IP en formato string desde una dirección a partir de un
  * socket file descriptor
 */
-e_status cs_get_peer_info(t_sfd sfd, char** ip_str_ptr, char** port_str_ptr);
+e_status cs_get_peer_info(t_sfd sfd, char** ip, char** port);
 
 /**
 * @NAME cs_socket_is_connected
