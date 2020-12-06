@@ -11,6 +11,11 @@
 ## Cómo deployar
 
 ```
+git clone https://github.com/mumuki/cspec.git
+cd cspec
+make 
+sudo make install
+cd ..
 git clone https://github.com/sisoputnfrba/so-deploy
 cd so-deploy
 ./deploy.sh -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato tp-2020-2c-Segundo-Saque
