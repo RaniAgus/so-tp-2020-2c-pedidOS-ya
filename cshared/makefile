@@ -24,7 +24,7 @@ all: lib$(LIBRARY_NAME).so
 test: all
 	cd tests && make valgrind
 
-install: all test
+install: all
 	sudo cp -u lib$(LIBRARY_NAME).so /usr/lib
 	sudo cp --parents -u $(CSHARED_DEPS) /usr/include
 
