@@ -70,14 +70,13 @@ bool cs_string_is_unsigned_int_array(char* str)
 char* cs_string_array_to_string(char** str_arr)
 {
 	char* str = string_duplicate("[");
-
-	void _append_lines_to_str(char* line)
+	for(int i = 0; str_arr[i] != NULL; i++)
 	{
-		string_append(&str, line);
-		string_append(&str, ",");
+		string_append(&str, str_arr[i]);
+		if(str_arr[i+1] != NULL)
+			string_append(&str, ",");
 	}
-	string_iterate_lines(str_arr, _append_lines_to_str);
-	str[strlen(str) - 1] = ']';
+	string_append(&str, "]");
 
 	return str;
 }

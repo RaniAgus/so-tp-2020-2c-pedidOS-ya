@@ -187,41 +187,25 @@ e_status cs_receive_all(t_sfd sockfd, t_buffer* buffer)
 	return bytes_received > 0 ? STATUS_SUCCESS : (bytes_received == 0 ?  STATUS_CONN_LOST : STATUS_RECV_ERROR);
 }
 
-e_status cs_get_peer_info(t_sfd sfd, char** ip_ptr, char** port_ptr)
+e_status cs_get_peer_info(t_sfd sfd, char** ip, char** port)
 {
-	char *ip, *port;
+	char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 
 	struct sockaddr_storage addr;
-	socklen_t addr_size = sizeof(struct sockaddr_storage);
+	socklen_t addrlen = sizeof(struct sockaddr_storage);
 
-	ip   = strdup("0000:0000:0000:0000:0000:0000:0000:0000");
-	port = strdup("65535");
-
-	if(getpeername(sfd, (struct sockaddr *)&addr, &addr_size) == -1)
-	{
-		free(ip);
-		free(port);
+	if(getpeername(sfd, (struct sockaddr *)&addr, &addrlen) == -1) {
 		return STATUS_GETPEERNAME_ERROR;
 	}
 
-	int err = getnameinfo(
-			(struct sockaddr *)&addr, addr_size,
-			ip, strlen(ip) + 1,
-			port, strlen(port) + 1, 0
-	);
-	if(err != 0)
-	{
-		free(ip);
-		free(port);
+	int err = getnameinfo((struct sockaddr *)&addr, addrlen, hbuf, NI_MAXHOST, sbuf, NI_MAXSERV, 0);
+	if(err != 0) {
 		// Algunos errores se setean en 'errno' y otros son propios de 'getnameinfo()' y se leen con 'gai_strerror()'
 		return err == EAI_SYSTEM ? STATUS_GETNAMEINFO_ERROR : err;
 	}
 
-	if(ip_ptr)   *ip_ptr   = strdup(ip);
-	if(port_ptr) *port_ptr = strdup(port);
-
-	free(ip);
-	free(port);
+	if(ip)   *ip   = strdup(hbuf);
+	if(port) *port = strdup(sbuf);
 
 	return STATUS_SUCCESS;
 }

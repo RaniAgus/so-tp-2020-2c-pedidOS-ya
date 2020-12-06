@@ -28,13 +28,6 @@
 #include <commons/string.h>
 
 /**
-* @NAME list_sum
-* @DESC Retorna la sumatoria de todos los elementos de una lista, a través de una
-* función 'element_value' que retorna el valor a acumular de cada uno.
-*/
-double 	list_sum(t_list* self, double(*element_value)(void*));
-
-/**
  * @NAME: list_fold1
  * @DESC: Devuelve un valor que resulta de aplicar la
  * operacion entre todos los elementos de la lista, tomando al primero como
@@ -44,6 +37,16 @@ double 	list_sum(t_list* self, double(*element_value)(void*));
  * primer elemento de la lista) y otro del tipo de los elementos restantes de la lista.
  */
 void* list_fold1(t_list* self, void* (*operation)(void*, void*));
+
+/**
+* @NAME: list_get_max_by
+* @DESC: Retorna el maximo de la lista según el comparador
+* El comparador devuelve:
+* comparator(arg1, arg2) < 0 <=> arg1 < arg2
+* comparator(arg1, arg2) = 0 <=> arg1 = arg2
+* comparator(arg1, arg2) > 0 <=> arg1 > arg2
+*/
+void *list_get_max_by(t_list* self, int (*comparator)(void*, void*));
 
 /**
 * @NAME: list_get_min_by
