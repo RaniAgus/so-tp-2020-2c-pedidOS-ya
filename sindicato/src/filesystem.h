@@ -2,6 +2,7 @@
 #define FILESYSTEM_H_
 
 #include "sindicato.h"
+#include "locks.h"
 
 typedef enum {
 	RES_NOMBRE = 1,
