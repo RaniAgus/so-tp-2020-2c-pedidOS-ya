@@ -25,22 +25,22 @@ e_status cs_recv_msg(t_sfd conn, void (*closure)(t_sfd, t_header, void*))
 	return status;
 }
 
-static t_consulta* 		_buffer_to_consulta (int8_t msg_type, t_buffer* buffer);
-static t_handshake_cli* _buffer_to_handshake_cli(t_buffer* buffer);
-static t_handshake_res* _buffer_to_handshake_res(t_buffer* buffer, t_sfd conn);
+static t_consulta*      buffer_unpack_consulta(int8_t msg_type, t_buffer* buffer);
+static t_handshake_cli* buffer_unpack_consulta_hs_cliente(t_buffer* buffer);
+static t_handshake_res* buffer_unpack_consulta_hs_restaurante(t_buffer* buffer, t_sfd conn);
 
-static t_rta_handshake_cli*	_buffer_to_rta_handshake_cli(t_buffer* buffer);
-static t_rta_cons_rest* _buffer_to_rta_cons_rest(t_buffer* buffer);
-static t_rta_obt_rest*  _buffer_to_rta_obt_rest (t_buffer* buffer);
-static t_rta_cons_pl*   _buffer_to_rta_cons_pl  (t_buffer* buffer);
-static t_rta_crear_ped* _buffer_to_rta_crear_ped(t_buffer* buffer);
-static t_rta_cons_ped*  _buffer_to_rta_cons_ped (t_buffer* buffer);
-static t_rta_obt_ped*   _buffer_to_rta_obt_ped  (t_buffer* buffer);
-static t_rta_obt_rec*   _buffer_to_rta_obt_rec  (t_buffer* buffer);
+static t_rta_handshake_cli* buffer_unpack_hs_cliente(t_buffer* buffer);
+static t_rta_cons_rest*     buffer_unpack_consultar_restaurantes(t_buffer* buffer);
+static t_rta_obt_rest*      buffer_unpack_obtener_restaurante(t_buffer* buffer);
+static t_rta_cons_pl*       buffer_unpack_consultar_platos(t_buffer* buffer);
+static t_rta_crear_ped*     buffer_unpack_crear_pedido(t_buffer* buffer);
+static t_rta_cons_ped*      buffer_unpack_consultar_pedido(t_buffer* buffer);
+static t_rta_obt_ped*       buffer_unpack_obtener_pedido(t_buffer* buffer);
+static t_rta_obt_rec*       buffer_unpack_obtener_receta(t_buffer* buffer);
 
-t_list* buffer_unpack_menu(t_buffer* buffer);
-t_list* buffer_unpack_platos(t_buffer* buffer);
-t_list* buffer_unpack_receta(t_buffer* buffer);
+static t_list* buffer_unpack_menu(t_buffer* buffer);
+static t_list* buffer_unpack_platos(t_buffer* buffer);
+static t_list* buffer_unpack_receta(t_buffer* buffer);
 
 void* buffer_unpack_msg(t_header header, t_buffer* buffer, t_sfd conn)
 {
@@ -49,35 +49,23 @@ void* buffer_unpack_msg(t_header header, t_buffer* buffer, t_sfd conn)
 	case OPCODE_CONSULTA:
 		switch(header.msgtype)
 		{
-		case HANDSHAKE_CLIENTE:
-			return (void*)_buffer_to_handshake_cli(buffer);
-		case HANDSHAKE_RESTAURANTE:
-			return (void*)_buffer_to_handshake_res(buffer, conn);
-		default:
-			return (void*)_buffer_to_consulta(header.msgtype, buffer);
+		case HANDSHAKE_CLIENTE:      return (void*)buffer_unpack_consulta_hs_cliente(buffer);
+		case HANDSHAKE_RESTAURANTE:  return (void*)buffer_unpack_consulta_hs_restaurante(buffer, conn);
+		default:                     return (void*)buffer_unpack_consulta(header.msgtype, buffer);
 		}
 		break;
 	case OPCODE_RESPUESTA_OK:
 		switch(header.msgtype)
 		{
-		case HANDSHAKE_CLIENTE:
-			return (void*)_buffer_to_rta_handshake_cli(buffer);
-		case CONSULTAR_RESTAURANTES:
-			return (void*)_buffer_to_rta_cons_rest(buffer);
-		case OBTENER_RESTAURANTE:
-			return (void*)_buffer_to_rta_obt_rest(buffer);
-		case CONSULTAR_PLATOS:
-			return (void*)_buffer_to_rta_cons_pl(buffer);
-		case CREAR_PEDIDO:
-			return (void*)_buffer_to_rta_crear_ped(buffer);
-		case CONSULTAR_PEDIDO:
-			return (void*)_buffer_to_rta_cons_ped(buffer);
-		case OBTENER_PEDIDO:
-			return (void*)_buffer_to_rta_obt_ped(buffer);
-		case OBTENER_RECETA:
-			return (void*)_buffer_to_rta_obt_rec(buffer);
-		default:
-			return NULL;
+		case HANDSHAKE_CLIENTE:      return (void*)buffer_unpack_hs_cliente(buffer);
+		case CONSULTAR_RESTAURANTES: return (void*)buffer_unpack_consultar_restaurantes(buffer);
+		case OBTENER_RESTAURANTE:    return (void*)buffer_unpack_obtener_restaurante(buffer);
+		case CONSULTAR_PLATOS:       return (void*)buffer_unpack_consultar_platos(buffer);
+		case CREAR_PEDIDO:           return (void*)buffer_unpack_crear_pedido(buffer);
+		case CONSULTAR_PEDIDO:       return (void*)buffer_unpack_consultar_pedido(buffer);
+		case OBTENER_PEDIDO:         return (void*)buffer_unpack_obtener_pedido(buffer);
+		case OBTENER_RECETA:         return (void*)buffer_unpack_obtener_receta(buffer);
+		default:                     return NULL;
 		}
 		break;
 	default:
@@ -85,11 +73,9 @@ void* buffer_unpack_msg(t_header header, t_buffer* buffer, t_sfd conn)
 	}
 }
 
-static t_consulta* _buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
+static t_consulta* buffer_unpack_consulta(int8_t msg_type, t_buffer* buffer)
 {
 	t_consulta* msg = malloc(sizeof(t_consulta));
-	msg->msgtype = msg_type;
-
 	int8_t self_module = (int8_t)cs_string_to_enum(cs_config_get_string("MODULO"), cs_enum_module_to_str);
 
 	//Comida
@@ -123,7 +109,7 @@ static t_consulta* _buffer_to_consulta(int8_t msg_type, t_buffer* buffer)
 	return msg;
 }
 
-static t_handshake_cli* _buffer_to_handshake_cli(t_buffer* buffer)
+static t_handshake_cli* buffer_unpack_consulta_hs_cliente(t_buffer* buffer)
 {
 	t_handshake_cli* msg = malloc(sizeof(t_handshake_cli));
 
@@ -134,21 +120,22 @@ static t_handshake_cli* _buffer_to_handshake_cli(t_buffer* buffer)
 	return msg;
 }
 
-static t_handshake_res* _buffer_to_handshake_res(t_buffer* buffer, t_sfd conn)
+static t_handshake_res* buffer_unpack_consulta_hs_restaurante(t_buffer* buffer, t_sfd conn)
 {
 	t_handshake_res* msg = malloc(sizeof(t_handshake_res));
 
-	msg->nombre = buffer_unpack_string(buffer);                //Nombre
-	buffer_unpack(buffer, &msg->posicion.x, sizeof(uint32_t)); //Posicion en x
-	buffer_unpack(buffer, &msg->posicion.y, sizeof(uint32_t)); //Posicion en y
-	msg->ip = NULL;
-	cs_get_peer_info(conn, &msg->ip, NULL);                    //IP
-	msg->puerto = buffer_unpack_string(buffer);                //Puerto
+	msg->nombre = buffer_unpack_string(buffer);                    //Nombre
+	buffer_unpack(buffer, &msg->posicion.x, sizeof(uint32_t));     //Posicion en x
+	buffer_unpack(buffer, &msg->posicion.y, sizeof(uint32_t));     //Posicion en y
+	if(cs_get_peer_info(conn, &msg->ip, NULL) != STATUS_SUCCESS) { //IP
+		msg->ip = NULL;
+	}
+	msg->puerto = buffer_unpack_string(buffer);                    //Puerto
 
 	return msg;
 }
 
-static t_rta_cons_rest* _buffer_to_rta_cons_rest(t_buffer* buffer)
+static t_rta_cons_rest* buffer_unpack_consultar_restaurantes(t_buffer* buffer)
 {
 	t_rta_cons_rest* msg = malloc(sizeof(t_rta_cons_rest));
 
@@ -157,7 +144,7 @@ static t_rta_cons_rest* _buffer_to_rta_cons_rest(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_rest*  _buffer_to_rta_obt_rest(t_buffer* buffer)
+static t_rta_obt_rest*  buffer_unpack_obtener_restaurante(t_buffer* buffer)
 {
 	t_rta_obt_rest* msg = malloc(sizeof(t_rta_obt_rest));
 
@@ -172,7 +159,7 @@ static t_rta_obt_rest*  _buffer_to_rta_obt_rest(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_cons_pl*   _buffer_to_rta_cons_pl(t_buffer* buffer)
+static t_rta_cons_pl*   buffer_unpack_consultar_platos(t_buffer* buffer)
 {
 	t_rta_cons_pl* msg = malloc(sizeof(t_rta_cons_pl));
 
@@ -181,7 +168,7 @@ static t_rta_cons_pl*   _buffer_to_rta_cons_pl(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_crear_ped* _buffer_to_rta_crear_ped(t_buffer* buffer)
+static t_rta_crear_ped* buffer_unpack_crear_pedido(t_buffer* buffer)
 {
 	t_rta_crear_ped* msg = malloc(sizeof(t_rta_crear_ped));
 
@@ -190,7 +177,7 @@ static t_rta_crear_ped* _buffer_to_rta_crear_ped(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_cons_ped*  _buffer_to_rta_cons_ped(t_buffer* buffer)
+static t_rta_cons_ped*  buffer_unpack_consultar_pedido(t_buffer* buffer)
 {
 	t_rta_cons_ped* msg = malloc(sizeof(t_rta_cons_ped));
 
@@ -201,7 +188,7 @@ static t_rta_cons_ped*  _buffer_to_rta_cons_ped(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_ped*   _buffer_to_rta_obt_ped(t_buffer* buffer)
+static t_rta_obt_ped*   buffer_unpack_obtener_pedido(t_buffer* buffer)
 {
 	t_rta_obt_ped* msg = malloc(sizeof(t_rta_obt_ped));
 
@@ -211,7 +198,7 @@ static t_rta_obt_ped*   _buffer_to_rta_obt_ped(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_obt_rec*   _buffer_to_rta_obt_rec(t_buffer* buffer)
+static t_rta_obt_rec*   buffer_unpack_obtener_receta(t_buffer* buffer)
 {
 	t_rta_obt_rec* msg = malloc(sizeof(t_rta_obt_rec));
 
@@ -220,7 +207,7 @@ static t_rta_obt_rec*   _buffer_to_rta_obt_rec(t_buffer* buffer)
 	return msg;
 }
 
-static t_rta_handshake_cli*	_buffer_to_rta_handshake_cli(t_buffer* buffer)
+static t_rta_handshake_cli*	buffer_unpack_hs_cliente(t_buffer* buffer)
 {
 	t_rta_handshake_cli* msg = malloc(sizeof(t_rta_handshake_cli));
 
@@ -229,7 +216,7 @@ static t_rta_handshake_cli*	_buffer_to_rta_handshake_cli(t_buffer* buffer)
 	return msg;
 }
 
-t_list* buffer_unpack_menu(t_buffer* buffer)
+static t_list* buffer_unpack_menu(t_buffer* buffer)
 {
 	t_comida_menu* _unpack_comida_menu(t_buffer* buffer) {
 		t_comida_menu* comida_menu = malloc(sizeof(t_comida_menu));
@@ -241,7 +228,7 @@ t_list* buffer_unpack_menu(t_buffer* buffer)
 	return buffer_unpack_list(buffer, (void*)_unpack_comida_menu);
 }
 
-t_list* buffer_unpack_platos(t_buffer* buffer)
+static t_list* buffer_unpack_platos(t_buffer* buffer)
 {
 	t_plato* _unpack_plato(t_buffer* buffer) {
 		t_plato* plato = malloc(sizeof(t_plato));
@@ -254,7 +241,7 @@ t_list* buffer_unpack_platos(t_buffer* buffer)
 	return buffer_unpack_list(buffer, (void*)_unpack_plato);
 }
 
-t_list* buffer_unpack_receta(t_buffer* buffer)
+static t_list* buffer_unpack_receta(t_buffer* buffer)
 {
 	t_paso_receta* _unpack_paso_receta(t_buffer* buffer) {
 		t_paso_receta* paso_receta = malloc(sizeof(t_paso_receta));
