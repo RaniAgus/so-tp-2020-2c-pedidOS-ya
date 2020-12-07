@@ -79,12 +79,10 @@ void cs_msg_destroy(void* msg, int8_t op_code, int8_t msg_type)
 	}
 }
 
-t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
+t_consulta* _cons_create(char* comida, uint32_t cant, char* rest, uint32_t pedido_id)
 {
 	t_consulta* msg;
 	msg = malloc(sizeof(t_consulta));
-
-	msg->msgtype = msg_type;
 
 	msg->comida      = comida != NULL ? string_duplicate(comida) : NULL;
 	msg->cantidad    = cant;
@@ -94,7 +92,7 @@ t_consulta* 	_cons_create(int8_t msg_type, char* comida, uint32_t cant, char* re
 	return msg;
 }
 
-t_handshake_cli* 	cs_cons_handshake_cli_create(void)
+t_handshake_cli* cs_cons_handshake_cli_create(void)
 {
 	t_handshake_cli* msg;
 	msg = malloc(sizeof(t_handshake_cli));
@@ -142,22 +140,22 @@ t_rta_cons_rest* cs_rta_consultar_rest_create(char** restaurantes)
 }
 
 t_rta_obt_rest* cs_rta_obtener_rest_create(uint32_t cant_cocineros,
-								   	   	   char* 	afinidades,
-										   char*	comidas,
-										   char*	precios,
-										   t_pos 	pos_restaurante,
-										   uint32_t cant_hornos,
-										   uint32_t cant_pedidos)
+                                           char*    afinidades,
+                                           char*    comidas,
+                                           char*    precios,
+                                           t_pos    pos_restaurante,
+                                           uint32_t cant_hornos,
+                                           uint32_t cant_pedidos)
 {
 	t_rta_obt_rest* rta;
 	rta = malloc(sizeof(t_rta_obt_rest));
 
 	rta->cant_cocineros    = cant_cocineros;
-	rta->afinidades 	   = string_get_string_as_array(afinidades);
-	rta->menu			   = cs_menu_create(comidas, precios);
+	rta->afinidades        = string_get_string_as_array(afinidades);
+	rta->menu              = cs_menu_create(comidas, precios);
 	rta->pos_restaurante.x = pos_restaurante.x;
 	rta->pos_restaurante.y = pos_restaurante.y;
-	rta->cant_hornos 	   = cant_hornos;
+	rta->cant_hornos       = cant_hornos;
 	rta->cant_pedidos      = cant_pedidos;
 
 	return rta;
@@ -185,9 +183,9 @@ t_rta_crear_ped* cs_rta_crear_ped_create(uint32_t pedido_id)
 }
 
 t_rta_cons_ped* cs_rta_consultar_ped_create(char* rest, e_estado_ped estado_ped,
-								   char* platos,
-								   char* listos,
-								   char* totales)
+                                   char* platos,
+                                   char* listos,
+                                   char* totales)
 {
 	t_rta_cons_ped* rta;
 	rta = malloc(sizeof(t_rta_cons_ped));
@@ -224,34 +222,34 @@ t_rta_obt_rec* cs_rta_obtener_receta_create(char* pasos, char* tiempos)
 
 static void _rta_destroy(void* msg, int8_t msg_type)
 {
-    switch(msg_type)
-    {
-    case CONSULTAR_RESTAURANTES:
-    	string_iterate_lines(RTA_CONS_REST(msg)->restaurantes, (void*) free);
-    	free(RTA_CONS_REST(msg)->restaurantes);
-        break;
-    case OBTENER_RESTAURANTE:
-    	string_iterate_lines(RTA_OBT_REST(msg)->afinidades, (void*) free);
-    	free(RTA_OBT_REST(msg)->afinidades);
-    	cs_menu_destroy(RTA_OBT_REST(msg)->menu);
-    	break;
-    case CONSULTAR_PLATOS:
-    	string_iterate_lines(RTA_CONS_PL(msg)->comidas, (void*) free);
-    	free(RTA_CONS_PL(msg)->comidas);
-        break;
-    case CONSULTAR_PEDIDO:
-    	free(RTA_CONSULTAR_PED(msg)->restaurante);
-    	cs_platos_destroy(RTA_CONSULTAR_PED(msg)->platos_y_estados);
-        break;
-    case OBTENER_PEDIDO:
-    	cs_platos_destroy(RTA_OBTENER_PED(msg)->platos_y_estados);
-        break;
-    case OBTENER_RECETA:
-    	cs_receta_destroy(RTA_OBTENER_RECETA(msg)->pasos_receta);
-        break;
-    default:
-    	break;
-    }
+	switch(msg_type)
+	{
+	case CONSULTAR_RESTAURANTES:
+		string_iterate_lines(RTA_CONS_REST(msg)->restaurantes, (void*) free);
+		free(RTA_CONS_REST(msg)->restaurantes);
+		break;
+	case OBTENER_RESTAURANTE:
+		string_iterate_lines(RTA_OBT_REST(msg)->afinidades, (void*) free);
+		free(RTA_OBT_REST(msg)->afinidades);
+		cs_menu_destroy(RTA_OBT_REST(msg)->menu);
+		break;
+	case CONSULTAR_PLATOS:
+		string_iterate_lines(RTA_CONS_PL(msg)->comidas, (void*) free);
+		free(RTA_CONS_PL(msg)->comidas);
+		break;
+	case CONSULTAR_PEDIDO:
+		free(RTA_CONSULTAR_PED(msg)->restaurante);
+		cs_platos_destroy(RTA_CONSULTAR_PED(msg)->platos_y_estados);
+		break;
+	case OBTENER_PEDIDO:
+		cs_platos_destroy(RTA_OBTENER_PED(msg)->platos_y_estados);
+		break;
+	case OBTENER_RECETA:
+		cs_receta_destroy(RTA_OBTENER_RECETA(msg)->pasos_receta);
+		break;
+	default:
+		break;
+	}
 
 	if(msg) free(msg);
 }

@@ -61,23 +61,22 @@ static e_status _send_msg(t_sfd conn, t_header header, void* msg, e_module dest)
 
 /*********************************  BUFFER  ***************************************/
 
-void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg);
-void buffer_pack_consulta_hs_cliente(t_buffer* buffer, t_handshake_cli* msg);
-void buffer_pack_consulta(t_buffer* buffer, t_consulta* msg, e_module dest);
-void buffer_pack_respuesta_ok(t_buffer* buffer, e_msgtype msg_type, void* msg);
+static void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg);
+static void buffer_pack_consulta_hs_cliente    (t_buffer* buffer, t_handshake_cli* msg);
+static void buffer_pack_consulta               (t_buffer* buffer, t_consulta* msg, e_msgtype msg_type, e_module dest);
 
-static void buffer_pack_handshake_cliente(t_buffer* buffer, t_rta_handshake_cli* msg);
-static void buffer_pack_consultar_restaurantes(t_buffer* buffer, t_rta_cons_rest* msg);
-static void buffer_pack_obtener_restaurante(t_buffer* buffer, t_rta_obt_rest* msg);
-static void buffer_pack_consultar_platos(t_buffer* buffer, t_rta_cons_pl* msg);
-static void buffer_pack_crear_pedido(t_buffer* buffer, t_rta_crear_ped* msg);
-static void buffer_pack_consultar_pedido(t_buffer* buffer, t_rta_cons_ped* msg);
-static void buffer_pack_obtener_pedido(t_buffer* buffer, t_rta_obt_ped* msg);
-static void buffer_pack_obtener_receta(t_buffer* buffer, t_rta_obt_rec* msg);
+static void buffer_pack_handshake_cliente      (t_buffer* buffer, t_rta_handshake_cli* msg);
+static void buffer_pack_consultar_restaurantes (t_buffer* buffer, t_rta_cons_rest* msg);
+static void buffer_pack_obtener_restaurante    (t_buffer* buffer, t_rta_obt_rest* msg);
+static void buffer_pack_consultar_platos       (t_buffer* buffer, t_rta_cons_pl* msg);
+static void buffer_pack_crear_pedido           (t_buffer* buffer, t_rta_crear_ped* msg);
+static void buffer_pack_consultar_pedido       (t_buffer* buffer, t_rta_cons_ped* msg);
+static void buffer_pack_obtener_pedido         (t_buffer* buffer, t_rta_obt_ped* msg);
+static void buffer_pack_obtener_receta         (t_buffer* buffer, t_rta_obt_rec* msg);
 
-void buffer_pack_menu(t_buffer* buffer, t_list* menu);
-void buffer_pack_platos(t_buffer* buffer, t_list* platos);
-void buffer_pack_receta(t_buffer* buffer, t_list* receta);
+static void buffer_pack_menu  (t_buffer* buffer, t_list* menu);
+static void buffer_pack_platos(t_buffer* buffer, t_list* platos);
+static void buffer_pack_receta(t_buffer* buffer, t_list* receta);
 
 void buffer_pack_msg(t_buffer* buffer, t_header header, void* msg, e_module dest)
 {
@@ -86,19 +85,24 @@ void buffer_pack_msg(t_buffer* buffer, t_header header, void* msg, e_module dest
 	case OPCODE_CONSULTA:
 		switch(header.msgtype)
 		{
-		case HANDSHAKE_CLIENTE:
-			buffer_pack_consulta_hs_cliente(buffer, msg);
-			break;
-		case HANDSHAKE_RESTAURANTE:
-			buffer_pack_consulta_hs_restaurante(buffer, msg);
-			break;
-		default:
-			buffer_pack_consulta(buffer, msg, dest);
-			break;
+		case HANDSHAKE_CLIENTE:	     buffer_pack_consulta_hs_cliente    (buffer, msg); break;
+		case HANDSHAKE_RESTAURANTE:	 buffer_pack_consulta_hs_restaurante(buffer, msg); break;
+		default:                     buffer_pack_consulta               (buffer, msg, header.msgtype, dest); break;
 		}
 		break;
 	case OPCODE_RESPUESTA_OK:
-		buffer_pack_respuesta_ok(buffer, header.msgtype, msg);
+		switch(header.msgtype)
+		{
+		case HANDSHAKE_CLIENTE:      buffer_pack_handshake_cliente      (buffer, msg); break;
+		case CONSULTAR_RESTAURANTES: buffer_pack_consultar_restaurantes (buffer, msg); break;
+		case OBTENER_RESTAURANTE:    buffer_pack_obtener_restaurante    (buffer, msg); break;
+		case CONSULTAR_PLATOS:       buffer_pack_consultar_platos       (buffer, msg); break;
+		case CREAR_PEDIDO:           buffer_pack_crear_pedido           (buffer, msg); break;
+		case CONSULTAR_PEDIDO:       buffer_pack_consultar_pedido       (buffer, msg); break;
+		case OBTENER_PEDIDO:         buffer_pack_obtener_pedido         (buffer, msg); break;
+		case OBTENER_RECETA:         buffer_pack_obtener_receta         (buffer, msg); break;
+		default: break;
+		}
 		break;
 	default:
 		break;
@@ -107,14 +111,14 @@ void buffer_pack_msg(t_buffer* buffer, t_header header, void* msg, e_module dest
 
 /********************************* CONSULTAS / HANDSHAKES  ***************************************/
 
-void buffer_pack_consulta_hs_cliente(t_buffer* buffer, t_handshake_cli* msg)
+static void buffer_pack_consulta_hs_cliente(t_buffer* buffer, t_handshake_cli* msg)
 {
 	buffer_pack_string(buffer, msg->nombre);
 	buffer_pack(buffer, &msg->posicion.x, sizeof(uint32_t));
 	buffer_pack(buffer, &msg->posicion.y, sizeof(uint32_t));
 }
 
-void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg)
+static void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg)
 {
 	buffer_pack_string(buffer, msg->nombre);
 	buffer_pack(buffer, &msg->posicion.x, sizeof(uint32_t));
@@ -122,55 +126,22 @@ void buffer_pack_consulta_hs_restaurante(t_buffer* buffer, t_handshake_res* msg)
 	buffer_pack_string(buffer, msg->puerto);
 }
 
-void buffer_pack_consulta(t_buffer* buffer, t_consulta* msg, e_module dest)
+static void buffer_pack_consulta(t_buffer* buffer, t_consulta* msg, e_msgtype msg_type, e_module dest)
 {
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_COMIDA, dest))
+	if(cs_cons_has_argument(msg_type, CONS_ARG_COMIDA, dest))
 		buffer_pack_string(buffer, msg->comida);
 
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_CANTIDAD, dest))
+	if(cs_cons_has_argument(msg_type, CONS_ARG_CANTIDAD, dest))
 		buffer_pack(buffer, &msg->cantidad, sizeof(uint32_t));
 
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_RESTAURANTE, dest))
+	if(cs_cons_has_argument(msg_type, CONS_ARG_RESTAURANTE, dest))
 		buffer_pack_string(buffer, msg->restaurante);
 
-	if(cs_cons_has_argument(msg->msgtype, CONS_ARG_PEDIDO_ID, dest))
+	if(cs_cons_has_argument(msg_type, CONS_ARG_PEDIDO_ID, dest))
 		buffer_pack(buffer, &msg->pedido_id, sizeof(uint32_t));
 }
 
 /********************************* RESPUESTAS  ***************************************/
-
-void buffer_pack_respuesta_ok(t_buffer* buffer, e_msgtype msg_type, void* msg)
-{
-	switch(msg_type)
-	{
-	case HANDSHAKE_CLIENTE:
-		buffer_pack_handshake_cliente(buffer, msg);
-		break;
-	case CONSULTAR_RESTAURANTES:
-		buffer_pack_consultar_restaurantes(buffer, msg);
-		break;
-	case OBTENER_RESTAURANTE:
-		buffer_pack_obtener_restaurante(buffer, msg);
-		break;
-	case CONSULTAR_PLATOS:
-		buffer_pack_consultar_platos(buffer, msg);
-		break;
-	case CREAR_PEDIDO:
-		buffer_pack_crear_pedido(buffer, msg);
-		break;
-	case CONSULTAR_PEDIDO:
-		buffer_pack_consultar_pedido(buffer, msg);
-		break;
-	case OBTENER_PEDIDO:
-		buffer_pack_obtener_pedido(buffer, msg);
-		break;
-	case OBTENER_RECETA:
-		buffer_pack_obtener_receta(buffer, msg);
-		break;
-	default:
-		break;
-	}
-}
 
 static void buffer_pack_handshake_cliente(t_buffer* buffer, t_rta_handshake_cli* msg)
 {
@@ -224,7 +195,7 @@ static void buffer_pack_obtener_receta(t_buffer* buffer, t_rta_obt_rec* msg)
 
 /********************************* LISTAS  ***************************************/
 
-void buffer_pack_menu(t_buffer* buffer, t_list* menu)
+static void buffer_pack_menu(t_buffer* buffer, t_list* menu)
 {
 	void _pack_comida_menu(t_buffer* buffer, t_comida_menu* comida_menu) {
 		buffer_pack_string(buffer, comida_menu->comida);
@@ -233,7 +204,7 @@ void buffer_pack_menu(t_buffer* buffer, t_list* menu)
 	buffer_pack_list(buffer, menu, (void*)_pack_comida_menu);
 }
 
-void buffer_pack_platos(t_buffer* buffer, t_list* platos)
+static void buffer_pack_platos(t_buffer* buffer, t_list* platos)
 {
 	void _pack_plato(t_buffer* buffer, t_plato* plato) {
 		buffer_pack_string(buffer, plato->comida);                 //Comida
@@ -243,7 +214,7 @@ void buffer_pack_platos(t_buffer* buffer, t_list* platos)
 	buffer_pack_list(buffer, platos, (void*)_pack_plato);
 }
 
-void buffer_pack_receta(t_buffer* buffer, t_list* receta)
+static void buffer_pack_receta(t_buffer* buffer, t_list* receta)
 {
 	void _pack_paso_receta(t_buffer* buffer, t_paso_receta* paso_receta) {
 		buffer_pack_string(buffer, paso_receta->paso);

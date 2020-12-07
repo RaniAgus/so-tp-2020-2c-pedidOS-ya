@@ -73,7 +73,7 @@ context(test_serializacion) {
 
 		it("Consulta sin parámetros") {
 			t_header header = {OPCODE_CONSULTA, CONSULTAR_RESTAURANTES};
-			t_consulta* enviado  = _cons_create(CONSULTAR_RESTAURANTES, NULL, 0, NULL, 0);
+			t_consulta* enviado  = _cons_create(NULL, 0, NULL, 0);
 			t_consulta* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 0);
 
 			should_ptr(recibido) not be null;
@@ -88,7 +88,7 @@ context(test_serializacion) {
 
 		it("Consulta con todos los parámetros") {
 			t_header header = {OPCODE_CONSULTA, GUARDAR_PLATO};
-			t_consulta* enviado  = _cons_create(GUARDAR_PLATO, "Bayern", 8, "Barcelona", 2);
+			t_consulta* enviado  = _cons_create("Bayern", 8, "Barcelona", 2);
 			t_consulta* recibido = serializar_y_deserializar(header, enviado, MODULO_DESCONOCIDO, 31);
 
 			should_ptr(recibido) not be null;
