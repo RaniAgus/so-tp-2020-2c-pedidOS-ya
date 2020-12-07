@@ -90,7 +90,6 @@ t_rta_cons_pl* consultarPlatos(t_consulta* consulta){ // LISTO
 		free(platos);
 		free(lectura);
 	}
-
 	return respuesta;
 }
 
@@ -126,6 +125,8 @@ e_opcode guardarPedido(t_consulta* consulta){ // LISTO
 
 e_opcode guardarPlato(t_consulta* consulta){ // LISTO
 	e_opcode respuesta = OPCODE_RESPUESTA_FAIL;
+	char* pathLock = obtenerPathLockPedido(consulta);
+	lockearEscritura(pathLock);
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		char* restaurante = leerRestaurante(consulta->restaurante);
@@ -148,11 +149,15 @@ e_opcode guardarPlato(t_consulta* consulta){ // LISTO
 		free(restaurante);
 		free(lectura);
 	}
+	unlockear(pathLock);
+	free(pathLock);
 	return respuesta;
 }
 
 e_opcode confirmarPedido(t_consulta* consulta){ // LISTO
 	e_opcode respuesta = OPCODE_RESPUESTA_FAIL;
+	char* pathLock = obtenerPathLockPedido(consulta);
+	lockearEscritura(pathLock);
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_PENDIENTE)){
@@ -164,17 +169,22 @@ e_opcode confirmarPedido(t_consulta* consulta){ // LISTO
 		}
 		free(lectura);
 	}
+	unlockear(pathLock);
+	free(pathLock);
 	return respuesta;
 }
 
 t_rta_obt_ped* obtenerPedido(t_consulta* consulta){ // LISTO
 	t_rta_obt_ped* respuesta = NULL;
+	char* pathLock = obtenerPathLockPedido(consulta);
+	lockearLectura(pathLock);
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		respuesta = cs_lectura_to_pedido(lectura);
 		free(lectura);
 	}
-
+	unlockear(pathLock);
+	free(pathLock);
 	return respuesta;
 }
 
@@ -191,6 +201,8 @@ t_rta_obt_rest* obtenerRestaurante(t_consulta* consulta){  // LISTO
 
 e_opcode platoListo(t_consulta* consulta){ //
 	e_opcode respuesta = OPCODE_RESPUESTA_FAIL;
+	char* pathLock = obtenerPathLockPedido(consulta);
+	lockearEscritura(pathLock);
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_CONFIRMADO)){
@@ -210,11 +222,15 @@ e_opcode platoListo(t_consulta* consulta){ //
 		}
 		free(lectura);
 	}
+	unlockear(pathLock);
+	free(pathLock);
 	return respuesta;
 }
 
 e_opcode terminarPedido(t_consulta* consulta){ //
 	e_opcode respuesta = OPCODE_RESPUESTA_FAIL;
+	char* pathLock = obtenerPathLockPedido(consulta);
+	lockearEscritura(pathLock);
 	char* lectura = leerPedido(consulta->pedido_id, consulta->restaurante);
 	if(lectura != NULL) {
 		if(estaEnEstado(lectura, PEDIDO_CONFIRMADO)){
@@ -226,7 +242,8 @@ e_opcode terminarPedido(t_consulta* consulta){ //
 		}
 		free(lectura);
 	}
-
+	unlockear(pathLock);
+	free(pathLock);
 	return respuesta;
 }
 
@@ -234,6 +251,7 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){ // LISTO
 	t_rta_obt_rec* respuesta = NULL;
 	char* path = obtenerPathAbsoluto("Files/Recetas/%s.AFIP", consulta->comida);
 	if(existeDirectorio(path, 0)){
+		lockearLectura(path);
 		t_config* conf = config_create(path);
 		int bloque = config_get_int_value(conf, "INITIAL_BLOCK");
 		int size = config_get_int_value(conf, "SIZE");
@@ -241,6 +259,7 @@ t_rta_obt_rec* obtenerReceta(t_consulta* consulta){ // LISTO
 		char* lectura = leerBloques(bloque, size);
 		respuesta = cs_lectura_to_receta(lectura);
 		free(lectura);
+		unlockear(path);
 	} else {
 		CS_LOG_ERROR("No existe el Plato %s", consulta->comida);
 	}
@@ -276,12 +295,13 @@ void crearRestaurante(char** consulta){ // LISTO
 
 	char* infoRes = escribirNuevoArchivo(escritura, "Restaurante %s", consulta[RES_NOMBRE]);
 	if(infoRes != NULL) {
+		lockearEscritura(path);
 		FILE* fd = fopen(path, "wt");
 		fwrite(infoRes, strlen(infoRes), 1, fd);
 		fclose(fd);
 		CS_LOG_INFO("Se creo el archivo \"Info.AFIP\" para el restaurant %s", consulta[RES_NOMBRE]);
-
 		free(infoRes);
+		unlockear(path);
 	} else {
 		remove(pathCarpeta);
 	}
@@ -296,12 +316,13 @@ void crearReceta(char** consulta){ // LISTO
 
 	char* infoRec = escribirNuevoArchivo(escritura, "Receta %s", consulta[REC_NOMBRE]);
 	if(infoRec != NULL) {
+		lockearEscritura(path);
 		FILE* fd = fopen(path, "wt");
 		fwrite(infoRec, strlen(infoRec), 1, fd);
 		fclose(fd);
 		CS_LOG_INFO("Se creo el archivo \"%s.AFIP\"", consulta[REC_NOMBRE]);
-
 		free(infoRec);
+		unlockear(path);
 	}
 
 	free(path);
@@ -431,9 +452,11 @@ int existePedido(int idPedido, char* nombreRestaurante){
 
 void escribirInfoPedido(char* infoPedido, int idPedido, char* nombreRestaurante){
 	char* path = obtenerPathPedido(idPedido, nombreRestaurante);
+	lockearEscritura(path);
 	FILE* file = fopen(path, "w");
 	fwrite(infoPedido, 1, strlen(infoPedido), file);
 	fclose(file);
+	unlockear(path);
 	CS_LOG_INFO("Escribi el Info del pedido %d para el restaurante %s", idPedido, nombreRestaurante);
 	free(path);
 	free(infoPedido);
@@ -441,10 +464,12 @@ void escribirInfoPedido(char* infoPedido, int idPedido, char* nombreRestaurante)
 
 void obtenerMetadataPedido(int idPedido, char* restaurante, int* bloque, int* size){
 	char* path = obtenerPathPedido(idPedido, restaurante);
+	lockearLectura(path);
 	t_config* conf = config_create(path);
 	*bloque = config_get_int_value(conf, "INITIAL_BLOCK");
 	*size = config_get_int_value(conf, "SIZE");
 	config_destroy(conf);
+	unlockear(path);
 	free(path);
 }
 
@@ -581,10 +606,12 @@ int obtener_precio(char* plato,int cantidad, char* restaurante){
 	int precio = 0;
 	char* pathRestaurante = obtenerPathRestaurante(restaurante);
 	string_append(&pathRestaurante, "/Info.AFIP");
+	lockearLectura(pathRestaurante);
 	t_config* md = config_create(pathRestaurante);
 	int initialBlock = config_get_int_value(md, "INITIAL_BLOCK");
 	int size = config_get_int_value(md, "SIZE");
 	config_destroy(md);
+	unlockear(pathRestaurante);
 
 	char* lectura = leerBloques(initialBlock, size);
 
@@ -638,7 +665,7 @@ void ajustarCantidadBloques(t_list* bloques, char* escrituraNueva, char* aQuien)
 		list_remove(bloques, list_size(bloques)-1);
 	}
 	t_list* listaDeBloquesAgregados = list_create();
-	while(list_size(bloques) < cantidadEscrituras){
+	while(list_size(bloques) + list_size(listaDeBloquesAgregados) < cantidadEscrituras){
 		int bloqueNuevo = obtenerYEscribirProximoDisponible(aQuien);
 		if(bloqueNuevo == 0){
 			while(!list_is_empty(listaDeBloquesAgregados)){
@@ -705,9 +732,11 @@ int escribirBloquesNuevos(char* escritura, char* aQuien){ // Antes era escribirB
 
 void escribirBloque(char* escritura, int numBloque){
 	char* path = obtenerPathAbsoluto("Blocks/%d.AFIP", numBloque);
+	lockearEscritura(path);
 	FILE* fd = fopen(path, "wrb");
 	fwrite(escritura, 1, tamanioBloque, fd);
 	fclose(fd);
+	unlockear(path);
 	CS_LOG_INFO("Escribi el bloque %d", numBloque);
 	cs_log_hexdump(LOG_LEVEL_DEBUG, escritura, tamanioBloque);
 	free(path);
@@ -716,14 +745,13 @@ void escribirBloque(char* escritura, int numBloque){
 char* leerBloque(int nroBloque) {
 	char* path = obtenerPathAbsoluto("Blocks/%d.AFIP", nroBloque);
 	char* lecturaAux = malloc(tamanioBloque);
+	lockearLectura(path);
 	FILE* f = fopen(path, "r");
-
 	fread(lecturaAux, 1, tamanioBloque, f);
 	fclose(f);
-
+	unlockear(path);
 	CS_LOG_DEBUG("Lei el bloque %d", nroBloque);
 	cs_log_hexdump(LOG_LEVEL_DEBUG, lecturaAux, tamanioBloque);
-
 	free(path);
 	return lecturaAux;
 }
@@ -765,10 +793,12 @@ t_list* leerNumerosBloques(int initialBlock, int size){
 
 void limpiarBloque(int bloque){
 	char* pathBloque = obtenerPathAbsoluto("Blocks/%d.AFIP", bloque);
+	lockearEscritura(pathBloque);
 	FILE* block = fopen(pathBloque, "wrb");
 	fseek(block, tamanioBloque - 1, SEEK_SET);
 	fputc(0, block);
 	fclose(block);
+	unlockear(pathBloque);
 	free(pathBloque);
 }
 
@@ -807,6 +837,7 @@ uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
 	uint32_t cant = 0;
 	char* path = obtenerPathRestaurante(nombreRestaurante);
 	char* comando = string_from_format("ls %s | wc -l", path);
+	lockearLectura(path);
 	FILE *pipe = popen(comando, "r");
 	if(pipe != NULL) {
 		char* buffer = NULL;
@@ -821,6 +852,7 @@ uint32_t obtenerCantidadPedidos(char* nombreRestaurante){
 		pclose(pipe);
 		free(buffer);
 	}
+	unlockear(path);
 	free(path);
 	free(comando);
 
@@ -859,6 +891,7 @@ char* leerRestaurante(char* restaurante) {
 	char* lectura = NULL;
 	if(existeRestaurante(restaurante)) {
 		char* path = obtenerPathAbsoluto("Files/Restaurantes/%s/Info.AFIP", restaurante);
+		lockearLectura(path);
 		t_config* md = config_create(path);
 		if(md != NULL) {
 			int initialBlock = config_get_int_value(md, "INITIAL_BLOCK");
@@ -868,6 +901,7 @@ char* leerRestaurante(char* restaurante) {
 		} else {
 			CS_LOG_ERROR("No existe %s/Info.AFIP", restaurante);
 		}
+		unlockear(path);
 		free(path);
 	} else {
 		CS_LOG_ERROR("No existe el Restaurant %s", restaurante);
@@ -891,10 +925,12 @@ int existeDirectorio(char* path, int creacion){
 }
 
 int tamanioArchivo(char* path){
+	lockearLectura(path);
 	FILE* fd = fopen(path, "rb");
 	fseek(fd, 0, SEEK_END);
 	int tamanio = ftell(fd);
 	fclose(fd);
+	unlockear(path);
 	return tamanio;
 }
 

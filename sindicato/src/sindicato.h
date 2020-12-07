@@ -14,6 +14,7 @@
 #include<sys/stat.h>
 #include<fcntl.h>
 #include<commons/memory.h>
+#include"locks.h"
 
 // ------------ COMUNICACIONES ------------ //
 
