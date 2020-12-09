@@ -30,6 +30,7 @@ void app_conectar_cliente(char* nombre, t_pos posicion, t_sfd conexion)
 	cliente->posicion.y = posicion.y;
 	cliente->conexion = conexion;
 	cliente->rest_vinculado = NULL;
+	pthread_mutex_init(&cliente->mutex_conexion, NULL);
 
 	//Lo agrega a la tabla de clientes
 	pthread_mutex_lock(&mutex_clientes);

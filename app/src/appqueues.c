@@ -96,6 +96,12 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 			}
 		} else
 		{
+			int8_t resultado = app_finalizar_pedido(
+					  repartidor->pcb->restaurante
+					, repartidor->pcb->id_pedido
+					, repartidor->pcb->cliente
+			);
+
 			CS_LOG_INFO("El repartidor llegó al cliente y se entregó el pedido, pasó a EXIT: "
 					"{REPARTIDOR: %d; POS: [%d,%d]} {CLIENTE: %s; POS: [%d,%d]} {PEDIDO: %d; RESTAURANTE: %s}"
 					, repartidor->id
@@ -106,12 +112,6 @@ void app_derivar_repartidor(t_repartidor* repartidor)
 					, repartidor->pcb->posicionCliente.y
 					, repartidor->pcb->id_pedido
 					, repartidor->pcb->restaurante
-			);
-
-			int8_t resultado = app_finalizar_pedido(
-					  repartidor->pcb->restaurante
-					, repartidor->pcb->id_pedido
-					, repartidor->pcb->cliente
 			);
 
 			//Libera al repartidor
