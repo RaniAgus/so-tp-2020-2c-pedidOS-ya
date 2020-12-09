@@ -174,6 +174,9 @@ void app_rutina_procesador(app_ciclo_t* semaforo)
 					, repartidor->pcb->id_pedido
 					, repartidor->pcb->restaurante
 			);
+		} else
+		{
+			CS_LOG_DEBUG("El procesador tiene un repartidor en EXEC: {REPARTIDOR: %d}", repartidor->id);
 		}
 		sem_post(&semaforo->fin_extraccion);
 	}

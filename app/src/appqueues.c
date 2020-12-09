@@ -319,6 +319,11 @@ void app_avisar_pedido_terminado(char* restaurante, uint32_t pedido_id)
     //Si lo encuentra, le cambia el destino a CLIENTE y lo deriva a la queue que corresponda
     if(repartidor != NULL)
     {
+    	CS_LOG_DEBUG("Se despertó al repartidor: {REPARTIDOR: %d} {RESTAURANTE: %s} {ID_PEDIDO: %d}"
+    			, repartidor->id
+				, restaurante
+				, pedido_id
+		);
 		app_mover_repartidor_a_cliente(repartidor);
     } else
     {
