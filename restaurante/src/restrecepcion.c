@@ -175,45 +175,52 @@ static void rest_recibir_aniadir_plato(t_sfd conn, t_consulta* msg)
 static void rest_recibir_confirmar_pedido(t_sfd conn, t_consulta* recibido, char* cliente)
 {
 	int8_t resultado;
-	t_rta_obt_ped* pedido;
+	t_rta_obt_ped* pedido = NULL;
 
-	//Obtiene el pedido
-	pedido = rest_obtener_pedido(recibido->pedido_id, &resultado);
+	//Confirma el pedido
+	CS_LOG_TRACE("Se confirmará el pedido: {PEDIDO_ID: %d}", recibido->pedido_id);
+	rest_confirmar_pedido(recibido->pedido_id, &resultado);
 
-	//Si se obtuvo con éxito, genera los PCBs de cada plato
+	//Si se confirmó con éxito, obtiene el pedido
 	if(resultado == OPCODE_RESPUESTA_OK)
 	{
-		CS_LOG_TRACE("Se generarán los PCBs del pedido %d generado por %s",
-				recibido->pedido_id, cliente ? cliente : "App"
-		);
+		pedido = rest_obtener_pedido(recibido->pedido_id, &resultado);
 
-		//Itera la lista de platos
-		void _generar_plato_control_block(t_plato* plato)
+		//Si se obtuvo con éxito, genera los PCBs de cada plato
+		if(resultado == OPCODE_RESPUESTA_OK)
 		{
-			int8_t resultado_obtener_receta;
+			CS_LOG_TRACE("Se generarán los PCBs del pedido %d generado por %s",
+					recibido->pedido_id, cliente ? cliente : "App"
+			);
 
-			//Obtiene la receta de la comida
-			t_rta_obt_rec* receta = rest_obtener_receta(plato->comida, &resultado_obtener_receta);
-			if(resultado_obtener_receta == OPCODE_RESPUESTA_OK)
+			//Itera la lista de platos
+			void _generar_plato_control_block(t_plato* plato)
 			{
-				//Crea un PCB para cada plato
-				for(int i = 0; i < plato->cant_total; i++) {
-					if(rest_planificar_plato(plato->comida, recibido->pedido_id, receta->pasos_receta, cliente) == -1) {
-						CS_LOG_ERROR("No se pudo planificar el plato: %s", plato->comida);
-						resultado = OPCODE_RESPUESTA_FAIL;
-						break;
+				int8_t resultado_obtener_receta;
+
+				//Obtiene la receta de la comida
+				t_rta_obt_rec* receta = rest_obtener_receta(plato->comida, &resultado_obtener_receta);
+				if(resultado_obtener_receta == OPCODE_RESPUESTA_OK)
+				{
+					//Crea un PCB para cada plato
+					for(int i = 0; i < plato->cant_total; i++) {
+						if(rest_planificar_plato(plato->comida, recibido->pedido_id, receta->pasos_receta, cliente) == -1) {
+							CS_LOG_ERROR("No se pudo planificar el plato: %s", plato->comida);
+							resultado = OPCODE_RESPUESTA_FAIL;
+							break;
+						}
 					}
 				}
-			}
-			else
-			{
-				CS_LOG_ERROR("Error al obtener la receta del plato: %s", plato->comida);
-				resultado = OPCODE_RESPUESTA_FAIL;
-			}
+				else
+				{
+					CS_LOG_ERROR("Error al obtener la receta del plato: %s", plato->comida);
+					resultado = OPCODE_RESPUESTA_FAIL;
+				}
 
-			cs_msg_destroy(receta, resultado_obtener_receta, OBTENER_RECETA);
+				cs_msg_destroy(receta, resultado_obtener_receta, OBTENER_RECETA);
+			}
+			list_iterate(pedido->platos_y_estados, (void*) _generar_plato_control_block);
 		}
-		list_iterate(pedido->platos_y_estados, (void*) _generar_plato_control_block);
 	}
 
 	//Retorna la respuesta obtenida

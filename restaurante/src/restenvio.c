@@ -93,6 +93,12 @@ t_rta_obt_rec* rest_obtener_receta(char* comida, int8_t* result)
 	return receta;
 }
 
+void rest_confirmar_pedido(uint32_t pedido_id, int8_t* result) {
+	t_consulta* cons = cs_msg_confirmar_ped_rest_create(mi_nombre, pedido_id);
+	rest_consultar_sindicato(CONFIRMAR_PEDIDO, cons, result);
+	cs_msg_destroy(cons, OPCODE_CONSULTA, CONFIRMAR_PEDIDO);
+}
+
 int8_t rest_plato_listo(char* cliente, char* comida, uint32_t pedido_id)
 {
 	int8_t result;
