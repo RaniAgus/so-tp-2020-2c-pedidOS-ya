@@ -18,7 +18,7 @@ function probarSinDescanso {
 
 function probarConDescanso {
     echo "---------- [     CONFIGURACIÓN DE APP     ] ----------"
-    ./app/config.sh rep "[1|1,7|8,1|4]" [5,8,13] [1,2,3]
+    ./app/config.sh rep "[1|1,7|8,1|4]" [4,6,10] [1,2,3]
     echo "---------- [   CONFIGURACIÓN DE CLIENTE   ] ----------"
     configurarClientes
 }

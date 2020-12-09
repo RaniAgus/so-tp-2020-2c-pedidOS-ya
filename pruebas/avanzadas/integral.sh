@@ -20,21 +20,23 @@ echo "---------- [     CONFIGURACIÓN DE APP     ] ----------"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
 ./restaurante/config.sh sin $IP_SINDICATO $PUERTO_SINDICATO
 ./restaurante/config.sh app $IP_APP $PUERTO_APP
-./restaurante/config.sh serv $PUERTO_RESTAURANTE
 ./restaurante/config.sh cpu 5
 
 read -p ">> Presiona enter para configurar el siguiente restaurante (la parri)"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
+./restaurante/config.sh serv $PUERTO_RESTAURANTE
 ./restaurante/config.sh LaParri
 ./restaurante/config.sh rr 2
 
 read -p ">> Presiona enter para configurar el siguiente restaurante (milanga palace)"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
+./restaurante/config.sh serv $PUERTO_RESTAURANTE2
 ./restaurante/config.sh MilangaPalace
 ./restaurante/config.sh fifo
 
 read -p ">> Presiona enter para configurar el siguiente restaurante (green life)"
 echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
+./restaurante/config.sh serv $PUERTO_RESTAURANTE3
 ./restaurante/config.sh GreenLife
 ./restaurante/config.sh fifo
 

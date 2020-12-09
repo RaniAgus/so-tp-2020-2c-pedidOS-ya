@@ -9,7 +9,7 @@ echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
 ./restaurante/config.sh serv $PUERTO_RESTAURANTE
 ./restaurante/config.sh ElParrillon
 ./restaurante/config.sh fifo
-./restaurante/config.sh cpu 2 # Valor original: 5
+./restaurante/config.sh cpu 5
 echo "---------- [   CONFIGURACIÓN DE CLIENTE   ] ----------"
 ./cliente/config.sh $IP_RESTAURANTE $PUERTO_RESTAURANTE
 

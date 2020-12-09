@@ -6,7 +6,7 @@ function configurarClientes {
     ./cliente/config.sh pos 1 9
     read -p ">> Presiona enter para configurar al Cliente2"
     ./cliente/config.sh 2
-    ./cliente/config.sh pos 2 4
+    ./cliente/config.sh pos 4 4
     read -p ">> Presiona enter para configurar al Cliente3"
     ./cliente/config.sh 3
     ./cliente/config.sh pos 2 1
