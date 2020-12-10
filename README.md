@@ -35,10 +35,10 @@ Se puede listar todos los campos configurables de cada módulo ejecutando el scr
 
 Para limpiar todos los logs:
 ```
-./cleanlogs.sh
+./clean.sh
 ```
-También se pueden guardar los logs antes de ser limpiados:
+Para guardar los logs en otra ubicación:
 ```
-./cleanlogs.sh save <subpath>
+./save.sh <subpath>
 ```
 Por defecto, las pruebas se guardan en el directorio "/home/utnso/logs". Se debe usar el campo subpath solo en caso de que se quiera especificar un subdirectorio a partir de éste.
