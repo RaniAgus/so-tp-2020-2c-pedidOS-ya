@@ -1,27 +1,28 @@
 #!/bin/bash
 
-BIN=""
-FILE="cliente/cliente.config"
-IP=""
-PORT=""
-CLIENT_ID=""
+BIN="cliente/"
+FILE="cliente.config"
+
 if [ $# -lt 1 ];then
     echo "Expected:"
     echo "./config.sh [IP] [PUERTO]"
     echo "./config.sh pos [POSICION_X] [POSICION_Y]"
-    echo "./config.sh [ID_CLIENTE]"
+    echo "./config.sh id [ID_CLIENTE]"
 else
-    if [ $# -eq 1 ];then
-        sed -i "3s/.*/ARCHIVO_LOG=cliente$1.log/" $BIN$FILE
-        sed -i "6s/.*/ID_CLIENTE=Cliente$1/" $BIN$FILE
-        echo "Nuevo id cliente: Cliente$1"
-    elif [ $# -eq 2 ];then
-        sed -i "1s/.*/IP=$1/" $BIN$FILE
-        sed -i "2s/.*/PUERTO=$2/" $BIN$FILE
-        echo "Nueva ip y puerto: $1:$2"
-    elif [ $# -eq 3 ];then
+    if [ "$1" == "id" ];then
+        sed -i "3s/.*/ARCHIVO_LOG=cliente$2.log/" $BIN$FILE
+        sed -i "6s/.*/ID_CLIENTE=Cliente$2/" $BIN$FILE
+        sed "3q;d" $BIN$FILE
+        sed "6q;d" $BIN$FILE
+    elif [ "$1" == "pos" ];then
         sed -i "4s/.*/POSICION_X=$2/" $BIN$FILE
         sed -i "5s/.*/POSICION_Y=$3/" $BIN$FILE
-        echo "Nueva posicion: [$2,$3]"
+        sed "4q;d" $BIN$FILE
+        sed "5q;d" $BIN$FILE
+    else
+        sed -i "1s/.*/IP=$1/" $BIN$FILE
+        sed -i "2s/.*/PUERTO=$2/" $BIN$FILE
+        sed "1q;d" $BIN$FILE
+        sed "2q;d" $BIN$FILE
     fi
 fi

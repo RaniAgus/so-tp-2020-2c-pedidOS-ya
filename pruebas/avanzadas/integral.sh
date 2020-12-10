@@ -43,11 +43,11 @@ echo "---------- [ CONFIGURACIÓN DE RESTAURANTE ] ----------"
 echo "---------- [   CONFIGURACIÓN DE CLIENTE   ] ----------"
 ./cliente/config.sh $IP_APP $PUERTO_APP
 read -p ">> Presiona enter para configurar al Cliente1"
-./cliente/config.sh 1
+./cliente/config.sh id 1
 ./cliente/config.sh pos 2 2
 read -p ">> Presiona enter para configurar al Cliente2"
-./cliente/config.sh 2
+./cliente/config.sh id 2
 ./cliente/config.sh pos 6 6
 read -p ">> Presiona enter para configurar al Cliente3"
-./cliente/config.sh 3
+./cliente/config.sh id 3
 ./cliente/config.sh pos 8 9

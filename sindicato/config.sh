@@ -11,19 +11,20 @@ if [ $# -lt 1 ];then
 else
     if [ "$1" == "serv" ];then
         sed -i "1s/.*/PUERTO_ESCUCHA=$2/" $BIN$FILE
-        echo "Nuevo puerto de escucha: $2"
+        sed "1q;d" $BIN$FILE
     elif [ "$1" == "mount" ];then
         sed -i "2s/.*/PUNTO_MONTAJE=$2/" $BIN$FILE
-        echo "Nuevo punto de montaje: $2"
+        sed "2q;d" $BIN$FILE
     elif [ "$1" == "blk" ];then
         source $BIN$FILE
         rm -rf $PUNTO_MONTAJE
-        mkdir -p $PUNTO_MONTAJE/Metadata/
+        mkdir -pv $PUNTO_MONTAJE/Metadata/
         touch $PUNTO_MONTAJE/$METADATA
         echo " " > $PUNTO_MONTAJE/$METADATA
-        echo "Se creó por primera vez el archivo Metadata en $PUNTO_MONTAJE/$METADATA"
+        echo "$PUNTO_MONTAJE/$METADATA:"
         sed -i "1s/.*/BLOCK_SIZE=$2\nBLOCKS=$3\nMAGIC_NUMBER=AFIP/" $PUNTO_MONTAJE/$METADATA
-        echo "Nuevo tamaño de bloque: $2"
-        echo "Nueva cantidad de bloques: $3"
+        sed "1q;d" $PUNTO_MONTAJE/$METADATA
+        sed "2q;d" $PUNTO_MONTAJE/$METADATA
+        sed "3q;d" $PUNTO_MONTAJE/$METADATA
     fi
 fi
