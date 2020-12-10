@@ -34,16 +34,22 @@ void	cs_logger_set_level(t_log_level level);
 void cs_logger_set_console(int value);
 
 /**
+* @NAME cs_logger_get
+* @DESC Retorna la instancia de logger interna.
+*/
+t_log* cs_logger_get(void);
+
+/**
 * @NAME cs_logger_get_mutex
 * @DESC Retorna el mutex de la instancia de logger interna.
 */
 pthread_mutex_t* cs_logger_get_mutex(void);
 
 /**
-* @NAME cs_logger_get
-* @DESC Retorna la instancia de logger interna.
+* @NAME cs_logger_allows_level
+* @DESC Retorna true si el logger permite ese nivel de log.
 */
-t_log* cs_logger_get(void);
+bool cs_logger_allows_level(t_log_level log_level);
 
 /**
 * @NAME: cs_log_hexdump

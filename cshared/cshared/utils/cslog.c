@@ -47,12 +47,16 @@ pthread_mutex_t* cs_logger_get_mutex(void)
 	return &CS_LOGGER_MUTEX;
 }
 
+bool cs_logger_allows_level(t_log_level log_level)
+{
+	return log_level >= CS_LOGGER_INTERNAL->detail;
+}
 
 void cs_log_hexdump(t_log_level log_level, void* source, size_t length)
 {
 	char *log_colors[] = {"\x1b[36m", "\x1b[32m", "", "\x1b[33m", "\x1b[31m" };
 
-	if(log_level >= CS_LOGGER_INTERNAL->detail)
+	if(cs_logger_allows_level(log_level))
 	{
 		pthread_mutex_lock(cs_logger_get_mutex());
 		console_save_line();
