@@ -42,6 +42,7 @@ t_pos app_destino_repartidor(t_repartidor* repartidor);
 void app_agregar_repartidor_libre(t_repartidor* repartidor);
 t_repartidor* app_obtener_repartidor_libre(t_pos destino);
 
+void app_ready_actualizar_espera(void);
 t_repartidor* app_ready_pop(void);
 
 void app_agregar_repartidor_esperando(t_repartidor* repartidor);

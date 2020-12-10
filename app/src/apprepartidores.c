@@ -97,6 +97,8 @@ void app_iniciar_ciclo_cpu(void)
 	}
 	list_iterate(repartidores_descansando, (void*)descansar);
 
+	app_ready_actualizar_espera();
+
 	void _hacer_wait_ejecucion(app_ciclo_t* semaforo) {
 		sem_wait(&semaforo->fin_ejecucion);
 	}

@@ -424,7 +424,7 @@ static void app_recibir_confirmar_pedido(t_sfd conexion, t_consulta* consulta, c
 		{
 			//Obtiene el pedido desde Comanda, para saber si existe y no se borró de la memoria
 			t_rta_obt_ped* pedido = app_obtener_pedido(restaurante_vinculado, consulta->pedido_id, &result);
-			cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);
+			cs_msg_destroy(pedido, result, OBTENER_PEDIDO);
 
 			//En caso de existir, evalúa según el Restaurante:
 			if(result == OPCODE_RESPUESTA_OK)

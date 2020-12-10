@@ -201,26 +201,30 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino)
 	//Espera si hay otro hilo manipulando la lista
 	pthread_mutex_lock(&repartidores_libres_mutex);
 
+	void loguear_distancia(t_repartidor* repartidor) {
+		t_pos vector_distancia = calcular_vector_distancia(repartidor->posicion, destino);
+		double norma = calcular_norma(vector_distancia);
+
+		CS_LOG_DEBUG("{REPARTIDOR: %d, POSICION: [%d,%d]} {DESTINO: [%d,%d], DISTANCIA: [%d,%d] -> %f}"
+				, repartidor->id
+				, repartidor->posicion.x
+				, repartidor->posicion.y
+				, destino.x
+				, destino.y
+				, vector_distancia.x
+				, vector_distancia.y
+				, norma
+		);
+	}
+
+	if(cs_logger_allows_level(LOG_LEVEL_DEBUG))
+		list_iterate(repartidores_libres, (void*) loguear_distancia);
+
+
 	//Busca al repartidor más cercano al restaurante
 	bool menor_distancia (t_repartidor* repartidor1, t_repartidor* repartidor2) {
 		t_pos vector_distancia1 = calcular_vector_distancia(repartidor1->posicion, destino);
 		t_pos vector_distancia2 = calcular_vector_distancia(repartidor2->posicion, destino);
-
-		CS_LOG_DEBUG("Destino = [%d,%d] // "
-				"Rep.%d: {VD: [%d,%d] = %f} {POS: [%d,%d]} // "
-				"Rep.%d: {VD: [%d,%d] = %f} {POS: [%d,%d]}"
-				//Destino
-				, destino.x, destino.y
-				//Repartidor 1
-				, repartidor1->id
-				, vector_distancia1.x, vector_distancia1.y, calcular_norma(vector_distancia1)
-				, repartidor1->posicion.x, repartidor1->posicion.y
-				//Repartidor 2
-				, repartidor2->id
-				, vector_distancia2.x, vector_distancia2.y
-				, calcular_norma(vector_distancia2)
-				, repartidor2->posicion.x, repartidor2->posicion.y
-		);
 
 		return calcular_norma(vector_distancia1) <= calcular_norma(vector_distancia2);
 	}
@@ -235,6 +239,15 @@ t_repartidor* app_obtener_repartidor_libre(t_pos destino)
 
 /**************************************** READY ****************************************/
 
+void app_ready_actualizar_espera(void)
+{
+	//Actualiza la espera de los repartidores (sirve para HRRN)
+	void actualizar_espera(t_repartidor* repartidor) {
+		repartidor->pcb->espera++;
+	}
+	list_iterate(ready_queue, (void*)actualizar_espera);
+}
+
 t_repartidor* app_ready_pop(void)
 {
 	t_repartidor* repartidor;
@@ -245,12 +258,6 @@ t_repartidor* app_ready_pop(void)
 	//Ordena la cola de ready según prioridad y quita el primer elemento
 	app_ordenar_ready();
 	repartidor = list_remove(ready_queue, 0);
-
-	//Actualiza la espera de los demás repartidores (sirve para HRRN)
-	void actualizar_espera(t_repartidor* pcb) {
-		repartidor->pcb->espera++;
-	}
-	list_iterate(ready_queue, (void*)actualizar_espera);
 
 	//Libera el bloqueo para que otros hilos usen la cola de ready
 	pthread_mutex_unlock(&ready_mutex);
@@ -279,6 +286,19 @@ static void app_ordenar_ready(void)
 		}
 	}
 	list_sort(ready_queue, (void*)mayor_prioridad);
+
+
+	void loguear_segun_algoritmo(t_repartidor* repartidor) {
+		CS_LOG_DEBUG("{REPARTIDOR: %d} {SERVICE: %f} {WAIT: %f} {RESPONSE_RATIO: %f}"
+				, repartidor->id
+				, proxima_rafaga(repartidor->pcb)
+				, repartidor->pcb->espera
+				, response_ratio(repartidor->pcb)
+		);
+	}
+
+	if(cs_logger_allows_level(LOG_LEVEL_DEBUG))
+		list_iterate(ready_queue, (void*) loguear_segun_algoritmo);
 }
 
 static double proxima_rafaga(t_pcb* pcb) {
