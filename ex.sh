@@ -2,7 +2,7 @@ BIN=""
 OPTION=""
 MODULE=""
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-SHARED_LIB_DIR=$DIR"/cshared/Debug/"
+SHARED_LIB_DIR=$DIR"/cshared/"
 
 if [ $# -eq 0 ];then
     echo "Expected:[OPTION] [MODULE] [PARAMS]"
@@ -37,5 +37,5 @@ else
     MODULE="$1"
     shift;
 
-    cd $MODULE && LD_LIBRARY_PATH=$SHARED_LIB_DIR $OPTION ./$BIN$MODULE $@
+    cd $MODULE && make && LD_LIBRARY_PATH=$SHARED_LIB_DIR $OPTION ./$BIN$MODULE $@
 fi
