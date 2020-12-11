@@ -146,7 +146,7 @@ static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 {
 	int8_t result;
 	t_rta_obt_ped* pedido = rest_obtener_pedido(pedido_id, &result);
-	if(result == OPCODE_RESPUESTA_OK)
+	if(result == OPCODE_RESPUESTA_OK && pedido->estado_pedido != PEDIDO_TERMINADO)
 	{
 		switch(cs_platos_estan_listos(pedido->platos_y_estados))
 		{
