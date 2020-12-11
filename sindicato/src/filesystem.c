@@ -237,7 +237,7 @@ e_opcode terminarPedido(t_consulta* consulta){ //
 			respuesta = pisarPedido(consulta->pedido_id, consulta->restaurante, nuevaEscritura);
 			free(nuevaEscritura);
 		} else {
-			CS_LOG_ERROR("El pedido %d tovadía no se ha confirmado", consulta->pedido_id);
+			CS_LOG_WARNING("El pedido %d no está en estado CONFIRMADO", consulta->pedido_id);
 		}
 		free(lectura);
 	}
