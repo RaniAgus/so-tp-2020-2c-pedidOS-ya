@@ -58,6 +58,8 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 				, (void*) rest_dispatcher_create(queue_cocinero)
 		);
 		pthread_detach(thread_cocinero);
+
+		CS_LOG_INFO("Se inició un cocinero con afinidad a %s", comida);
 	}
 	string_iterate_lines(metadata->afinidades, _crear_queues);
 
@@ -90,6 +92,8 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 					, (void*) rest_dispatcher_create(queue_restantes)
 			);
 			pthread_detach(thread_cocinero);
+
+			CS_LOG_INFO("Se inició un cocinero con afinidad a los platos restantes");
 		}
 	}
 
@@ -105,13 +109,15 @@ uint32_t rest_dispatcher_init(t_rta_obt_rest* metadata)
 		);
 		pthread_detach(thread_horno);
 	}
+	CS_LOG_INFO("Se iniciaron %d hornos", metadata->cant_hornos);
 
 	//Obtiene el resto de la metadata
 	uint32_t cant_pedidos = metadata->cant_pedidos;
+	CS_LOG_INFO("Se obtuvo como último id: %d", cant_pedidos);
 
 	mi_posicion.x = metadata->pos_restaurante.x;
 	mi_posicion.y = metadata->pos_restaurante.y;
-	CS_LOG_DEBUG("Se obtuvo la posición: (%d:%d)", mi_posicion.x, mi_posicion.y);
+	CS_LOG_INFO("Se obtuvo la posición: [%d,%d]", mi_posicion.x, mi_posicion.y);
 
 	cs_msg_destroy(metadata, OPCODE_RESPUESTA_OK, OBTENER_RESTAURANTE);
 
