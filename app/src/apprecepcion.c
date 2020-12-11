@@ -146,7 +146,7 @@ static void app_recibir_handshake_cliente(t_sfd conexion_cliente, t_handshake_cl
 			}
 			status = cs_recv_msg(conexion_cliente, _recibir_consulta);
 			if(status != STATUS_SUCCESS) {
-				PRINT_ERROR(status);
+				CS_LOG_WARNING("%s -- No se pudo recibir la consulta del cliente", cs_enum_status_to_str(status));
 			}
 		}
 	}

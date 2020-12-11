@@ -245,7 +245,9 @@ void app_ready_actualizar_espera(void)
 	void actualizar_espera(t_repartidor* repartidor) {
 		repartidor->pcb->espera++;
 	}
+	pthread_mutex_lock(&ready_mutex);
 	list_iterate(ready_queue, (void*)actualizar_espera);
+	pthread_mutex_unlock(&ready_mutex);
 }
 
 t_repartidor* app_ready_pop(void)
