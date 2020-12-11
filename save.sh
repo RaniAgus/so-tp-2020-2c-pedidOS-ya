@@ -1,4 +1,4 @@
-BIN="/home/utnso/logs/$2"
+BIN="/home/utnso/logs/$1"
 mkdir -p $BIN
 mv -v cliente/*.log $BIN
 [ -f app/*.log ] && mv -v app/*.log $BIN
