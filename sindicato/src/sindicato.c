@@ -8,11 +8,11 @@ int main(int argc, char* argv[]) {
 
 	sem_init(&bitmapSem, 0, 1);
 	tamanioReservado = 4;
-	crearDiccionarioLocks();
-
+	
 	cs_module_init(CONFIG_FILE_PATH, LOG_FILE_KEY, MODULE_NAME);
 	leerConfig();
 
+	crearDiccionarioLocks();
 	crearDirectorioAFIP();
 
 	miPuerto = cs_config_get_string("PUERTO_ESCUCHA");

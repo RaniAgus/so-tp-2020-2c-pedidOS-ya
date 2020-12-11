@@ -16,7 +16,6 @@ void crearDirectorioAFIP(){
 	}
 
 	free(pathBitmap);
-	crearDiccionarioLocks();
 }
 
 void obtenerMetadata(){
