@@ -29,7 +29,7 @@ else
         sed -i "6s/.*/RETARDO_CICLO_CPU=$2/" $BIN$FILE
         sed "6q;d" $BIN$FILE
     elif [ "$1" == "fifo" ];then
-        sed -i "7s/.*/ALGORITMO_DE_PLANIFICACION=FIFO/" $B
+        sed -i "7s/.*/ALGORITMO_DE_PLANIFICACION=FIFO/" $BIN$FILE
         sed "7q;d" $BIN$FILE
     elif [ "$1" == "rr" ];then
         sed -i "7s/.*/ALGORITMO_DE_PLANIFICACION=RR/" $BIN$FILE

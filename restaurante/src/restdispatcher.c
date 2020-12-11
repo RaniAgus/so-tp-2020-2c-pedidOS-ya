@@ -300,18 +300,25 @@ static void rest_cocinero_routine(rest_dispatcher_t* self)
 			self->asignado = rest_derivar_si_necesario(self->asignado);
 
 			//Si hay fin de quantum y hay pcbs en READY, se desaloja
-			if( self->asignado != NULL
-				&& ++ciclos == QUANTUM
-				&& queue_sync_has_elements(self->ready->queue, &self->ready->mutex_queue) )
+			if(self->asignado != NULL && ++ciclos == QUANTUM)
 			{
-				CS_LOG_INFO("Fin de QUANTUM para: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
-						, self->asignado->id
-						, rest_estado_to_str(self->asignado->estado)
-						, self->asignado->comida
-						, self->asignado->pedido_id
-				);
-				rest_derivar_pcb(self->asignado);
-				self->asignado = NULL;
+				if(queue_sync_has_elements(self->ready->queue, &self->ready->mutex_queue))
+				{
+					CS_LOG_INFO("Fin de QUANTUM para: {PID: %d} {ESTADO: %s} {COMIDA: %s} {ID_PEDIDO: %d}"
+							, self->asignado->id
+							, rest_estado_to_str(self->asignado->estado)
+							, self->asignado->comida
+							, self->asignado->pedido_id
+					);
+					rest_derivar_pcb(self->asignado);
+					self->asignado = NULL;
+				} else
+				{
+					CS_LOG_INFO("Fin de QUANTUM, sin desalojo por READY vacío: {PID: %d} {COMIDA: %s}"
+							, self->asignado->id
+							, self->asignado->comida
+					);
+				}
 			}
 		}
 		sem_post(&self->sem_ciclo->fin_derivacion);
