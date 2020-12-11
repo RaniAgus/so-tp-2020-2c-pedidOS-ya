@@ -1,4 +1,4 @@
-BIN="Debug/"
+BIN=""
 OPTION=""
 MODULE=""
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -12,7 +12,7 @@ if [ $# -eq 0 ];then
     echo "      *comanda"
     echo "      *restaurante"
     echo "      *sindicato"
-    echo "      *unit-tests"
+    echo "      *tests"
     echo ""
     echo "For each module, you can add one of the follow options:"
     echo "      valgrind - Execute valgrind (memcheck mode)"
@@ -36,10 +36,6 @@ else
 
     MODULE="$1"
     shift;
-    
-    if [ $MODULE == "tests" ];then
-        cd cshared/
-    fi
 
     cd $MODULE && LD_LIBRARY_PATH=$SHARED_LIB_DIR $OPTION ./$BIN$MODULE $@
 fi

@@ -1,5 +1,5 @@
 # Project
-NAME:=cliente
+NAME:=tests
 SRC=src
 SUBDIRS=src
 OBJ=obj
