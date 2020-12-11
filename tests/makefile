@@ -7,7 +7,7 @@ OBJ=obj
 # Shared library
 LIB_NAME:=cshared
 LIB_PATH:="../$(LIB_NAME)/"
-LIBS:=-L $(LIB_PATH) -l$(LIB_NAME) -lcommons -lpthread -lreadline -lm
+LIBS:=-L $(LIB_PATH) -l$(LIB_NAME) -lcommons -lpthread -lreadline -lm -lcspecs
 
 # Basic setup
 CC:=gcc
