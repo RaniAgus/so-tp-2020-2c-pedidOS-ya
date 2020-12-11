@@ -4,7 +4,7 @@
 #include "restclientes.h"
 
 t_rta_obt_rest* rest_obtener_metadata(void);
-void            rest_app_connect(void);
+void            rest_conectarse_app(void);
 
 void*           rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* result);
 
