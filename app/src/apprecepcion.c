@@ -103,7 +103,7 @@ static void app_recibir_mensaje(t_sfd conexion, t_header header, void* mensaje, 
 			break;
 		}
 		//Si se recibió desde cliente, se cierra la conexión
-		if(cliente != NULL){
+		if(cliente != NULL || header.msgtype == PLATO_LISTO){
 			close(conexion);
 			CS_LOG_TRACE("(%d)Se cerró la conexión.", conexion);
 		}

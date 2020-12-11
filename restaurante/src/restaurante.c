@@ -22,7 +22,7 @@ void restaurante_init(void)
 
 	rest_planificador_init( rest_dispatcher_init( rest_obtener_metadata() ) );
 	rest_recepcion_init();
-	rest_app_connect();
+	rest_conectarse_app();
 
 	CS_LOG_TRACE("Iniciado correctamente");
 	free(nombre_en_mayus);

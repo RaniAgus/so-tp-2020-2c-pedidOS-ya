@@ -1,7 +1,6 @@
 #include "restenvio.h"
 
-static t_sfd            conexion_app;
-static pthread_mutex_t  mutex_conexion_app;
+static t_sfd conexion_app;
 
 static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id);
 
@@ -26,15 +25,22 @@ t_rta_obt_rest* rest_obtener_metadata(void)
 	return metadata;
 }
 
-void rest_app_connect(void)
+e_status rest_crear_conexion_app(t_sfd* conn)
 {
-	e_status status;
-	pthread_mutex_init(&mutex_conexion_app, NULL);
-
-	status = cs_tcp_client_create(&conexion_app, cs_config_get_string("IP_APP"), cs_config_get_string("PUERTO_APP"));
-	if(status == STATUS_SUCCESS)
+	e_status status = cs_tcp_client_create(conn, cs_config_get_string("IP_APP"), cs_config_get_string("PUERTO_APP"));
+	if(status != STATUS_SUCCESS)
 	{
-		status = cs_send_handshake_res(conexion_app, mi_posicion);
+		CS_LOG_WARNING("%s -- No se pudo establecer conexión con App.", cs_enum_status_to_str(status));
+	}
+
+	return status;
+}
+
+void rest_conectarse_app(void)
+{
+	if(rest_crear_conexion_app(&conexion_app) == STATUS_SUCCESS)
+	{
+		e_status status = cs_send_handshake_res(conexion_app, mi_posicion);
 		if(status == STATUS_SUCCESS)
 		{
 			void _recibir_handshake(t_sfd conn, t_header header, void* msg) {
@@ -46,11 +52,11 @@ void rest_app_connect(void)
 			}
 			status = cs_recv_msg(conexion_app, _recibir_handshake);
 		}
-	}
 
-	if(status != STATUS_SUCCESS)
-	{
-		CS_LOG_WARNING("%s -- No se pudo establecer conexión con App.", cs_enum_status_to_str(status));
+		if(status != STATUS_SUCCESS)
+		{
+			CS_LOG_WARNING("%s -- No se pudo establecer conexión con App.", cs_enum_status_to_str(status));
+		}
 	}
 }
 
@@ -109,16 +115,21 @@ int8_t rest_plato_listo(char* cliente, char* comida, uint32_t pedido_id)
 	{
 		if(cliente == NULL)
 		{
-			pthread_mutex_lock(&mutex_conexion_app);
-			rest_enviar_consulta(MODULO_APP, conexion_app, PLATO_LISTO, plato_listo, &result);
-			pthread_mutex_unlock(&mutex_conexion_app);
+			t_sfd conn;
+			if(rest_crear_conexion_app(&conn) == STATUS_SUCCESS)
+			{
+				int8_t result_consulta_app;
+				rest_enviar_consulta(MODULO_APP, conn, PLATO_LISTO, plato_listo, &result_consulta_app);
+				close(conn);
+			}
 		} else
 		{
 			rest_cliente_t* info = rest_cliente_get(cliente);
 			if(info != NULL)
 			{
+				int8_t result_consulta_cliente;
 				pthread_mutex_lock(&info->mutex_conexion);
-				rest_enviar_consulta(MODULO_CLIENTE, info->conexion, PLATO_LISTO, plato_listo, &result);
+				rest_enviar_consulta(MODULO_CLIENTE, info->conexion, PLATO_LISTO, plato_listo, &result_consulta_cliente);
 				pthread_mutex_unlock(&info->mutex_conexion);
 			} else
 			{
