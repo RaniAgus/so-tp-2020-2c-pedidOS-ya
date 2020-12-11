@@ -32,7 +32,7 @@ clean:
 	rm -rf $(OBJ)
 
 install: all
-	sudo cp -u build/lib$(NAME).so /usr/lib
+	sudo cp -u lib$(NAME).so /usr/lib
 	sudo cp --parents -u $(H_SRCS) /usr/include
 
 uninstall:
