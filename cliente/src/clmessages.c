@@ -77,6 +77,7 @@ e_status client_send_msg(cl_parser_result* result)
 {
 	e_status status;
 	t_sfd conn;
+	char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
 
 	//Se conecta al servidor
 	status = cs_tcp_client_create(&conn, serv_ip, serv_port);
@@ -90,17 +91,15 @@ e_status client_send_msg(cl_parser_result* result)
 			status = cs_send_consulta(conn, result->msgtype, result->msg, serv_module);
 			if(status == STATUS_SUCCESS)
 			{
-				char* msg_to_str = cs_msg_to_str(result->msg, OPCODE_CONSULTA, result->msgtype);
 				CS_LOG_INFO("Mensaje enviado: %s", msg_to_str);
-				free(msg_to_str);
-
 				//Espera la respuesta
 				status = client_recv_msg(conn, NULL, NULL);
 			}
 		}
 	}
-	if(status != STATUS_SUCCESS) PRINT_ERROR(status);
+	if(status != STATUS_SUCCESS) CS_LOG_ERROR("%s -- No se pudo enviar el mensaje %s", cs_enum_status_to_str(status), msg_to_str);
 
+	free(msg_to_str);
 	close(conn);
 	cs_msg_destroy(result->msg, OPCODE_CONSULTA, result->msgtype);
 	free(result);

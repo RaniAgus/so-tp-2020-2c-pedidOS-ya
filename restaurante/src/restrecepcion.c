@@ -104,7 +104,7 @@ static void rest_recibir_handshake_cliente(t_sfd conn, t_handshake_cli* recibido
 			}
 			status = cs_recv_msg(conn, _recibir_mensaje);
 			if(status != STATUS_SUCCESS) {
-				PRINT_ERROR(status);
+				CS_LOG_WARNING("%s -- No se pudo atender la consulta del Cliente", cs_enum_status_to_str(status));
 			} else {
 				CS_LOG_TRACE("(%d)Se atendió la consulta del Cliente %s", conn, recibido->nombre);
 			}
@@ -265,7 +265,7 @@ static e_status rest_enviar_respuesta(t_sfd conn, e_opcode op_code, e_msgtype ms
 	if(status == STATUS_SUCCESS) {
 		CS_LOG_DEBUG("Se envió la respuesta: %s", respuesta_str);
 	} else {
-		CS_LOG_ERROR("%s -- No se pudo enviar la respuesta: %s", cs_enum_status_to_str(status), respuesta_str);
+		CS_LOG_WARNING("%s -- No se pudo enviar la respuesta: %s", cs_enum_status_to_str(status), respuesta_str);
 	}
 
 	free(respuesta_str);

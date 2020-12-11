@@ -73,12 +73,12 @@ void* app_consultar_restaurante(char* restaurante, int8_t msg_type, t_consulta* 
 		//Se conecta como cliente
 		status = cs_tcp_client_create(&conexion_restaurante, ip, puerto);
 		if(status != STATUS_SUCCESS) {
-			CS_LOG_ERROR("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
+			*result_ptr = OPCODE_RESPUESTA_FAIL;
+			CS_LOG_WARNING("%s -- No se pudo conectar con Restaurante %s:%s", cs_enum_status_to_str(status), ip, puerto);
 		} else {
 			CS_LOG_TRACE("Conectado exitosamente con Restaurante %s:%s", ip, puerto);
+			respuesta = app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
 		}
-
-		respuesta =  app_enviar_consulta(MODULO_RESTAURANTE, conexion_restaurante, msg_type, consulta, result_ptr);
 
 		close(conexion_restaurante);
 		free(ip);
@@ -86,7 +86,7 @@ void* app_consultar_restaurante(char* restaurante, int8_t msg_type, t_consulta* 
 	} else
 	{
 		*result_ptr = OPCODE_RESPUESTA_FAIL;
-		CS_LOG_ERROR("No se encontró como conectado: {RESTAURANTE: %s}", restaurante);
+		CS_LOG_WARNING("No se encontró como conectado: {RESTAURANTE: %s}", restaurante);
 	}
 
 	return respuesta;
@@ -107,8 +107,9 @@ static void* app_consultar_comanda(int8_t msg_type, t_consulta* consulta, int8_t
 	);
 	if(status != STATUS_SUCCESS)
 	{
-		CS_LOG_ERROR("%s -- No se pudo conectar con Comanda. Finalizando.", cs_enum_status_to_str(status));
-		exit(-1);
+		CS_LOG_ERROR("%s -- No se pudo consultar con Comanda.", cs_enum_status_to_str(status));
+		*result_ptr = OPCODE_RESPUESTA_FAIL;
+		return NULL;
 	}
 	CS_LOG_TRACE("Conectado exitosamente con Comanda.");
 
@@ -144,7 +145,7 @@ static void* app_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type,
 			} else {
 				*result_ptr = OPCODE_RESPUESTA_FAIL;
 				respuesta = NULL;
-				CS_LOG_ERROR("a ver a ver, qué pasó?");
+				printf("a ver a ver, qué pasó?");
 			}
 		}
 		status = cs_recv_msg(conexion, _recibir_respuesta);
@@ -152,14 +153,14 @@ static void* app_enviar_consulta(e_module dest, t_sfd conexion, int8_t msg_type,
 		{
 			*result_ptr = OPCODE_RESPUESTA_FAIL;
 			respuesta = NULL;
-			CS_LOG_ERROR("%s -- No se pudo recibir la respuesta a: %s", cs_enum_status_to_str(status), consulta_str);
+			CS_LOG_WARNING("%s -- No se pudo recibir la respuesta a: %s", cs_enum_status_to_str(status), consulta_str);
 		}
 	}
 	else
 	{
 		*result_ptr = OPCODE_RESPUESTA_FAIL;
 		respuesta = NULL;
-		CS_LOG_ERROR("%s -- No se pudo enviar la consulta: %s", cs_enum_status_to_str(status), consulta_str);
+		CS_LOG_WARNING("%s -- No se pudo enviar la consulta: %s", cs_enum_status_to_str(status), consulta_str);
 	}
 	free(consulta_str);
 

@@ -39,7 +39,7 @@ void rest_app_connect(void)
 		{
 			void _recibir_handshake(t_sfd conn, t_header header, void* msg) {
 				if(header.opcode == OPCODE_RESPUESTA_OK && header.msgtype == HANDSHAKE_RESTAURANTE) {
-					CS_LOG_INFO("Se estableció conexión con Comanda.");
+					CS_LOG_INFO("Se estableció conexión con App.");
 				} else {
 					printf("a veces cuando planeas una cosa, te sale otra completamente diferente");
 				}
@@ -64,8 +64,9 @@ void* rest_consultar_sindicato(int8_t msg_type, t_consulta* consulta, int8_t* re
 	status = cs_tcp_client_create(&conexion_sindicato, cs_config_get_string("IP_SINDICATO"), cs_config_get_string("PUERTO_SINDICATO"));
 	if(status != STATUS_SUCCESS)
 	{
-		CS_LOG_ERROR("%s -- No se pudo conectar con Sindicato. Finalizando.", cs_enum_status_to_str(status));
-		exit(-1);
+		CS_LOG_ERROR("%s -- No se pudo consultar con Sindicato.", cs_enum_status_to_str(status));
+		*result = OPCODE_RESPUESTA_FAIL;
+		return NULL;
 	}
 	CS_LOG_TRACE("Conectado exitosamente con Sindicato.");
 
@@ -148,7 +149,7 @@ static int8_t rest_terminar_pedido_si_corresponde(uint32_t pedido_id)
 			CS_LOG_TRACE("No todos los platos están listos para: {ID_PEDIDO: %d}", pedido_id);
 			break;
 		default:
-			CS_LOG_ERROR("La cantidad lista es mayor a la total!! {ID_PEDIDO: %d}", pedido_id);
+			CS_LOG_WARNING("La cantidad lista es mayor a la total!! {ID_PEDIDO: %d}", pedido_id);
 			break;
 		}
 		cs_msg_destroy(pedido, OPCODE_RESPUESTA_OK, OBTENER_PEDIDO);

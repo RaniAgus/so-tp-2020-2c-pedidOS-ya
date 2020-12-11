@@ -109,7 +109,7 @@ static void app_recibir_mensaje(t_sfd conexion, t_header header, void* mensaje, 
 		}
 	} else //Si no es consulta, loguea un error
 	{
-		CS_LOG_ERROR("Se esperaba una consulta!!");
+		CS_LOG_WARNING("Se esperaba una consulta, se cerrará la conexión sin atender el mensaje.");
 		close(conexion);
 	}
 }
@@ -245,7 +245,7 @@ static void app_recibir_seleccionar_restaurante(t_sfd conexion, t_consulta* cons
 	}
 	else
 	{
-		CS_LOG_ERROR("Falta identificar al cliente antes de SELECCIONAR RESTAURANTE!!");
+		CS_LOG_WARNING("No se atenderá la consulta porque falta identificar al cliente para SELECCIONAR RESTAURANTE");
 		app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, SELECCIONAR_RESTAURANTE, NULL);
 	}
 
@@ -295,7 +295,7 @@ static void app_recibir_consultar_platos(t_sfd conexion, t_consulta* consulta, c
 		free(restaurante_vinculado);
 	} else
 	{
-		CS_LOG_ERROR("Falta identificar al cliente antes de CONSULTAR PLATOS!!");
+		CS_LOG_WARNING("No se atenderá la consulta porque falta identificar al cliente para CONSULTAR PLATOS");
 		app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, CONSULTAR_PLATOS, NULL);
 	}
 
@@ -349,7 +349,7 @@ static void app_recibir_crear_pedido(t_sfd conexion, t_consulta* consulta, char*
 
 	} else
 	{
-		CS_LOG_ERROR("Falta identificar al cliente antes de CREAR PEDIDO!!");
+		CS_LOG_WARNING("No se atenderá la consulta porque falta identificar al cliente para CREAR PEDIDO");
 		app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, CREAR_PEDIDO, NULL);
 	}
 
@@ -402,7 +402,7 @@ static void app_recibir_aniadir_plato(t_sfd conexion, t_consulta* consulta, char
 		free(restaurante_vinculado);
 	} else
 	{
-		CS_LOG_ERROR("Falta identificar al cliente antes de ANIADIR PLATO!!");
+		CS_LOG_WARNING("No se atenderá la consulta porque falta identificar al cliente para ANIADIR PLATO");
 		app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, ANIADIR_PLATO, NULL);
 	}
 
@@ -470,7 +470,7 @@ static void app_recibir_confirmar_pedido(t_sfd conexion, t_consulta* consulta, c
 		free(restaurante_vinculado);
 	} else
 	{
-		CS_LOG_ERROR("Falta identificar al cliente antes de CONFIRMAR PEDIDO!!");
+		CS_LOG_WARNING("No se atenderá la consulta porque falta identificar al cliente para CONFIRMAR PEDIDO");
 		app_enviar_respuesta(conexion, OPCODE_RESPUESTA_FAIL, CONFIRMAR_PEDIDO, NULL);
 	}
 
