@@ -1,32 +1,36 @@
 # Project
 NAME:=app
-SRCDIR:=src
-ODIR:=obj
-SRC:= $(wildcard $(SRCDIR)/*.c)
-OBJ:= $(patsubst $(SRCDIR)/%.c,$(ODIR)/%.o,$(SRC))
-DEPS:= $(wildcard $(SRCDIR)/*.h)
+SRC=src
+SUBDIRS=src
+OBJ=obj
 
 # Shared library
-LIB_PATH:="../cshared/"
 LIB_NAME:=cshared
+LIB_PATH:="../$(LIB_NAME)/"
+LIBS:=-L $(LIB_PATH) -l$(LIB_NAME) -lcommons -lpthread -lreadline -lm
 
 # Basic setup
 CC:=gcc
-CFLAGS:=-g -Wall -I$(LIB_PATH)
-LIBS:=-L $(LIB_PATH) -l$(LIB_NAME) -lcommons -lpthread -lreadline -lm
+C_SRCS=$(shell find . -iname "*.c" | tr '\n' ' ')
+H_SRCS=$(shell find . -iname "*.h" | tr '\n' ' ')
+OBJS=$(C_SRCS:./%.c=$(OBJ)/%.o)
 
-# Tool invocations
-$(ODIR)/%.o: $(SRCDIR)/%.c $(DEPS)
-	mkdir -p $(ODIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(NAME): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
-# All target
+# Clean and compile project
 all: $(NAME)
 
-# Clean targets
+create-dirs:
+	mkdir -p $(patsubst %,$(OBJ)/%,$(SUBDIRS))
+
+shared-library:
+	-cd $(LIB_PATH) && make
+
+$(NAME): create-dirs shared-library $(OBJS)
+	$(CC) -I$(LIB_PATH) -g -Wall -o "$(NAME)" $(OBJS) $(LIBS)
+
+$(OBJ)/$(SRC)/%.o: $(SRC)/%.c
+	$(CC) -I$(LIB_PATH) -c -fmessage-length=0 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+
+# Clean build files
 clean:
 	rm -f $(NAME)
-	rm -rf $(ODIR)
+	rm -rf $(OBJ)

@@ -1,37 +1,42 @@
-# Library name and subfolders
-LIBRARY_NAME:=cshared
-UTILSDIR:=./cshared/utils
-SRCDIR:=./cshared
+# Project
+NAME=cshared
+SRC=cshared
+SUBDIRS=cshared/utils
+OBJ=obj
 
 # Basic setup
-CC:=gcc
-CFLAGS:=-I$(UTILSDIR) -I$(SRCDIR) -g -Wall -fPIC -shared
-LIBS:=-lcommons -lpthread
+CC=gcc
+C_SRCS=$(shell find . -iname "*.c" | tr '\n' ' ')
+H_SRCS=$(shell find . -iname "*.h" | tr '\n' ' ')
+OBJS=$(C_SRCS:./%.c=$(OBJ)/%.o)
 
-# Source files
-CSHARED_SRC:=$(wildcard $(UTILSDIR)/*.c) $(wildcard $(SRCDIR)/*.c)
+# Clean and compile .so
+all: lib$(NAME).so
 
-# Dependencies
-CSHARED_DEPS:=$(wildcard $(UTILSDIR)/*.h) $(wildcard $(SRCDIR)/*.h)
+create-dirs:
+	mkdir -p $(patsubst %,$(OBJ)/%,$(SUBDIRS))
 
-# Tool invocations
-lib$(LIBRARY_NAME).so: $(CSHARED_SRC) $(CSHARED_DEPS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+lib$(NAME).so: create-dirs $(OBJS)
+	$(CC) -shared -o "lib$(NAME).so" $(OBJS)
 
-# All target
-all: lib$(LIBRARY_NAME).so
+$(OBJ)/%.o: %.c
+	$(CC) -c -fmessage-length=0 -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
 
-test: all
-	cd tests && make valgrind
+# Add debug parameters and compile
+debug: CC += -DDEBUG -g
+debug: all
+
+# Clean build files
+clean:
+	rm -f lib$(NAME).so
+	rm -rf $(OBJ)
 
 install: all
-	sudo cp -u lib$(LIBRARY_NAME).so /usr/lib
-	sudo cp --parents -u $(CSHARED_DEPS) /usr/include
+	sudo cp -u build/lib$(NAME).so /usr/lib
+	sudo cp --parents -u $(H_SRCS) /usr/include
 
 uninstall:
-	sudo rm -f /usr/lib/$(LIBRARY_NAME).so
-	sudo rm -rf /usr/include/$(LIBRARY_NAME)
+	sudo rm -f /usr/lib/lib$(NAME).so
+	sudo rm -rf /usr/include/$(NAME)
 
-# Clean targets
-clean:
-	rm *.so
+.PHONY: all create-dirs clean install uninstall

@@ -3,4 +3,4 @@
 /obj/
 /.idea/
 /.vscode/
-unit-tests
+tests
