@@ -307,6 +307,7 @@ void crearRestaurante(char** consulta){ // LISTO
 	free(pathCarpeta);
 	free(path);
 	free(escritura);
+	liberar_lista(consulta);
 }
 
 void crearReceta(char** consulta){ // LISTO
@@ -326,6 +327,7 @@ void crearReceta(char** consulta){ // LISTO
 
 	free(path);
 	free(escritura);
+	liberar_lista(consulta);
 }
 
 // --------------------- MANEJO BITMAP --------------------- //

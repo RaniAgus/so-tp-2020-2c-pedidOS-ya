@@ -188,14 +188,20 @@ void* atenderConsola(){
 		argv = cs_console_readline(">>> ", &argc);
 		if( argc > 0 && (!strcmp(argv[0], "CrearReceta") || !strcmp(argv[0], "CrearRestaurante")) ) {
 			if(!strcmp(argv[0], "CrearReceta") && crearRecetaVerificarArgumentos(argc, argv)){
-				crearReceta(argv);
+				pthread_t hiloCrearReceta;
+				pthread_create(&hiloCrearReceta, NULL, (void*)crearReceta, (void*)argv);
+				pthread_detach(hiloCrearReceta);
 			} else if(!strcmp(argv[0], "CrearRestaurante") && crearRestauranteVerificarArgumentos(argc, argv)){
-				crearRestaurante(argv);
+				pthread_t hiloCrearRestaurante;
+				pthread_create(&hiloCrearRestaurante, NULL, (void*)crearRestaurante, (void*)argv);
+				pthread_detach(hiloCrearRestaurante);
+			} else {
+				liberar_lista(argv);
 			}
 		} else if(argc > 0){
 			CS_LOG_ERROR("Mensaje invalido recibido por consola");
+			liberar_lista(argv);
 		}
-		if(argc > 0) liberar_lista(argv);
 	}
 }
 
