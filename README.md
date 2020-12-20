@@ -1,14 +1,26 @@
-# tp-2020-2c-Segundo-Saque
+# TP Sistemas Operativos - 2do Cuatrimestre 2020
 
-- [ENUNCIADO](https://docs.google.com/document/d/13JCJawPWfL2y6wGTBYykUTvQY5Uso0iYpXSFDAQFbFw)
-- [PRUEBAS BÁSICAS](https://docs.google.com/document/d/17-rWQDjldHw7QfLmyZFri0hYw9C9wJfpxHmDpAVLAwI)
-- [PRUEBAS FINALES](https://docs.google.com/document/d/1pYgeTd9Nu2LiR4CkVKAMk3W1wSIJoSENVzq2f2gmDVQ)
-- [Video 1: Introducción](https://www.youtube.com/watch?v=n4zWjlTwDtw)
-- [Video 2: Planificación](https://www.youtube.com/watch?v=SQsC7bwt3_c)
-- [Video 3: Memoria](https://www.youtube.com/watch?v=zHn_kmtbtpw)
-- [Video 4: File System](https://www.youtube.com/watch?v=f1BXdYVhrdM)
+## Grupo "Segundo Saque"
+
+| Apellido y Nombre | GitHub user | Módulos a cargo |
+|-------------------|-------------|-----------------|
+| BRUN, Maximiliano | [@BMaxi6](https://github.com/BMaxi6) | Sindicato |
+| COLLAZO, Cecilia  | [@cecicollazo](https://github.com/cecicollazo) | App |
+| OVIEDO, Facundo   | [@foviedo](https://github.com/foviedo) | Comanda |
+| RANIERI, Agustín  | [@RaniAgus](https://github.com/RaniAgus) | Restaurante / App | 
+
+## Enunciado
+
+| Documentos | Videos |
+| -----------| -------|
+| [Enunciado](https://docs.google.com/document/d/13JCJawPWfL2y6wGTBYykUTvQY5Uso0iYpXSFDAQFbFw) | [Video 1: Introducción](https://www.youtube.com/watch?v=n4zWjlTwDtw) |
+| [Pruebas básicas](https://docs.google.com/document/d/17-rWQDjldHw7QfLmyZFri0hYw9C9wJfpxHmDpAVLAwI) | [Video 2: Planificación](https://www.youtube.com/watch?v=SQsC7bwt3_c) |
+| [Pruebas avanzadas](https://docs.google.com/document/d/1pYgeTd9Nu2LiR4CkVKAMk3W1wSIJoSENVzq2f2gmDVQ) | [Video 3: Memoria](https://www.youtube.com/watch?v=zHn_kmtbtpw) |
+| | [Video 4: File System](https://www.youtube.com/watch?v=f1BXdYVhrdM) |
 
 ## Cómo deployar
+
+Para deployar, se puede utilizar el script [so-deploy](https://github.com/sisoputnfrba/so-deploy) provisto por la cátedra:
 
 ```
 git clone https://github.com/sisoputnfrba/so-deploy
@@ -18,7 +30,7 @@ cd so-deploy
 
 ## Cómo configurar las pruebas
 
-Primero, editar el archivo "pedidosya.config" ingresando los campos IP y Puerto correspondientes a cada módulo. Luego se deberá ejecutar desde el directorio raíz del repo (es decir, la carpeta "tp-2020-2c-Segundo-Saque") el siguiente comando:
+Primero, editar el archivo [pedidosya.config](https://github.com/RaniAgus/so-tp-2020-2c-pedidOS-ya/blob/master/pedidosya.config) ingresando los campos IP y Puerto correspondientes a cada módulo. Luego se deberá ejecutar desde el directorio raíz del repo (es decir, la carpeta "tp-2020-2c-Segundo-Saque") el siguiente comando:
 ```
 ./pruebas/<documento>/<prueba>.sh
 ```
@@ -41,4 +53,4 @@ Para guardar los logs en otra ubicación:
 ```
 ./save.sh <subpath>
 ```
-Por defecto, las pruebas se guardan en el directorio "/home/utnso/logs". Se debe usar el campo subpath solo en caso de que se quiera especificar un subdirectorio a partir de éste.
+Por defecto, las pruebas se guardan en el directorio "/home/utnso/logs". Se debe usar el campo subpath solo en caso de que se quiera especificar un subdirectorio a partir de éste (ej: /home/utnso/logs/**basicas/app**):
