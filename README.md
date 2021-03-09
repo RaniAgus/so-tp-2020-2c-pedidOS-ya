@@ -1,5 +1,9 @@
 # TP Sistemas Operativos - 2do Cuatrimestre 2020
 
+Simulación de un sistema de delivery de comidas similar a Pedidos Ya, como analogía para explicar de una forma práctica los conceptos teóricos dictados en la cursada de Sistemas Operativos. 
+
+Incluye: Programación en C. Tests unitarios en C. Biblioteca compartida en C. Sockets. Serialización. POSIX Threads. Concurrencia. Semáforos. Gestión de memoria. Segmentación Paginada. Planificación de procesos. Multiprogramación. Multiprocesamiento. Sistema de archivos. Bash Scripting. Automatización de deploy.
+
 ## Grupo "Segundo Saque"
 
 | Apellido y Nombre | GitHub user | Módulos a cargo |
@@ -20,12 +24,12 @@
 
 ## Cómo deployar
 
-Para deployar, se puede utilizar el script [so-deploy](https://github.com/sisoputnfrba/so-deploy) provisto por la cátedra:
+Para deployar, se puede utilizar el script [so-deploy](https://github.com/RaniAgus/so-deploy) provisto por la cátedra:
 
 ```
-git clone https://github.com/sisoputnfrba/so-deploy
+git clone https://github.com/RaniAgus/so-deploy
 cd so-deploy
-./deploy.sh -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato tp-2020-2c-Segundo-Saque
+./deploy.sh -o=RaniAgus -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato so-tp-2020-2c-pedidOS-ya
 ```
 
 ## Cómo configurar las pruebas
