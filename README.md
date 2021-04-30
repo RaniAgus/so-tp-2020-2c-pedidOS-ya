@@ -24,12 +24,12 @@ Incluye: Programación en C. Tests unitarios en C. Biblioteca compartida en C. S
 
 ## Cómo deployar
 
-Para deployar, se puede utilizar el script [so-deploy](https://github.com/RaniAgus/so-deploy) provisto por la cátedra:
+Para deployar instalando las dependencias, clonar el repo y utilizar el script `deploy.sh`:
 
 ```
-git clone https://github.com/RaniAgus/so-deploy
-cd so-deploy
-./deploy.sh -o=RaniAgus -d=cshared -p=app -p=comanda -p=cliente -p=restaurante -p=sindicato so-tp-2020-2c-pedidOS-ya
+git clone https://github.com/RaniAgus/so-tp-2020-2c-pedidOS-ya.git
+cd so-tp-2020-2c-pedidOS-ya
+./deploy.sh
 ```
 
 ## Cómo configurar las pruebas
